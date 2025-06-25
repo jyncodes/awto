@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import Navbar from '../components/Navbar';
 import '../styles/LandingPage.css';
@@ -33,9 +33,9 @@ const Register = () => {
       return false;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@gmail\.com$/; // Gmail only
     if (!emailRegex.test(email)) {
-      alert('Invalid email format.');
+      alert('Please use a valid Gmail address.');
       return false;
     }
 
@@ -56,12 +56,16 @@ const Register = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     try {
       const { user } = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
 
+      // Send email verification immediately
+      await sendEmailVerification(user);
+      navigate('/verify'); // Redirect to verification page immediately
+
+      // Store user details in Firestore (after navigate for smooth UX)
       await setDoc(doc(db, 'users', user.uid), {
         name: formData.name,
         email: formData.email,
@@ -69,18 +73,16 @@ const Register = () => {
         gender: formData.gender,
         birthday: formData.birthday,
         role: 'User',
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
       });
 
-      // Initialize 2FA settings (optional default: disabled)
+      // Optional: Initialize 2FA record
       await setDoc(doc(db, '2fa', user.uid), {
         enabled: false,
         lastOTP: null,
         expiresAt: null,
       });
 
-      alert('Account created successfully! Please login.');
-      navigate('/login');
     } catch (error) {
       console.error('Registration error:', error);
       alert(error.message);
@@ -105,7 +107,7 @@ const Register = () => {
             required
           />
 
-          <label className="form-label" htmlFor="email">Email:</label>
+          <label className="form-label" htmlFor="email">Email (Gmail only):</label>
           <input
             id="email"
             className="form-input"
@@ -113,7 +115,7 @@ const Register = () => {
             name="email"
             value={formData.email}
             onChange={handleChange}
-            placeholder="Enter your email"
+            placeholder="Enter your Gmail address"
             required
           />
 
@@ -174,7 +176,6 @@ const Register = () => {
           >
             Register
           </button>
-
         </form>
       </div>
     </>

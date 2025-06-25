@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { auth } from '../firebase';
-import { sendEmailVerification, reload, onAuthStateChanged } from 'firebase/auth';
+import {
+  sendEmailVerification,
+  reload,
+  onAuthStateChanged,
+  signOut,
+} from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import '../styles/Verify.css';
 
 const Verify = () => {
   const navigate = useNavigate();
@@ -11,22 +17,25 @@ const Verify = () => {
   const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Watch for auth state change
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      setIsVerified(currentUser?.emailVerified || false);
-      setLoading(false);
+      if (currentUser) {
+        await reload(currentUser);
+        setUser(currentUser);
+        setIsVerified(currentUser.emailVerified);
+        setLoading(false);
 
-      if (currentUser && !emailSent && !currentUser.emailVerified) {
-        sendVerificationEmail(currentUser);
+        if (!currentUser.emailVerified && !emailSent) {
+          handleSendEmail(currentUser);
+        }
+      } else {
+        navigate('/login');
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [emailSent, navigate]);
 
-  // Cooldown timer
   useEffect(() => {
     let interval;
     if (cooldown > 0) {
@@ -40,81 +49,93 @@ const Verify = () => {
     return () => clearInterval(interval);
   }, [cooldown]);
 
-  const sendVerificationEmail = (currentUser = user) => {
-    if (currentUser && !currentUser.emailVerified) {
-      sendEmailVerification(currentUser)
-        .then(() => {
-          setEmailSent(true);
-          setCooldown(60);
-        })
-        .catch((err) => {
-          console.error('Verification email error:', err);
-          alert('Failed to send verification email.');
-        });
+  const handleSendEmail = async (currentUser = user) => {
+    if (!currentUser || currentUser.emailVerified) return;
+
+    try {
+      await sendEmailVerification(currentUser);
+      setEmailSent(true);
+      setCooldown(60);
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      alert('Too many requests. Please try again later.');
     }
   };
 
-  const checkVerification = async () => {
+  const handleCheckVerification = async () => {
     try {
-      if (user) {
-        await reload(user);
-        if (user.emailVerified) {
-          setIsVerified(true);
-        } else {
-          alert('Email is still not verified.');
-        }
+      await reload(user);
+      if (user.emailVerified) {
+        setIsVerified(true);
+      } else {
+        alert('Email is still not verified.');
       }
+    } catch (error) {
+      console.error('Reload error:', error);
+      alert('Something went wrong. Please try again.');
+    }
+  };
+
+  const handleGoToLogin = async () => {
+    try {
+      await signOut(auth); // logout first
+      navigate('/login'); // then go to login
     } catch (err) {
-      console.error('Error reloading user:', err);
+      console.error('Sign out failed:', err);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
-        <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full" />
+      <div className="verify-loading-screen">
+        <div className="verify-spinner" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100 px-4">
-      <div className="bg-white p-8 rounded shadow-md max-w-md w-full text-center">
-        <h2 className="text-2xl font-bold mb-4 text-blue-600">Verify Your Email</h2>
+    <div className="verify-page">
+      <div className="verify-container">
+        <h2 className="verify-title">Verify Your Email</h2>
 
         {!isVerified ? (
           <>
-            <p className="text-gray-700 mb-4">
-              We've sent a verification email to <strong>{user?.email}</strong>.<br />
-              Please check your inbox (or spam folder).
+            <p className="verify-description">
+              A verification link has been sent to:<br />
+              <span className="verify-email">{user?.email}</span><br />
+              Please check your inbox or spam folder.
             </p>
 
+            {emailSent && (
+              <p className="verify-success">✅ Verification email sent successfully!</p>
+            )}
+
             {cooldown > 0 ? (
-              <p className="text-gray-500 mb-4">Resend available in {cooldown}s</p>
+              <p className="verify-description">
+                You can resend the email in <strong>{cooldown}</strong> seconds.
+              </p>
             ) : (
               <button
-                onClick={() => sendVerificationEmail(user)}
-                className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded mb-4"
+                onClick={handleSendEmail}
+                className="verify-button"
               >
                 Resend Verification Email
               </button>
             )}
 
             <button
-              onClick={checkVerification}
-              className="mt-2 text-sm text-blue-500 hover:underline"
+              onClick={handleCheckVerification}
+              className="verify-secondary-button"
             >
               I’ve already verified. Check again.
             </button>
           </>
         ) : (
           <>
-            <p className="text-green-600 font-semibold mb-4">
-              Your email is now verified! 🎉
-            </p>
+            <p className="verify-success">Your email is verified!</p>
             <button
-              onClick={() => navigate('/login')}
-              className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded"
+              onClick={handleGoToLogin}
+              className="verify-button verify-success-button"
             >
               Go to Login
             </button>
