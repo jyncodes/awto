@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import "../styles/CatalogBox.css";
 
@@ -13,16 +13,22 @@ const CatalogBox = ({ filters }) => {
   const itemsPerPage = 8;
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Real-time load from Firestore
+  // One-time fetch from Firestore
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
-      const fetched = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setProducts(fetched);
-    });
-    return () => unsubscribe();
+    const fetchProducts = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "products"));
+        const fetched = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setProducts(fetched);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   // Apply filters + sort
@@ -39,7 +45,7 @@ const CatalogBox = ({ filters }) => {
     }
 
     setFilteredProducts(sortProducts(result, sortOption));
-    setCurrentPage(1); // Reset to first page if filters/sort change
+    setCurrentPage(1);
   }, [filters, products, sortOption]);
 
   const sortProducts = (products, option) => {
@@ -96,17 +102,7 @@ const CatalogBox = ({ filters }) => {
               price,
               reviews = [],
               new: isNew,
-            } = product;566666666666666666666666
-
-
-
-
-
-
-
-
-
-            
+            } = product;
 
             return (
               <div key={id} className="product-card" onClick={() => handleView(id)}>

@@ -15,6 +15,7 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../firebase";
 import Calendar from "react-calendar";
+import axios from "axios";
 import "react-calendar/dist/Calendar.css";
 import "../styles/ReservationPage.css";
 
@@ -52,6 +53,25 @@ const ReservationPage = () => {
 
       return `RES${String(nextId).padStart(5, "0")}`;
     });
+  };
+
+  const sendReservationEmail = async (userEmail, userName, appointmentTime) => {
+    try {
+      await axios.post("http://localhost:5000/send-email", {
+        to: userEmail,
+        name: userName,
+        subject: "Reservation Confirmed",
+        htmlContent: `
+          <p>Hello ${userName},</p>
+          <p>Your reservation has been confirmed.</p>
+          <p><strong>Appointment Time:</strong> ${appointmentTime}</p>
+          <p>Thank you,<br/>Awto Team</p>
+        `,
+      });
+      console.log("✅ Email sent!");
+    } catch (error) {
+      console.error("❌ Email failed:", error);
+    }
   };
 
   useEffect(() => {
@@ -156,6 +176,9 @@ const ReservationPage = () => {
       await setDoc(doc(db, "reservations", reservationId), reservationData);
       alert("Reservation submitted! Redirecting to invoice...");
       navigate(`/invoice/${reservationId}`);
+
+      const appointmentTime = date.toLocaleString();
+      await sendReservationEmail(user.email, user.displayName || "Customer", appointmentTime);
     } catch (err) {
       console.error("Reservation error:", err);
       alert("Failed to submit reservation. Try again.");
@@ -195,7 +218,7 @@ const ReservationPage = () => {
         <select value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)}>
           <option value="">Select a time</option>
           {timeSlots.map((slot) => {
-            const [hour, minute] = slot.split(":").map(Number);
+            const [hour, minute] = slot.split(":" ).map(Number);
             const now = new Date();
             const selected = new Date(preferredDate);
             selected.setHours(hour, minute, 0, 0);
