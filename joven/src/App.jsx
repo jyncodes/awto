@@ -31,7 +31,8 @@ import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
 import UserDashboard from './pages/user-page/UserDashboard';
 import UserProfile from './pages/user-page/UserProfile';
 import InvoicePage from './pages/user-page/InvoicePage';
-import PaymentPage from './pages/user-page/PaymentPage'; // ✅ ADDED
+import PaymentPage from './pages/user-page/PaymentPage';
+import ReceiptPage from './pages/user-page/ReceiptPage'; // ✅ Added
 
 // Reservation Page
 import ReservationPage from './components/ReservationPage';
@@ -164,6 +165,18 @@ export default function App() {
             <RequireVerifiedEmail>
               <ProtectedRoute role="User">
                 <PaymentPage />
+              </ProtectedRoute>
+            </RequireVerifiedEmail>
+          }
+        />
+
+        {/* ✅ Receipt Route */}
+        <Route
+          path="/receipt/:reservationId"
+          element={
+            <RequireVerifiedEmail>
+              <ProtectedRoute role="User">
+                <ReceiptPage />
               </ProtectedRoute>
             </RequireVerifiedEmail>
           }

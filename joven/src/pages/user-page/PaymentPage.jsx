@@ -1,45 +1,84 @@
-// src/pages/user-page/PaymentPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { db, auth } from "../../firebase";
 import "../../styles/PaymentPage.css";
 
 const PaymentPage = () => {
   const { reservationId } = useParams();
   const navigate = useNavigate();
+
   const [reservation, setReservation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        navigate("/login");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchReservation = async () => {
       try {
         const docRef = doc(db, "reservations", reservationId);
         const docSnap = await getDoc(docRef);
+
         if (docSnap.exists()) {
-          setReservation(docSnap.data());
+          const data = docSnap.data();
+
+          // Only allow owner of the reservation to access
+          if (data.userId !== auth.currentUser?.uid) {
+            alert("❌ You do not have permission to view this reservation.");
+            navigate("/my-selections");
+            return;
+          }
+
+          setReservation(data);
         } else {
-          alert("Reservation not found.");
+          alert("❌ Reservation not found.");
           navigate("/my-selections");
         }
       } catch (err) {
-        console.error("Error fetching reservation:", err);
+        console.error("❌ Error fetching reservation:", err);
+        alert("Failed to load reservation.");
         navigate("/my-selections");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchReservation();
-  }, [reservationId, navigate]);
+    if (currentUser) {
+      fetchReservation();
+    }
+  }, [reservationId, navigate, currentUser]);
 
-  const handlePayNow = () => {
+  const handlePayNow = async () => {
+    if (!reservationId) return;
+
     setPaying(true);
-    setTimeout(() => {
+    try {
+      const reservationRef = doc(db, "reservations", reservationId);
+      await updateDoc(reservationRef, {
+        paymentStatus: "paid",
+      });
+
       alert("✅ Payment successful via PayMongo (mock)");
-      navigate(`/invoice/${reservationId}`);
-    }, 2000);
+      navigate(`/profile?tab=reservations`);
+    } catch (error) {
+      console.error("❌ Failed to update payment status:", error);
+      alert("❌ Payment failed. You may not have permission.");
+    } finally {
+      setPaying(false);
+    }
   };
 
   if (loading) {
@@ -48,7 +87,8 @@ const PaymentPage = () => {
 
   if (!reservation) return null;
 
-  const formattedDateTime = reservation.preferredDateTime?.toDate?.().toLocaleString?.() || "Unavailable";
+  const formattedDateTime =
+    reservation.preferredDateTime?.toDate?.().toLocaleString?.() || "Unavailable";
 
   return (
     <div className="payment-page">

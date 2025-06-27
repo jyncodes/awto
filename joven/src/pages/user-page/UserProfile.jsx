@@ -38,9 +38,8 @@ const UserProfile = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const formatTimestamp = (ts) => {
-    return ts?.toDate ? ts.toDate().toLocaleString() : "N/A";
-  };
+  const formatTimestamp = (ts) =>
+    ts?.toDate ? ts.toDate().toLocaleString() : "N/A";
 
   const fetchUserData = async (uid) => {
     const userRef = doc(db, "users", uid);
@@ -56,9 +55,18 @@ const UserProfile = () => {
     const q = query(collection(db, "reservations"), where("userId", "==", uid));
     const querySnapshot = await getDocs(q);
     const userReservations = [];
+
     querySnapshot.forEach((doc) => {
       userReservations.push({ id: doc.id, ...doc.data() });
     });
+
+    // Sort by preferred date (latest first)
+    userReservations.sort((a, b) => {
+      const dateA = a.preferredDateTime?.toDate?.() || 0;
+      const dateB = b.preferredDateTime?.toDate?.() || 0;
+      return dateB - dateA;
+    });
+
     setReservations(userReservations);
   };
 
@@ -83,6 +91,11 @@ const UserProfile = () => {
       setActiveTab(tabFromQuery);
     }
   }, [location.search]);
+
+  const handleTabSwitch = (tab) => {
+    setActiveTab(tab);
+    navigate(`/profile?tab=${tab}`);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -159,10 +172,9 @@ const UserProfile = () => {
 
         <h2>My Account</h2>
         <ul>
-          <li className={activeTab === "profile" ? "active" : ""} onClick={() => setActiveTab("profile")}>Profile</li>
-          <li className={activeTab === "reservations" ? "active" : ""} onClick={() => setActiveTab("reservations")}>Reservations</li>
-          <li className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Payment</li>
-          <li className={activeTab === "settings" ? "active" : ""} onClick={() => setActiveTab("settings")}>Settings</li>
+          <li className={activeTab === "profile" ? "active" : ""} onClick={() => handleTabSwitch("profile")}>Profile</li>
+          <li className={activeTab === "reservations" ? "active" : ""} onClick={() => handleTabSwitch("reservations")}>Reservations</li>
+          <li className={activeTab === "settings" ? "active" : ""} onClick={() => handleTabSwitch("settings")}>Settings</li>
           <li onClick={() => auth.signOut()}>Logout</li>
         </ul>
       </aside>
@@ -198,52 +210,10 @@ const UserProfile = () => {
                     <p><strong>Size:</strong> {res.size}</p>
                     <p><strong>Date:</strong> {formatTimestamp(res.preferredDateTime)}</p>
                     <p><strong>Status:</strong> {res.status}</p>
-                    <button className="invoice-button" onClick={() => navigate(`/invoice/${res.id}`)}>
-                      View Invoice
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === "payment" && (
-          <>
-            <h2>My Payments</h2>
-            {reservations.length === 0 ? (
-              <p>No reservations found.</p>
-            ) : (
-              <div className="orders-list">
-                {reservations.map((res) => (
-                  <div key={res.id} className="order-card">
-                    <p><strong>Product:</strong> {res.productName}</p>
-                    <p><strong>Date:</strong> {formatTimestamp(res.preferredDateTime)}</p>
-                    <p><strong>Price:</strong> ₱{res.price}</p>
-                    <p><strong>Status:</strong> {res.status || "active"}</p>
                     <p><strong>Payment:</strong> {res.paymentStatus || "unpaid"}</p>
-
-                    {res.status !== "cancelled" && res.paymentStatus !== "paid" && (
-                      <button
-                        className="pay-button"
-                        onClick={() => navigate(`/payment/${res.id}`)}
-                      >
-                        Pay Now
-                      </button>
-                    )}
-
-                    {res.paymentStatus === "paid" && (
-                      <button
-                        className="invoice-button"
-                        onClick={() => navigate(`/invoice/${res.id}`)}
-                      >
-                        View Invoice
-                      </button>
-                    )}
-
-                    {res.status === "cancelled" && (
-                      <p className="cancelled-text">❌ This reservation was cancelled.</p>
-                    )}
+                    <button className="receipt-button" onClick={() => navigate(`/receipt/${res.id}`)}>
+                      View Receipt
+                    </button>
                   </div>
                 ))}
               </div>

@@ -209,7 +209,7 @@
   color: #333;
 }
 
-.invoice-button {
+.receipt-button {
   margin-top: 1rem;
   background-color: #0a3d62;
   color: white;
@@ -221,7 +221,7 @@
   transition: background-color 0.3s ease;
 }
 
-.invoice-button:hover {
+.receipt-button:hover {
   background-color: #125b8c;
 }
   
