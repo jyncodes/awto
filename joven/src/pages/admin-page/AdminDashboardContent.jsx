@@ -1,36 +1,38 @@
-// src/pages/admin-page/AdminDashboardContent.jsx
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import '../../styles/admin-styles/AdminDashboardContent.css';
 
 const AdminDashboardContent = () => {
   const [totalOrders, setTotalOrders] = useState(0);
-  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [totalSales, setTotalSales] = useState(0);
   const [totalCustomers, setTotalCustomers] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'sales'), (snapshot) => {
       let orders = 0;
-      let earnings = 0;
+      let sales = 0;
       const customers = new Set();
 
-      snapshot.docs.forEach(doc => {
+      snapshot.docs.forEach((doc) => {
         const data = doc.data();
         orders++;
-        earnings += Number(data.totalAmount || 0);
-        customers.add(data.customerName); // or customerId
+        sales += Number(data.totalAmount || 0);
+        customers.add(data.customerName);
       });
 
       setTotalOrders(orders);
-      setTotalEarnings(earnings);
+      setTotalSales(sales);
       setTotalCustomers(customers.size);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const formatCurrency = (amount) => `₱${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const formatCurrency = (amount) =>
+    `₱${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   return (
     <div className="dashboard-container">
@@ -39,25 +41,45 @@ const AdminDashboardContent = () => {
       </div>
 
       <div className="summary-cards-grid">
-        <SummaryCard title="Total Orders" value={totalOrders} icon="🧾" bg="purple" />
-        <SummaryCard title="Total Earnings" value={formatCurrency(totalEarnings)} icon="💰" bg="green" />
-        <SummaryCard title="Total Revenue" value={formatCurrency(totalEarnings * 0.9)} icon="📈" bg="yellow" />
-        <SummaryCard title="Total Expenses" value={formatCurrency(totalEarnings * 0.2)} icon="📉" bg="blue" />
-        <SummaryCard title="Total Customers" value={totalCustomers} icon="👥" bg="pink" />
-        <SummaryCard title="Growth" value="34,678" icon="📊" bg="red" />
+        <SummaryCard
+          title="Total Orders"
+          value={totalOrders.toLocaleString()}
+          icon="🧾"
+          bg="purple"
+          tooltip="Click to view all orders"
+          onClick={() => navigate('/admin/orders')}
+        />
+        <SummaryCard
+          title="Total Sales"
+          value={formatCurrency(totalSales)}
+          icon="💰"
+          bg="green"
+          tooltip="Total sales amount"
+        />
+        <SummaryCard
+          title="Total Customers"
+          value={totalCustomers}
+          icon="👥"
+          bg="pink"
+          tooltip="Unique customers"
+        />
       </div>
     </div>
   );
 };
 
-// Card component
-const SummaryCard = ({ title, value, icon, bg }) => {
+// Reusable card component
+const SummaryCard = ({ title, value, icon, bg, tooltip, onClick }) => {
   return (
-    <div className={`card ${bg}-bg`}>
+    <div
+      className={`card ${bg}-bg`}
+      title={tooltip}
+      onClick={onClick}
+      style={{ cursor: onClick ? 'pointer' : 'default' }}
+    >
       <div className="card-content">
         <p className="card-label">{title}</p>
         <h2 className="card-value">{value}</h2>
-        <p className="card-subtext">Since Last Month <span className="positive-change">1.5%↑</span></p>
       </div>
       <div className="card-icon-wrapper">
         <span className="card-icon-text">{icon}</span>
