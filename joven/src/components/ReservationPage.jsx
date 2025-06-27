@@ -153,6 +153,8 @@ const ReservationPage = () => {
     const reservationData = {
       id: reservationId,
       userId: user.uid,
+      userEmail: user.email,                             // ✅ For reminder
+      userName: user.displayName || "Customer",         // ✅ For reminder
       productId: product.id,
       productName,
       brand: product.brand,
@@ -171,6 +173,7 @@ const ReservationPage = () => {
       paymentMethod: "PayMongo",
       status: "Pending Payment",
       isCancelled: false,
+      reminderSent: false,                              // ✅ Optional flag (for Node.js check)
       createdAt: serverTimestamp(),
     };
 
