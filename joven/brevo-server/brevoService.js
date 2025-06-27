@@ -15,8 +15,9 @@ const sendEmail = async (toEmail, toName, subject, htmlContent) => {
   };
 
   try {
-    await apiInstance.sendTransacEmail(email);
-    console.log(`✅ Reminder sent to ${toEmail}`);
+    const response = await apiInstance.sendTransacEmail(email);
+    console.log(`✅ Email sent to ${toEmail}`);
+    console.log(response);
   } catch (error) {
     console.error(`❌ Failed to send to ${toEmail}`, error?.response?.body || error);
   }

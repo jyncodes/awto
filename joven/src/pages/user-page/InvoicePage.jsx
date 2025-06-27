@@ -50,9 +50,13 @@ const InvoicePage = () => {
     );
   }
 
-  // ✅ Convert Firestore Timestamp to readable string
-  const readableDate = reservation.preferredDateTime?.toDate
+  // ✅ Safely convert Timestamps to readable strings
+  const readableDate = reservation?.preferredDateTime?.toDate?.()
     ? reservation.preferredDateTime.toDate().toLocaleString()
+    : "N/A";
+
+  const createdAt = reservation?.createdAt?.toDate?.()
+    ? reservation.createdAt.toDate().toLocaleString()
     : "N/A";
 
   return (
@@ -60,35 +64,36 @@ const InvoicePage = () => {
       <div className="invoice-box">
         <h2>Reservation Invoice</h2>
         <p><strong>Invoice ID:</strong> {reservationId}</p>
-        <p><strong>Date:</strong> {readableDate}</p>
+        <p><strong>Appointment Time:</strong> {readableDate}</p>
+        <p><strong>Created At:</strong> {createdAt}</p>
 
         <hr />
 
         <h3>Customer Vehicle</h3>
-        <p><strong>Brand:</strong> {reservation.vehicleBrand}</p>
-        <p><strong>Model:</strong> {reservation.vehicleModel}</p>
-        <p><strong>Year:</strong> {reservation.vehicleYear}</p>
-        <p><strong>Plate Number:</strong> {reservation.plateNumber}</p>
+        <p><strong>Brand:</strong> {reservation.vehicleBrand || "N/A"}</p>
+        <p><strong>Model:</strong> {reservation.vehicleModel || "N/A"}</p>
+        <p><strong>Year:</strong> {reservation.vehicleYear || "N/A"}</p>
+        <p><strong>Plate Number:</strong> {reservation.plateNumber || "N/A"}</p>
 
         <hr />
 
         <h3>Service & Product</h3>
-        <p><strong>Service Type:</strong> {reservation.serviceType}</p>
-        <p><strong>Product:</strong> {reservation.productName}</p>
-        <p><strong>Size:</strong> {reservation.size}</p>
-        <p><strong>Brand:</strong> {reservation.brand}</p>
-        <p><strong>Type:</strong> {reservation.type}</p>
+        <p><strong>Service Type:</strong> {reservation.serviceType || "N/A"}</p>
+        <p><strong>Product:</strong> {reservation.productName || "N/A"}</p>
+        <p><strong>Size:</strong> {reservation.size || "N/A"}</p>
+        <p><strong>Brand:</strong> {reservation.brand || "N/A"}</p>
+        <p><strong>Type:</strong> {reservation.type || "N/A"}</p>
 
         <hr />
 
         <h3>Payment Details</h3>
-        <p><strong>Total Price:</strong> ₱{reservation.price}</p>
-        <p><strong>Downpayment:</strong> ₱{reservation.downpayment}</p>
-        <p><strong>Payment Method:</strong> {reservation.paymentMethod}</p>
+        <p><strong>Total Price:</strong> ₱{reservation.price?.toLocaleString() || 0}</p>
+        <p><strong>Downpayment:</strong> ₱{reservation.downpayment?.toLocaleString() || 0}</p>
+        <p><strong>Payment Method:</strong> {reservation.paymentMethod || "N/A"}</p>
 
         <hr />
 
-        <p><strong>Status:</strong> {reservation.status}</p>
+        <p><strong>Status:</strong> {reservation.status || "Pending"}</p>
         <p><strong>Note:</strong> {reservation.note || "None"}</p>
 
         <div className="button-group">

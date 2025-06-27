@@ -232,7 +232,7 @@ const ReservationPage = () => {
 
             return (
               <option key={slot} value={slot} disabled={isDisabled}>
-                {slot} {isReserved ? "(Reserved)" : isPast ? "" : ""}
+                {slot} {isReserved ? "(Reserved)" : ""}
               </option>
             );
           })}

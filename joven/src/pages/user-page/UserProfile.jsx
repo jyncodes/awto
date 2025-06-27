@@ -38,6 +38,10 @@ const UserProfile = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const formatTimestamp = (ts) => {
+    return ts?.toDate ? ts.toDate().toLocaleString() : "N/A";
+  };
+
   const fetchUserData = async (uid) => {
     const userRef = doc(db, "users", uid);
     const userSnap = await getDoc(userRef);
@@ -192,7 +196,7 @@ const UserProfile = () => {
                     <p><strong>Product:</strong> {res.productName}</p>
                     <p><strong>Brand:</strong> {res.brand}</p>
                     <p><strong>Size:</strong> {res.size}</p>
-                    <p><strong>Date:</strong> {res.preferredDateTime}</p>
+                    <p><strong>Date:</strong> {formatTimestamp(res.preferredDateTime)}</p>
                     <p><strong>Status:</strong> {res.status}</p>
                     <button className="invoice-button" onClick={() => navigate(`/invoice/${res.id}`)}>
                       View Invoice
@@ -214,7 +218,7 @@ const UserProfile = () => {
                 {reservations.map((res) => (
                   <div key={res.id} className="order-card">
                     <p><strong>Product:</strong> {res.productName}</p>
-                    <p><strong>Date:</strong> {res.preferredDateTime}</p>
+                    <p><strong>Date:</strong> {formatTimestamp(res.preferredDateTime)}</p>
                     <p><strong>Price:</strong> ₱{res.price}</p>
                     <p><strong>Status:</strong> {res.status || "active"}</p>
                     <p><strong>Payment:</strong> {res.paymentStatus || "unpaid"}</p>
