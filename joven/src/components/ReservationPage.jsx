@@ -109,18 +109,20 @@ const ReservationPage = () => {
       const q = query(
         collection(db, "reservations"),
         where("productId", "==", productId),
-        where("isCancelled", "==", false),
-        where("preferredDateTime", ">=", Timestamp.fromDate(start)),
-        where("preferredDateTime", "<=", Timestamp.fromDate(end))
+        where("isCancelled", "==", false)
       );
 
       try {
         const snapshot = await getDocs(q);
-        const takenTimes = snapshot.docs.map((doc) => {
-          const ts = doc.data().preferredDateTime;
-          const dt = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
-          return dt.toTimeString().slice(0, 5);
-        });
+        const takenTimes = snapshot.docs
+          .map((doc) => {
+            const ts = doc.data().preferredDateTime;
+            const dt = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+            return dt;
+          })
+          .filter((dt) => dt >= start && dt <= end)
+          .map((dt) => dt.toTimeString().slice(0, 5));
+
         setReservedTimes(takenTimes);
       } catch (error) {
         console.error("Error fetching reserved times:", error);
@@ -218,7 +220,7 @@ const ReservationPage = () => {
         <select value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)}>
           <option value="">Select a time</option>
           {timeSlots.map((slot) => {
-            const [hour, minute] = slot.split(":" ).map(Number);
+            const [hour, minute] = slot.split(":").map(Number);
             const now = new Date();
             const selected = new Date(preferredDate);
             selected.setHours(hour, minute, 0, 0);

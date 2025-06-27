@@ -50,12 +50,17 @@ const InvoicePage = () => {
     );
   }
 
+  // ✅ Convert Firestore Timestamp to readable string
+  const readableDate = reservation.preferredDateTime?.toDate
+    ? reservation.preferredDateTime.toDate().toLocaleString()
+    : "N/A";
+
   return (
     <div className="invoice-page">
       <div className="invoice-box">
         <h2>Reservation Invoice</h2>
         <p><strong>Invoice ID:</strong> {reservationId}</p>
-        <p><strong>Date:</strong> {reservation.preferredDateTime}</p>
+        <p><strong>Date:</strong> {readableDate}</p>
 
         <hr />
 
