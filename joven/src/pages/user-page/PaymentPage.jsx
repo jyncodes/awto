@@ -39,7 +39,7 @@ const PaymentPage = () => {
     setTimeout(() => {
       alert("✅ Payment successful via PayMongo (mock)");
       navigate(`/invoice/${reservationId}`);
-    }, 2000); // Simulated delay
+    }, 2000);
   };
 
   if (loading) {
@@ -47,6 +47,8 @@ const PaymentPage = () => {
   }
 
   if (!reservation) return null;
+
+  const formattedDateTime = reservation.preferredDateTime?.toDate?.().toLocaleString?.() || "Unavailable";
 
   return (
     <div className="payment-page">
@@ -56,7 +58,7 @@ const PaymentPage = () => {
         <p><strong>Brand:</strong> {reservation.brand}</p>
         <p><strong>Vehicle:</strong> {`${reservation.vehicleBrand} ${reservation.vehicleModel} ${reservation.vehicleYear}`}</p>
         <p><strong>Plate Number:</strong> {reservation.plateNumber}</p>
-        <p><strong>Date & Time:</strong> {reservation.preferredDateTime}</p>
+        <p><strong>Date & Time:</strong> {formattedDateTime}</p>
         <p><strong>Service Type:</strong> {reservation.serviceType}</p>
         <p><strong>Total Price:</strong> ₱{reservation.price}</p>
         <p><strong>Downpayment (30%):</strong> ₱{reservation.downpayment}</p>
