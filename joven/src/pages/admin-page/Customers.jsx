@@ -1,4 +1,3 @@
-// src/pages/admin-page/Customers.jsx
 import React, { useEffect, useState } from 'react';
 import { db } from '../../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
@@ -10,17 +9,19 @@ const AdminCustomers = () => {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const list = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const list = snapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        .filter((user) => user.role === 'User'); // ✅ Only include users with role "User"
       setCustomers(list);
     });
 
     return () => unsub();
   }, []);
 
-  const filtered = customers.filter(c =>
+  const filtered = customers.filter((c) =>
     `${c.name} ${c.email}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
