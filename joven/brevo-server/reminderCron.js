@@ -32,7 +32,7 @@ const checkReservationsAndSendReminders = async () => {
     console.log(`📦 Found ${matchingReservations.length} matching reservations`);
 
     if (matchingReservations.length === 0) {
-      console.log('⏰ No reminders needed at this time.');
+      console.log('No reminders needed at this time.');
       return;
     }
 
@@ -42,7 +42,7 @@ const checkReservationsAndSendReminders = async () => {
       const user = userSnap.data();
 
       const formattedDate = res.preferredDateTime.toDate().toLocaleString();
-      const subject = `⏰ Reminder: Your appointment is at ${formattedDate}`;
+      const subject = `Reminder: Your appointment is at ${formattedDate}`;
       const htmlContent = `
         <h3>Hi ${user?.name || 'Customer'},</h3>
         <p>This is a reminder that your reservation (<strong>${docSnap.id}</strong>) is scheduled for:</p>
