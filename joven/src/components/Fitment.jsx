@@ -1,161 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import '../styles/Fitment.css';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useNavigate } from 'react-router-dom';
+// Fitment.jsx
+import React, { useState, useEffect } from "react";
+import {
+  fetchYears,
+  fetchMakes,
+  fetchModels,
+  fetchTrims,
+  fetchTrimDetails,
+} from "../hooks/useFitment";
 
 const Fitment = () => {
-  const navigate = useNavigate();
+  const [years, setYears] = useState([]);
+  const [makes, setMakes] = useState([]);
+  const [models, setModels] = useState([]);
+  const [trims, setTrims] = useState([]);
 
-  const [filters, setFilters] = useState({
-    year: '',
-    make: '',
-    model: '',
-    trim: '',
-    drive: ''
-  });
+  const [selectedYear, setSelectedYear] = useState("");
+  const [selectedMake, setSelectedMake] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+  const [selectedTrim, setSelectedTrim] = useState("");
 
-  const [options, setOptions] = useState({
-    years: [],
-    makes: [],
-    models: [],
-    trims: [],
-    drives: []
-  });
+  const [trimDetails, setTrimDetails] = useState(null);
 
-  const [loading, setLoading] = useState(false);
-
+  // Load Years on mount
   useEffect(() => {
-    const fetchYears = async () => {
-      const snapshot = await getDocs(collection(db, 'tireProducts'));
-      const years = new Set();
-      snapshot.forEach(doc => years.add(doc.data().year));
-      setOptions(prev => ({ ...prev, years: [...years] }));
+    const loadYears = async () => {
+      const y = await fetchYears();
+      setYears(y);
+      console.log("Years:", y);
     };
-    fetchYears();
+    loadYears();
   }, []);
 
+  // Load Makes when Year changes
   useEffect(() => {
-    const fetchMakes = async () => {
-      if (!filters.year) return;
-      const q = query(collection(db, 'tireProducts'), where('year', '==', filters.year));
-      const snapshot = await getDocs(q);
-      const makes = new Set();
-      snapshot.forEach(doc => makes.add(doc.data().make));
-      setOptions(prev => ({ ...prev, makes: [...makes], models: [], trims: [], drives: [] }));
+    if (!selectedYear) return;
+    const loadMakes = async () => {
+      const m = await fetchMakes(selectedYear);
+      setMakes(m);
+      console.log("Makes:", m);
     };
-    fetchMakes();
-  }, [filters.year]);
+    loadMakes();
+    setSelectedMake("");
+    setSelectedModel("");
+    setSelectedTrim("");
+    setModels([]);
+    setTrims([]);
+    setTrimDetails(null);
+  }, [selectedYear]);
 
+  // Load Models when Make changes
   useEffect(() => {
-    const fetchModels = async () => {
-      if (!filters.make) return;
-      const q = query(
-        collection(db, 'tireProducts'),
-        where('year', '==', filters.year),
-        where('make', '==', filters.make)
-      );
-      const snapshot = await getDocs(q);
-      const models = new Set();
-      snapshot.forEach(doc => models.add(doc.data().model));
-      setOptions(prev => ({ ...prev, models: [...models], trims: [], drives: [] }));
+    if (!selectedYear || !selectedMake) return;
+    const loadModels = async () => {
+      const m = await fetchModels(selectedYear, selectedMake);
+      setModels(m);
+      console.log("Models:", m);
     };
-    fetchModels();
-  }, [filters.make]);
+    loadModels();
+    setSelectedModel("");
+    setSelectedTrim("");
+    setTrims([]);
+    setTrimDetails(null);
+  }, [selectedMake]);
 
+  // Load Trims when Model changes
   useEffect(() => {
-    const fetchTrims = async () => {
-      if (!filters.model) return;
-      const q = query(
-        collection(db, 'tireProducts'),
-        where('year', '==', filters.year),
-        where('make', '==', filters.make),
-        where('model', '==', filters.model)
-      );
-      const snapshot = await getDocs(q);
-      const trims = new Set();
-      snapshot.forEach(doc => trims.add(doc.data().trim));
-      setOptions(prev => ({ ...prev, trims: [...trims], drives: [] }));
+    if (!selectedYear || !selectedMake || !selectedModel) return;
+    const loadTrims = async () => {
+      const t = await fetchTrims(selectedYear, selectedMake, selectedModel);
+      setTrims(t);
+      console.log("Trims:", t);
     };
-    fetchTrims();
-  }, [filters.model]);
+    loadTrims();
+    setSelectedTrim("");
+    setTrimDetails(null);
+  }, [selectedModel]);
 
+  // Load Trim Details when Trim selected
   useEffect(() => {
-    const fetchDrives = async () => {
-      if (!filters.trim) return;
-      const q = query(
-        collection(db, 'tireProducts'),
-        where('year', '==', filters.year),
-        where('make', '==', filters.make),
-        where('model', '==', filters.model),
-        where('trim', '==', filters.trim)
-      );
-      const snapshot = await getDocs(q);
-      const drives = new Set();
-      snapshot.forEach(doc => drives.add(doc.data().drive));
-      setOptions(prev => ({ ...prev, drives: [...drives] }));
+    if (!selectedTrim) return;
+    const loadTrimDetails = async () => {
+      const d = await fetchTrimDetails(selectedTrim);
+      setTrimDetails(d);
+      console.log("Trim Details:", d);
     };
-    fetchDrives();
-  }, [filters.trim]);
-
-  const handleChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-  };
-
-  const handleShowResults = async () => {
-    setLoading(true);
-    const { year, make, model, trim, drive } = filters;
-
-    const q = query(
-      collection(db, 'tireProducts'),
-      where('year', '==', year),
-      where('make', '==', make),
-      where('model', '==', model),
-      where('trim', '==', trim),
-      where('drive', '==', drive)
-    );
-
-    await getDocs(q); // Optional: setSuggestedProducts if you display suggestions
-    setLoading(false);
-    navigate('/user-dashboard', { state: filters });
-  };
+    loadTrimDetails();
+  }, [selectedTrim]);
 
   return (
-    <section className="fitment-section">
-      <video autoPlay muted loop playsInline className="background-video">
-        <source src="/videos/fitment-bg.mp4" type="video/mp4" />
-        Your browser does not support HTML5 video.
-      </video>
+    <div className="p-6 max-w-xl mx-auto space-y-4">
+      <h1 className="text-xl font-semibold mb-2">Fitment Recommendation</h1>
 
-      <div className="fitment-overlay">
-        <div className="fitment-heading">
-          <h2 className="fitment-subtitle">FIND WHAT FITS YOUR RIDE</h2>
-          <h1 className="fitment-title">Fitment Video Guides</h1>
-          <p className="fitment-description">CAR WHEELS, TIRES, SUSPENSION & MORE</p>
+      <select
+        className="w-full p-2 border rounded"
+        value={selectedYear}
+        onChange={(e) => setSelectedYear(e.target.value)}
+      >
+        <option value="">Select Year</option>
+        {years.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
+
+      <select
+        className="w-full p-2 border rounded"
+        value={selectedMake}
+        onChange={(e) => setSelectedMake(e.target.value)}
+        disabled={!makes.length}
+      >
+        <option value="">Select Make</option>
+        {makes.map((make) => (
+          <option key={make.slug} value={make.slug}>
+            {make.name}
+          </option>
+        ))}
+      </select>
+
+      <select
+        className="w-full p-2 border rounded"
+        value={selectedModel}
+        onChange={(e) => setSelectedModel(e.target.value)}
+        disabled={!models.length}
+      >
+        <option value="">Select Model</option>
+        {models.map((model) => (
+          <option key={model.slug} value={model.slug}>
+            {model.name}
+          </option>
+        ))}
+      </select>
+
+      <select
+        className="w-full p-2 border rounded"
+        value={selectedTrim}
+        onChange={(e) => setSelectedTrim(e.target.value)}
+        disabled={!trims.length}
+      >
+        <option value="">Select Trim</option>
+        {trims.map((trim) => (
+          <option key={trim.id} value={trim.id}>
+            {trim.name}
+          </option>
+        ))}
+      </select>
+
+      {trimDetails && (
+        <div className="mt-4 border p-4 rounded bg-gray-50">
+          <h2 className="text-lg font-medium">Recommended Specs</h2>
+          <p><strong>Tire Size:</strong> {trimDetails.tireSize}</p>
+          <p><strong>Wheel Size:</strong> {trimDetails.wheelSize}</p>
+          <p><strong>Bolt Pattern:</strong> {trimDetails.boltPattern}</p>
+          <p><strong>Offset:</strong> {trimDetails.offset}</p>
+          <p><strong>Hub Bore:</strong> {trimDetails.hubBore}</p>
         </div>
-
-        <div className="fitment-form">
-          {['year', 'make', 'model', 'trim', 'drive'].map((key) => (
-            <select
-              key={key}
-              name={key}
-              className="fitment-select"
-              value={filters[key]}
-              onChange={handleChange}
-            >
-              <option value="">{key.toUpperCase()}</option>
-              {options[key + 's'].map(val => (
-                <option key={val} value={val}>{val}</option>
-              ))}
-            </select>
-          ))}
-
-          <button className="fitment-button" onClick={handleShowResults} disabled={loading}>
-            {loading ? 'Loading...' : 'SHOP NOW'}
-          </button>
-        </div>
-      </div>
-    </section>
+      )}
+    </div>
   );
 };
 
