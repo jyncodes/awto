@@ -1,212 +1,121 @@
-/* JOVEN TIRE ENTERPRISE - DARK GARAGE + NEON YELLOW THEME */
+/* ================= FITMENT STYLING ================= */
 
-:root {
-  --bg-color: #000000;
-  --text-color: #ffffff;
-  --accent-color: #d3ff00; /* neon yellow-green */
-  --card-bg: #1a1a1a;
-}
-
-[data-theme="light"] {
-  --bg-color: #f4f4f4;
-  --text-color: #111;
-  --card-bg: #fff;
-}
-
-.fitment-section {
-  position: relative;
-  height: 100vh;
-  overflow: hidden;
-  font-family: 'Segoe UI', sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-}
-
-.background-video {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  top: 0;
-  left: 0;
-  z-index: 0;
-  filter: brightness(0.4);
-}
-
-.fitment-overlay {
-  position: relative;
-  z-index: 2;
-  height: 100%;
-  padding: 3rem 2rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-  animation: fadeIn 1.2s ease-in-out;
-  backdrop-filter: blur(2px);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(25px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.fitment-heading {
-  margin-bottom: 2rem;
-}
-
-.fitment-subtitle {
-  font-size: 1.3rem;
-  font-weight: bold;
-  color: var(--accent-color);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.fitment-title {
-  font-size: 4rem;
-  font-family: 'Pacifico', cursive;
-  color: #ffffff;
-  margin: 0;
-}
-
-.fitment-description {
-  font-size: 1.2rem;
-  color: var(--accent-color);
-  margin-top: 0.5rem;
-  font-style: italic;
-}
-
-.fitment-form {
+.fitment-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 1rem;
-  margin-top: 2rem;
-  animation: slideIn 1s ease forwards;
+  background: linear-gradient(to bottom, #1e1f22, #3b3e45);
+  padding: 1.5rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  max-width: 100%;
+  margin: 2rem auto;
 }
 
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.fitment-select {
-  padding: 0.8rem 1rem;
-  border-radius: 14px;
-  border: none;
-  font-size: 1rem;
-  background: #111111;
-  color: #ffffff;
-  min-width: 140px;
-  font-weight: 600;
-  text-transform: uppercase;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
-}
-
-.fitment-select:focus {
-  outline: none;
-  border: 2px solid var(--accent-color);
-  box-shadow: 0 0 8px var(--accent-color);
-}
-
-[data-theme="light"] .fitment-select {
-  background: #ffffff;
-  color: #000000;
-}
-
-.fitment-button {
-  background: var(--accent-color);
-  border: 3px solid #000;
-  border-radius: 50px;
-  padding: 0.9rem 2.5rem;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #000000;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.3s ease;
-  box-shadow: 0 0 15px var(--accent-color), 0 0 30px var(--accent-color);
-}
-
-.fitment-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px var(--accent-color), 0 0 40px var(--accent-color);
-}
-
-/* Optional product cards */
-.product-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.2rem;
-  justify-content: center;
-}
-
-.product-card {
-  background: var(--card-bg);
-  color: var(--text-color);
-  padding: 1rem;
-  border-radius: 14px;
-  width: 190px;
-  box-shadow: 0 6px 14px rgba(255, 77, 0, 0.2);
-  text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  animation: fadeIn 0.8s ease;
-}
-
-.product-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 6px 20px rgba(255, 77, 0, 0.4);
-}
-
-.product-image {
+.fitment-title {
   width: 100%;
-  height: 130px;
-  object-fit: cover;
-  border-radius: 10px;
-  margin-bottom: 0.6rem;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.fitment-container select {
+  background-color: #dceaf7;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  min-width: 150px;
+  color: #2d3436;
+  font-weight: 500;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%235400A0' height='12' viewBox='0 0 24 24' width='12' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.75rem;
+  transition: box-shadow 0.2s ease;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.fitment-container select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #d1ff00aa;
+}
+
+.fitment-container select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.trim-shop-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.shop-now-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #00000033;
+  border-radius: 2rem;
+  background-color: #d1ff00;
+  color: #2d3436;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 12px #d1ff00aa;
+  min-width: 150px;
+}
+
+.shop-now-btn:hover {
+  background-color: #c8f900;
+  box-shadow: 0 0 18px #484940dd;
+}
+
+.shop-now-btn:active {
+  transform: scale(0.97);
+}
+
+.shop-now-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Trim Details Box */
+.trim-details {
+  width: 100%;
+  border: 1px solid #dfe6e9;
+  padding: 1rem;
+  border-radius: 1rem;
+  background-color: #ffffffdd;
+  color: #2d3436;
+  font-size: 0.95rem;
+}
+
+.trim-details h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 
 /* Responsive */
-
 @media (max-width: 768px) {
-  .fitment-title {
-    font-size: 3rem;
-  }
-
-  .fitment-form {
+  .fitment-container {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
   }
 
-  .fitment-select,
-  .fitment-button {
-    width: 80%;
-  }
-
-  .product-card {
-    width: 160px;
-  }
-}
-
-@media (max-width: 480px) {
-  .fitment-subtitle {
-    font-size: 1rem;
-  }
-
-  .fitment-title {
-    font-size: 2.2rem;
-  }
-
-  .fitment-description {
-    font-size: 1rem;
-  }
-
-  .fitment-select,
-  .fitment-button {
+  .fitment-container select,
+  .shop-now-btn {
     width: 100%;
   }
 
-  .product-card {
-    width: 140px;
+  .trim-shop-wrapper {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
