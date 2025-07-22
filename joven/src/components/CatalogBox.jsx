@@ -13,15 +13,26 @@ const CatalogBox = ({ filters }) => {
   const itemsPerPage = 8;
   const [currentPage, setCurrentPage] = useState(1);
 
-  // One-time fetch from Firestore
+  // Fetch products from Firestore
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const snapshot = await getDocs(collection(db, "products"));
-        const fetched = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const fetched = snapshot.docs.map((doc) => {
+          const data = doc.data();
+
+          // Compute size if not pre-generated
+          let size = data.size;
+          if (!size && data.width && data.aspectRatio && data.rimDiameter) {
+            size = `${data.width}/${data.aspectRatio}R${data.rimDiameter}`;
+          }
+
+          return {
+            id: doc.id,
+            ...data,
+            size,
+          };
+        });
         setProducts(fetched);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -31,7 +42,7 @@ const CatalogBox = ({ filters }) => {
     fetchProducts();
   }, []);
 
-  // Apply filters + sort
+  // Filter and sort
   useEffect(() => {
     let result = products;
 
@@ -56,9 +67,9 @@ const CatalogBox = ({ filters }) => {
       case "name-desc":
         return sorted.sort((a, b) => (b.brand || "").localeCompare(a.brand || ""));
       case "price-asc":
-        return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+        return sorted.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
       case "price-desc":
-        return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+        return sorted.sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
       default:
         return sorted;
     }

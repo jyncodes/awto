@@ -20,10 +20,13 @@ const Products = () => {
     brand: '',
     model: '',
     price: '',
-    size: '',
+    width: '',
+    aspectRatio: '',
+    rimDiameter: '',
     description: '',
     type: 'Tire'
   });
+
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [viewProduct, setViewProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,7 +66,7 @@ const Products = () => {
     const padded = String(current + 1).padStart(5, '0');
     const id = `${prefix}-${padded}`;
     setNextProductId(id);
-    return id;
+    return { id, current, prefix };
   };
 
   const handleInputChange = async (e) => {
@@ -93,30 +96,22 @@ const Products = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const prefix = PRODUCT_TYPE_PREFIXES[formData.type];
-    const counterRef = doc(db, 'counters', `productCounter_${prefix}`);
-    const counterSnap = await getDoc(counterRef);
+    const { id: generatedId, current, prefix } = await fetchNextProductId(formData.type);
 
-    const current = (counterSnap.exists() && typeof counterSnap.data().lastId === 'number') 
-      ? counterSnap.data().lastId 
-      : 0;
+    const size = `${formData.width}/${formData.aspectRatio}R${formData.rimDiameter}`;
 
-    const padded = String(current + 1).padStart(5, '0');
-    const generatedId = `${prefix}-${padded}`;
+    const payload = {
+      ...formData,
+      size,
+      productId: isEditMode && selectedProduct ? selectedProduct.productId : generatedId,
+      createdAt: serverTimestamp(),
+    };
 
     if (isEditMode && selectedProduct) {
-      await updateDoc(doc(db, 'products', selectedProduct.id), {
-        ...formData,
-        productId: selectedProduct.productId
-      });
+      await updateDoc(doc(db, 'products', selectedProduct.id), payload);
     } else {
-      await addDoc(collection(db, 'products'), {
-        ...formData,
-        productId: generatedId,
-        createdAt: serverTimestamp(),
-      });
-
-      await setDoc(counterRef, { lastId: current + 1 });
+      await addDoc(collection(db, 'products'), payload);
+      await setDoc(doc(db, 'counters', `productCounter_${prefix}`), { lastId: current + 1 });
     }
 
     setIsModalOpen(false);
@@ -125,14 +120,20 @@ const Products = () => {
 
   const handleEdit = (product) => {
     setSelectedProduct(product);
+    const [width = '', aspectRatio = '', rimDiameter = ''] =
+      product.size?.match(/^(\d+)\/(\d+)R(\d+)$/)?.slice(1) || [];
+
     setFormData({
       brand: product.brand,
       model: product.model,
       price: product.price,
-      size: product.size,
+      width,
+      aspectRatio,
+      rimDiameter,
       description: product.description,
       type: product.type
     });
+
     setNextProductId(product.productId || 'N/A');
     setIsEditMode(true);
     setIsModalOpen(true);
@@ -195,12 +196,10 @@ const Products = () => {
     return 0;
   });
 
-  const filteredProducts = sortedProducts.filter((product) => {
-    return (
-      product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.model.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  const filteredProducts = sortedProducts.filter((product) =>
+    product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.model.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="products-page-container">
@@ -217,7 +216,16 @@ const Products = () => {
           className="add-product-button"
           onClick={async () => {
             setIsEditMode(false);
-            setFormData({ brand: '', model: '', price: '', size: '', description: '', type: 'Tire' });
+            setFormData({
+              brand: '',
+              model: '',
+              price: '',
+              width: '',
+              aspectRatio: '',
+              rimDiameter: '',
+              description: '',
+              type: 'Tire'
+            });
             await fetchNextProductId('Tire');
             setIsModalOpen(true);
           }}
@@ -312,8 +320,16 @@ const Products = () => {
                 <input type="text" name="model" value={formData.model} onChange={handleInputChange} required />
               </div>
               <div className="form-group">
-                <label>Size</label>
-                <input type="text" name="size" value={formData.size} onChange={handleInputChange} required />
+                <label>Width</label>
+                <input type="number" name="width" value={formData.width} onChange={handleInputChange} required />
+              </div>
+              <div className="form-group">
+                <label>Aspect Ratio</label>
+                <input type="number" name="aspectRatio" value={formData.aspectRatio} onChange={handleInputChange} required />
+              </div>
+              <div className="form-group">
+                <label>Rim Diameter</label>
+                <input type="number" name="rimDiameter" value={formData.rimDiameter} onChange={handleInputChange} required />
               </div>
               <div className="form-group">
                 <label>Price</label>
