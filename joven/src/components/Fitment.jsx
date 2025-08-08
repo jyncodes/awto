@@ -1,5 +1,7 @@
-// Fitment.jsx
+// src/components/Fitment.jsx
+
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   fetchYears,
   fetchMakes,
@@ -10,6 +12,8 @@ import {
 import "../styles/Fitment.css";
 
 const Fitment = () => {
+  const navigate = useNavigate();
+
   const [years, setYears] = useState([]);
   const [makes, setMakes] = useState([]);
   const [models, setModels] = useState([]);
@@ -22,6 +26,7 @@ const Fitment = () => {
 
   const [trimDetails, setTrimDetails] = useState(null);
 
+  // Fetch years
   useEffect(() => {
     const loadYears = async () => {
       const y = await fetchYears();
@@ -30,6 +35,7 @@ const Fitment = () => {
     loadYears();
   }, []);
 
+  // Fetch makes
   useEffect(() => {
     if (!selectedYear) return;
     const loadMakes = async () => {
@@ -45,6 +51,7 @@ const Fitment = () => {
     setTrimDetails(null);
   }, [selectedYear]);
 
+  // Fetch models
   useEffect(() => {
     if (!selectedYear || !selectedMake) return;
     const loadModels = async () => {
@@ -58,6 +65,7 @@ const Fitment = () => {
     setTrimDetails(null);
   }, [selectedMake]);
 
+  // Fetch trims
   useEffect(() => {
     if (!selectedYear || !selectedMake || !selectedModel) return;
     const loadTrims = async () => {
@@ -69,6 +77,7 @@ const Fitment = () => {
     setTrimDetails(null);
   }, [selectedModel]);
 
+  // Fetch trim details
   useEffect(() => {
     if (!selectedTrim) return;
     const loadTrimDetails = async () => {
@@ -78,15 +87,32 @@ const Fitment = () => {
     loadTrimDetails();
   }, [selectedTrim]);
 
+  // Handle Shop Now click
   const handleShopNow = () => {
-    alert("Shop Now clicked!");
-    // You can navigate or do something with trimDetails here
+    if (!trimDetails) return;
+
+    // Find readable names for make/model
+    const makeName = makes.find((m) => m.slug === selectedMake)?.name || selectedMake;
+    const modelName = models.find((m) => m.slug === selectedModel)?.name || selectedModel;
+    const trimName = trims.find((t) => t.id === selectedTrim)?.name || selectedTrim;
+
+    // Create a vehicle label
+    const vehicleLabel = `${selectedYear} ${makeName} ${modelName} ${trimName}`;
+
+    // Pass filters and label to UserDashboard
+    navigate("/user-dashboard", { 
+      state: { 
+        size: [trimDetails.tireSize], // For Firestore product filtering
+        vehicleLabel // For displaying "Results for ..."
+      }
+    });
   };
 
   return (
     <div className="fitment-container">
-      <h1 className="fitment-title">Fitment recomenthesion aray ko</h1>
+      <h1 className="fitment-title">Fitment Recommendation</h1>
 
+      {/* Year */}
       <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
         <option value="">Select Year</option>
         {years.map((year) => (
@@ -94,6 +120,7 @@ const Fitment = () => {
         ))}
       </select>
 
+      {/* Make */}
       <select
         value={selectedMake}
         onChange={(e) => setSelectedMake(e.target.value)}
@@ -105,6 +132,7 @@ const Fitment = () => {
         ))}
       </select>
 
+      {/* Model */}
       <select
         value={selectedModel}
         onChange={(e) => setSelectedModel(e.target.value)}
@@ -116,6 +144,7 @@ const Fitment = () => {
         ))}
       </select>
 
+      {/* Trim + Shop Now */}
       <div className="trim-shop-wrapper">
         <select
           value={selectedTrim}
@@ -137,6 +166,7 @@ const Fitment = () => {
         </button>
       </div>
 
+      {/* Recommended Specs */}
       {trimDetails && (
         <div className="trim-details">
           <h2>Recommended Specs</h2>

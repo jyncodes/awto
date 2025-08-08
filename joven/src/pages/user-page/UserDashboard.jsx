@@ -1,35 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../firebase';
-import Navbar from '../../components/Navbar';
-import Filter from '../../components/Filter';
-import CatalogBox from '../../components/CatalogBox';
-import '../../styles/UserDashboard.css';
+// src/user-page/UserDashboard.jsx
+
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase";
+import Navbar from "../../components/Navbar";
+import Filter from "../../components/Filter";
+import CatalogBox from "../../components/CatalogBox";
+import "../../styles/UserDashboard.css";
 
 const UserDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const initialFilters = location.state || {};
-  const [filters, setFilters] = useState(initialFilters);
+
+  // Pull filters & label from Fitment, or empty object if none
+  const { size, vehicleLabel } = location.state || {};
+  const [filters, setFilters] = useState(
+    size ? { size } : {} // Only prefill filter if size was passed
+  );
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     }
   };
 
   return (
     <>
-      <Navbar hideCreateAccount={true} showLogout={true} handleLogout={handleLogout} />
+      <Navbar
+        hideCreateAccount={true}
+        showLogout={true}
+        handleLogout={handleLogout}
+      />
 
       <div className="user-dashboard-container">
-        <p className="dashboard-intro">
-          Select your vehicle and browse fitment-matching products.
-        </p>
+        {vehicleLabel && size && (
+          <div className="vehicle-banner">
+            <h2>
+              Results for: {vehicleLabel}{" "}
+              <span className="tire-size">({size[0]})</span>
+            </h2>
+          </div>
+        )}
+
+        {!vehicleLabel && (
+          <p className="dashboard-intro">
+            Select your vehicle and browse fitment-matching products.
+          </p>
+        )}
 
         <div className="dashboard-content">
           <div className="filter-panel">
