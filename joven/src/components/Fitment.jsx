@@ -91,21 +91,30 @@ const Fitment = () => {
   const handleShopNow = () => {
     if (!trimDetails) return;
 
-    // Find readable names for make/model
     const makeName = makes.find((m) => m.slug === selectedMake)?.name || selectedMake;
     const modelName = models.find((m) => m.slug === selectedModel)?.name || selectedModel;
     const trimName = trims.find((t) => t.id === selectedTrim)?.name || selectedTrim;
 
-    // Create a vehicle label
     const vehicleLabel = `${selectedYear} ${makeName} ${modelName} ${trimName}`;
 
-    // Pass filters and label to UserDashboard
-    navigate("/user-dashboard", { 
-      state: { 
-        size: [trimDetails.tireSize], // For Firestore product filtering
-        vehicleLabel // For displaying "Results for ..."
-      }
+    navigate("/user-dashboard", {
+      state: {
+        size: [trimDetails.tireSize],
+        vehicleLabel,
+      },
     });
+  };
+
+  // Handle Clear click
+  const handleClear = () => {
+    setSelectedYear("");
+    setSelectedMake("");
+    setSelectedModel("");
+    setSelectedTrim("");
+    setMakes([]);
+    setModels([]);
+    setTrims([]);
+    setTrimDetails(null);
   };
 
   return (
@@ -144,7 +153,7 @@ const Fitment = () => {
         ))}
       </select>
 
-      {/* Trim + Shop Now */}
+      {/* Trim + Buttons */}
       <div className="trim-shop-wrapper">
         <select
           value={selectedTrim}
@@ -163,6 +172,13 @@ const Fitment = () => {
           className="shop-now-btn"
         >
           Shop Now
+        </button>
+
+        <button
+          onClick={handleClear}
+          className="clear-btn"
+        >
+          Clear
         </button>
       </div>
 

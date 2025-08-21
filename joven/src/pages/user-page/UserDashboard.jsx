@@ -1,4 +1,4 @@
-// src/user-page/UserDashboard.jsx
+// src/pages/user-page/UserDashboard.jsx
 
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -7,6 +7,7 @@ import { auth } from "../../firebase";
 import Navbar from "../../components/Navbar";
 import Filter from "../../components/Filter";
 import CatalogBox from "../../components/CatalogBox";
+import Fitment from "../../components/Fitment"; // ✅ Import Fitment
 import "../../styles/UserDashboard.css";
 
 const UserDashboard = () => {
@@ -37,6 +38,11 @@ const UserDashboard = () => {
       />
 
       <div className="user-dashboard-container">
+        {/* ✅ Fitment component at the top */}
+        <div className="fitment-section">
+          <Fitment />
+        </div>
+
         {vehicleLabel && size && (
           <div className="vehicle-banner">
             <h2>
