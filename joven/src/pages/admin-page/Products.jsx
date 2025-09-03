@@ -1,3 +1,4 @@
+// src/pages/admin-dashboard/Products.jsx
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../firebase';
 import {
@@ -18,17 +19,23 @@ const Products = () => {
   const [products, setProducts] = useState([]);
   const [formData, setFormData] = useState({
     brand: '',
+    pattern: '',
     model: '',
     price: '',
     width: '',
     aspectRatio: '',
     rimDiameter: '',
+    overallDiameter: '',
+    sectionWidth: '',
     description: '',
-    type: 'Tire'
+    loadRating: '',
+    plyRating: '',
+    type: 'Tire',
+    sizeFormat: 'metric',
+    productId: ''
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [viewProduct, setViewProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,9 +51,13 @@ const Products = () => {
     Accessories: 'AC'
   };
 
+  // Fetch products
   const fetchProducts = async () => {
     const querySnapshot = await getDocs(collection(db, 'products'));
-    const items = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const items = querySnapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }));
     setProducts(items);
   };
 
@@ -54,13 +65,14 @@ const Products = () => {
     fetchProducts();
   }, []);
 
+  // Generate next productId
   const fetchNextProductId = async (type = formData.type) => {
     const prefix = PRODUCT_TYPE_PREFIXES[type];
     const counterRef = doc(db, 'counters', `productCounter_${prefix}`);
     const counterSnap = await getDoc(counterRef);
 
-    const current = (counterSnap.exists() && typeof counterSnap.data().lastId === 'number') 
-      ? counterSnap.data().lastId 
+    const current = (counterSnap.exists() && typeof counterSnap.data().lastId === 'number')
+      ? counterSnap.data().lastId
       : 0;
 
     const padded = String(current + 1).padStart(5, '0');
@@ -69,15 +81,17 @@ const Products = () => {
     return { id, current, prefix };
   };
 
+  // Input change
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value || '' }));
 
     if (name === 'type' && !isEditMode) {
       await fetchNextProductId(value);
     }
   };
 
+  // Admin check
   const verifyAdminAccess = async () => {
     const user = auth.currentUser;
     if (!user) return false;
@@ -93,52 +107,116 @@ const Products = () => {
     }
   };
 
+  // Submit Add / Update
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { id: generatedId, current, prefix } = await fetchNextProductId(formData.type);
+    let generatedId, current, prefix;
+    if (!isEditMode) {
+      const result = await fetchNextProductId(formData.type);
+      generatedId = result.id;
+      current = result.current;
+      prefix = result.prefix;
+    }
 
-    const size = `${formData.width}/${formData.aspectRatio}R${formData.rimDiameter}`;
+    // Format size string
+    let size = '';
+    if (formData.sizeFormat === 'metric' && formData.width && formData.rimDiameter) {
+      size = formData.aspectRatio
+        ? `${formData.width}/${formData.aspectRatio}R${formData.rimDiameter}`
+        : `${formData.width}R${formData.rimDiameter}`;
+    } else if (
+      formData.sizeFormat === 'flotation' &&
+      formData.overallDiameter &&
+      formData.sectionWidth &&
+      formData.rimDiameter
+    ) {
+      size = `${formData.overallDiameter}X${formData.sectionWidth}R${formData.rimDiameter}`;
+    }
+
+    const safeTrim = (val) => (val ? val.toString().trim() : '');
 
     const payload = {
-      ...formData,
+      brand: safeTrim(formData.brand),
+      pattern: safeTrim(formData.pattern),
+      model: safeTrim(formData.model),
+      price: formData.price ? Number(formData.price) : 0,
+      width: formData.width || '',
+      aspectRatio: formData.aspectRatio || '',
+      rimDiameter: formData.rimDiameter || '',
+      overallDiameter: formData.overallDiameter || '',
+      sectionWidth: formData.sectionWidth || '',
+      description: safeTrim(formData.description),
+      loadRating: safeTrim(formData.loadRating),
+      plyRating: safeTrim(formData.plyRating),
+      type: formData.type,
+      sizeFormat: formData.sizeFormat,
       size,
-      productId: isEditMode && selectedProduct ? selectedProduct.productId : generatedId,
-      createdAt: serverTimestamp(),
+      productId: isEditMode ? formData.productId : generatedId,
+      ...(isEditMode
+        ? { updatedAt: serverTimestamp() }
+        : { createdAt: serverTimestamp() })
     };
 
     if (isEditMode && selectedProduct) {
-      await updateDoc(doc(db, 'products', selectedProduct.id), payload);
+      const docRef = doc(db, 'products', selectedProduct.id);
+      await updateDoc(docRef, payload);
     } else {
       await addDoc(collection(db, 'products'), payload);
       await setDoc(doc(db, 'counters', `productCounter_${prefix}`), { lastId: current + 1 });
     }
 
+    // Reset state
     setIsModalOpen(false);
+    setIsEditMode(false);
+    setSelectedProduct(null);
+    setFormData({
+      brand: '',
+      pattern: '',
+      model: '',
+      price: '',
+      width: '',
+      aspectRatio: '',
+      rimDiameter: '',
+      overallDiameter: '',
+      sectionWidth: '',
+      description: '',
+      loadRating: '',
+      plyRating: '',
+      type: 'Tire',
+      sizeFormat: 'metric',
+      productId: ''
+    });
+
     fetchProducts();
   };
 
+  // Edit product
   const handleEdit = (product) => {
     setSelectedProduct(product);
-    const [width = '', aspectRatio = '', rimDiameter = ''] =
-      product.size?.match(/^(\d+)\/(\d+)R(\d+)$/)?.slice(1) || [];
-
     setFormData({
-      brand: product.brand,
-      model: product.model,
-      price: product.price,
-      width,
-      aspectRatio,
-      rimDiameter,
-      description: product.description,
-      type: product.type
+      brand: product.brand || '',
+      pattern: product.pattern || '',
+      model: product.model || '',
+      price: product.price || '',
+      width: product.width || '',
+      aspectRatio: product.aspectRatio || '',
+      rimDiameter: product.rimDiameter || '',
+      overallDiameter: product.overallDiameter || '',
+      sectionWidth: product.sectionWidth || '',
+      description: product.description || '',
+      loadRating: product.loadRating || '',
+      plyRating: product.plyRating || '',
+      type: product.type || 'Tire',
+      sizeFormat: product.overallDiameter ? 'flotation' : 'metric',
+      productId: product.productId || ''
     });
-
     setNextProductId(product.productId || 'N/A');
     setIsEditMode(true);
     setIsModalOpen(true);
   };
 
+  // Delete
   const handleDelete = async (id) => {
     const confirmed = await verifyAdminAccess();
     if (confirmed) {
@@ -147,6 +225,7 @@ const Products = () => {
     }
   };
 
+  // Bulk delete
   const handleBulkDelete = async () => {
     const confirmed = await verifyAdminAccess();
     if (!confirmed) return;
@@ -157,6 +236,7 @@ const Products = () => {
     fetchProducts();
   };
 
+  // Selection
   const toggleProductSelection = (id) => {
     setSelectedProducts((prev) =>
       prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
@@ -172,6 +252,7 @@ const Products = () => {
     }
   };
 
+  // Sorting
   const handleSort = (field) => {
     if (field === sortField) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -196,9 +277,11 @@ const Products = () => {
     return 0;
   });
 
+  // Filter
   const filteredProducts = sortedProducts.filter((product) =>
-    product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.model.toLowerCase().includes(searchTerm.toLowerCase())
+    (product.brand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.model || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.pattern || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -218,13 +301,20 @@ const Products = () => {
             setIsEditMode(false);
             setFormData({
               brand: '',
+              pattern: '',
               model: '',
               price: '',
               width: '',
               aspectRatio: '',
               rimDiameter: '',
+              overallDiameter: '',
+              sectionWidth: '',
               description: '',
-              type: 'Tire'
+              loadRating: '',
+              plyRating: '',
+              type: 'Tire',
+              sizeFormat: 'metric',
+              productId: ''
             });
             await fetchNextProductId('Tire');
             setIsModalOpen(true);
@@ -236,12 +326,13 @@ const Products = () => {
           Reset Product ID Counter
         </button>
         {selectedProducts.length > 0 && (
-          <button className="delete-button" onClick={handleBulkDelete}>
+          <button className="delete-selected-button" onClick={handleBulkDelete}>
             Delete Selected ({selectedProducts.length})
           </button>
         )}
       </div>
 
+      {/* Product Table */}
       {filteredProducts.length === 0 ? (
         <p className="no-products-message">No products found.</p>
       ) : (
@@ -256,7 +347,7 @@ const Products = () => {
                     onChange={handleSelectAll}
                   />
                 </th>
-                {['productId', 'type', 'brand', 'model', 'size', 'price', 'description'].map((field) => (
+                {['type','productId','brand','size','model','pattern','loadRating','plyRating','price','description'].map((field) => (
                   <th key={field} onClick={() => handleSort(field)} style={{ cursor: 'pointer' }}>
                     {field.charAt(0).toUpperCase() + field.slice(1)}
                     {sortField === field ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : ''}
@@ -275,15 +366,17 @@ const Products = () => {
                       onChange={() => toggleProductSelection(product.id)}
                     />
                   </td>
-                  <td>{product.productId}</td>
                   <td>{product.type}</td>
+                  <td>{product.productId}</td>
                   <td>{product.brand}</td>
-                  <td>{product.model}</td>
                   <td>{product.size}</td>
+                  <td>{product.model}</td>
+                  <td>{product.pattern}</td>
+                  <td>{product.loadRating}</td>
+                  <td>{product.plyRating}</td>
                   <td>{product.price}</td>
                   <td>{product.description}</td>
                   <td className="action-buttons">
-                    <button onClick={() => setViewProduct(product)}>View</button>
                     <button onClick={() => handleEdit(product)}>Edit</button>
                     <button className="delete-button" onClick={() => handleDelete(product.id)}>Delete</button>
                   </td>
@@ -294,72 +387,100 @@ const Products = () => {
         </div>
       )}
 
+      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="form-modal-content">
             <h2>{isEditMode ? 'Edit Product' : 'Add New Product'}</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Product ID</label>
-                <input type="text" value={nextProductId || 'Loading...'} readOnly />
-              </div>
+            <form onSubmit={handleSubmit} className="form-grid">
+              {/* Left Column */}
               <div className="form-group">
                 <label>Type</label>
-                <select name="type" value={formData.type} onChange={handleInputChange} required>
+                <select name="type" value={formData.type} onChange={handleInputChange} required disabled={isEditMode}>
                   <option value="Tire">Tire</option>
                   <option value="Mags">Mags</option>
                   <option value="Accessories">Accessories</option>
                 </select>
               </div>
               <div className="form-group">
+                <label>Product ID</label>
+                <input type="text" value={isEditMode ? formData.productId : nextProductId || 'Loading...'} readOnly />
+              </div>
+              <div className="form-group">
                 <label>Brand</label>
                 <input type="text" name="brand" value={formData.brand} onChange={handleInputChange} required />
               </div>
               <div className="form-group">
+                <label>Size Format</label>
+                <select name="sizeFormat" value={formData.sizeFormat} onChange={handleInputChange}>
+                  <option value="metric">Metric (205/55R16)</option>
+                  <option value="flotation">Flotation (31X10.5R15)</option>
+                </select>
+              </div>
+
+              {formData.sizeFormat === 'metric' ? (
+                <>
+                  <div className="form-group">
+                    <label>Width</label>
+                    <input type="number" name="width" value={formData.width} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group">
+                    <label>Aspect Ratio</label>
+                    <input type="number" name="aspectRatio" value={formData.aspectRatio} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group">
+                    <label>Rim Diameter</label>
+                    <input type="number" name="rimDiameter" value={formData.rimDiameter} onChange={handleInputChange} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="form-group">
+                    <label>Overall Diameter</label>
+                    <input type="number" name="overallDiameter" value={formData.overallDiameter} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group">
+                    <label>Section Width</label>
+                    <input type="number" step="0.1" name="sectionWidth" value={formData.sectionWidth} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group">
+                    <label>Rim Diameter</label>
+                    <input type="number" name="rimDiameter" value={formData.rimDiameter} onChange={handleInputChange} />
+                  </div>
+                </>
+              )}
+
+              {/* Right Column */}
+              <div className="form-group">
                 <label>Model</label>
-                <input type="text" name="model" value={formData.model} onChange={handleInputChange} required />
+                <input type="text" name="model" value={formData.model} onChange={handleInputChange} />
               </div>
               <div className="form-group">
-                <label>Width</label>
-                <input type="number" name="width" value={formData.width} onChange={handleInputChange} required />
+                <label>Pattern</label>
+                <input type="text" name="pattern" value={formData.pattern} onChange={handleInputChange} />
               </div>
               <div className="form-group">
-                <label>Aspect Ratio</label>
-                <input type="number" name="aspectRatio" value={formData.aspectRatio} onChange={handleInputChange} required />
+                <label>Load Rating</label>
+                <input type="text" name="loadRating" value={formData.loadRating} onChange={handleInputChange} />
               </div>
               <div className="form-group">
-                <label>Rim Diameter</label>
-                <input type="number" name="rimDiameter" value={formData.rimDiameter} onChange={handleInputChange} required />
+                <label>Ply Rating</label>
+                <input type="text" name="plyRating" value={formData.plyRating} onChange={handleInputChange} />
               </div>
               <div className="form-group">
                 <label>Price</label>
-                <input type="number" name="price" value={formData.price} onChange={handleInputChange} required />
+                <input type="number" name="price" value={formData.price} onChange={handleInputChange} />
               </div>
               <div className="form-group">
                 <label>Description</label>
-                <textarea name="description" value={formData.description} onChange={handleInputChange} required />
+                <textarea name="description" value={formData.description} onChange={handleInputChange} />
               </div>
+
               <div className="form-actions">
-                <button type="submit">{isEditMode ? 'Update' : 'Add'} Product</button>
+                <button type="submit">{isEditMode ? 'Update Product' : 'Add Product'}</button>
                 <button type="button" onClick={() => setIsModalOpen(false)}>Cancel</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {viewProduct && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Product Details</h2>
-            <p><strong>Product ID:</strong> {viewProduct.productId}</p>
-            <p><strong>Type:</strong> {viewProduct.type}</p>
-            <p><strong>Brand:</strong> {viewProduct.brand}</p>
-            <p><strong>Model:</strong> {viewProduct.model}</p>
-            <p><strong>Price:</strong> {viewProduct.price}</p>
-            <p><strong>Size:</strong> {viewProduct.size}</p>
-            <p><strong>Description:</strong> {viewProduct.description}</p>
-            <button onClick={() => setViewProduct(null)}>Close</button>
           </div>
         </div>
       )}

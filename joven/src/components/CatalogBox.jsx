@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import "../styles/CatalogBox.css";
 
 const CatalogBox = ({ filters }) => {
   const navigate = useNavigate();
+  const location = useLocation(); // 👈 get state from navigation
+  const { size: fitmentSizes = [], vehicleLabel = "" } = location.state || {};
+
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [sortOption, setSortOption] = useState("default");
@@ -13,7 +16,7 @@ const CatalogBox = ({ filters }) => {
   const itemsPerPage = 8;
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch products from Firestore
+  // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -27,25 +30,32 @@ const CatalogBox = ({ filters }) => {
             size = `${data.width}/${data.aspectRatio}R${data.rimDiameter}`;
           }
 
-          return {
-            id: doc.id,
-            ...data,
-            size,
-          };
+          return { id: doc.id, ...data, size };
         });
         setProducts(fetched);
       } catch (error) {
         console.error("Error fetching products:", error);
       }
     };
-
     fetchProducts();
   }, []);
+
+  // Parse tire size like "225/50R17"
+  const parseTireSize = (sizeStr) => {
+    const match = sizeStr?.match(/^(\d+)\/(\d+)R(\d+)$/);
+    if (!match) return null;
+    return {
+      width: match[1],
+      aspectRatio: match[2],
+      rimDiameter: match[3],
+    };
+  };
 
   // Filter and sort
   useEffect(() => {
     let result = products;
 
+    // 🔹 Apply filters from props (if any)
     if (filters && Object.keys(filters).length > 0) {
       result = result.filter((product) =>
         Object.entries(filters).every(([key, values]) => {
@@ -55,9 +65,23 @@ const CatalogBox = ({ filters }) => {
       );
     }
 
+    // 🔹 Apply fitment-based filtering
+    if (fitmentSizes.length > 0) {
+      const fitmentSpecs = fitmentSizes.map(parseTireSize).filter(Boolean);
+      result = result.filter((product) => {
+        if (!product.width || !product.aspectRatio || !product.rimDiameter) return false;
+        return fitmentSpecs.some(
+          (spec) =>
+            product.width.toString() === spec.width &&
+            product.aspectRatio.toString() === spec.aspectRatio &&
+            product.rimDiameter.toString() === spec.rimDiameter
+        );
+      });
+    }
+
     setFilteredProducts(sortProducts(result, sortOption));
     setCurrentPage(1);
-  }, [filters, products, sortOption]);
+  }, [filters, products, sortOption, fitmentSizes]);
 
   const sortProducts = (products, option) => {
     const sorted = [...products];
@@ -84,7 +108,9 @@ const CatalogBox = ({ filters }) => {
   return (
     <div className="catalog">
       <div className="catalog-header">
-        <h3>Product Catalog</h3>
+        <h3>
+          Product Catalog {vehicleLabel && <span>for {vehicleLabel}</span>}
+        </h3>
         <select
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value)}

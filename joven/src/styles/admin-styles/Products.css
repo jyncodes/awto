@@ -67,7 +67,8 @@
   overflow: hidden;
 }
 
-.product-table th, .product-table td {
+.product-table th,
+.product-table td {
   padding: 0.75rem 1rem;
   text-align: left;
   border-bottom: 1px solid #ddd;
@@ -127,13 +128,13 @@
   z-index: 1000;
 }
 
-/* ===================== MODAL FORM ===================== */
+/* ===================== MODAL CONTENT ===================== */
 .form-modal-content {
   background-color: #ffffff;
   padding: 2rem;
   border-radius: 12px;
   width: 100%;
-  max-width: 500px;
+  max-width: 800px; /* wider for two-column layout */
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 }
 
@@ -142,14 +143,22 @@
   font-weight: 600;
   margin-bottom: 1.5rem;
   color: #333;
+  text-align: center;
+}
+
+/* ===================== FORM GRID ===================== */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 🔥 2 columns */
+  gap: 1.2rem 1.5rem;
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group label {
-  display: block;
   font-size: 0.95rem;
   font-weight: 500;
   margin-bottom: 0.4rem;
@@ -157,7 +166,8 @@
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 0.6rem 0.75rem;
   border-radius: 8px;
@@ -168,7 +178,8 @@
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
@@ -177,9 +188,12 @@
 .form-group textarea {
   resize: vertical;
   min-height: 100px;
+  grid-column: span 2; /* textarea full width */
 }
 
+/* ===================== FORM ACTIONS ===================== */
 .form-actions {
+  grid-column: span 2; /* buttons full width */
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
@@ -213,6 +227,7 @@
   background-color: #5a6268;
 }
 
+/* ===================== SEARCH ===================== */
 .search-input {
   flex: 1;
   max-width: 400px;
