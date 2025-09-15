@@ -1,0 +1,153 @@
+/* ================= MANUAL FITMENT STYLING ================= */
+
+.fitment-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  background: linear-gradient(to bottom, #1e1f22, #3b3e45);
+  padding: 1.5rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  max-width: 100%;
+  margin: 2rem auto;
+}
+
+.fitment-title {
+  width: 100%;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.fitment-container select {
+  background-color: #dceaf7;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  min-width: 150px;
+  color: #2d3436;
+  font-weight: 500;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%235400A0' height='12' viewBox='0 0 24 24' width='12' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.75rem;
+  transition: box-shadow 0.2s ease;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.fitment-container select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #d1ff00aa;
+}
+
+.fitment-container select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.trim-shop-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Shop Now Button */
+.shop-now-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #00000033;
+  border-radius: 2rem;
+  background-color: #d1ff00;
+  color: #2d3436;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 12px #d1ff00aa;
+  min-width: 150px;
+}
+
+.shop-now-btn:hover {
+  background-color: #c8f900;
+  box-shadow: 0 0 18px #484940dd;
+}
+
+.shop-now-btn:active {
+  transform: scale(0.97);
+}
+
+.shop-now-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Clear Button */
+.clear-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #00000033;
+  border-radius: 2rem;
+  background-color: #ffffff;
+  color: #2d3436;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+  min-width: 150px;
+}
+
+.clear-btn:hover {
+  background-color: #f1f1f1;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.7);
+}
+
+.clear-btn:active {
+  transform: scale(0.97);
+}
+
+.clear-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Trim Details Box */
+.trim-details {
+  width: 100%;
+  border: 1px solid #dfe6e9;
+  padding: 1rem;
+  border-radius: 1rem;
+  background-color: #ffffffdd;
+  color: #2d3436;
+  font-size: 0.95rem;
+}
+
+.trim-details h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .fitment-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fitment-container select,
+  .shop-now-btn,
+  .clear-btn {
+    width: 100%;
+  }
+
+  .trim-shop-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

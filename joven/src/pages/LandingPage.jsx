@@ -3,7 +3,7 @@ import '../styles/LandingPage.css';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import LoginSection from '../components/LoginSection';
-import Fitment from '../components/Fitment';
+import Manual from '../components/Manual';  // ⬅️ Replaced Fitment with Manual
 
 // ✅ Brand images (local)
 import arivoImg from '../pages/user-page/images/brands/arivo.png';
@@ -67,7 +67,8 @@ const LandingPage = () => {
       )}
 
       <main className="main-content">
-        <Fitment />
+        {/* ✅ Replaced Fitment with Manual */}
+        <Manual />
 
         {/* ✅ Top Brands Section */}
         <section id="brand" className="section brand-section">
