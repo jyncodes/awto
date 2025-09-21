@@ -13,11 +13,11 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { db, auth } from "../firebase";
+import { db, auth } from "../../firebase";
 import Calendar from "react-calendar";
 import axios from "axios";
 import "react-calendar/dist/Calendar.css";
-import "../styles/ReservationPage.css";
+import "../../styles/ReservationPage.css";
 
 const ReservationPage = () => {
   const { productId } = useParams();

@@ -1,19 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
-  useNavigate,
   useLocation,
 } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from './firebase';
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
 import Register from './pages/Register';
-import ViewProduct from './components/ViewProduct';
+import ViewProduct from './pages/user-page/ViewProduct';
 import Verify from './pages/Verify';
 
 // Admin Pages
@@ -32,10 +28,10 @@ import UserDashboard from './pages/user-page/UserDashboard';
 import UserProfile from './pages/user-page/UserProfile';
 import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
-import ReceiptPage from './pages/user-page/ReceiptPage'; // ✅ Added
+import ReceiptPage from './pages/user-page/ReceiptPage';
 
 // Reservation Page
-import ReservationPage from './components/ReservationPage';
+import ReservationPage from './pages/user-page/ReservationPage';
 
 // Staff Pages
 import StaffDashboard from './pages/staff-page/StaffDashboard';
@@ -44,63 +40,18 @@ import StaffSales from './pages/staff-page/StaffSales';
 import StaffReservation from './pages/staff-page/StaffReservation';
 
 // Auth Guards
-import RedirectIfAuthenticated from './components/RedirectIfAuthenticated';
-import RequireVerifiedEmail from './components/RequireVerifiedEmail';
+import ProtectedRoute from './routes/ProtectedRoute';
+import RedirectIfAuthenticated from './routes/RedirectIfAuthenticated';
+import RequireVerifiedEmail from './routes/RequireVerifiedEmail';
 
-// Spinner UI
+// Spinner UI (can stay here if you want to reuse in routes later)
 const Spinner = () => (
   <div className="flex justify-center items-center h-screen">
     <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid"></div>
   </div>
 );
 
-// ProtectedRoute
-const ProtectedRoute = ({ role, children }) => {
-  const [loading, setLoading] = useState(true);
-  const [granted, setGranted] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        navigate('/login');
-        return;
-      }
-
-      try {
-        let ref = doc(db, 'users', user.uid);
-        let snap = await getDoc(ref);
-
-        if (!snap.exists()) {
-          ref = doc(db, 'staff', user.uid);
-          snap = await getDoc(ref);
-        }
-
-        if (snap.exists()) {
-          const { role: userRole } = snap.data();
-          if (userRole === role) {
-            setGranted(true);
-          } else {
-            navigate('/');
-          }
-        } else {
-          navigate('/');
-        }
-      } catch (err) {
-        console.error('Authorization error:', err);
-        navigate('/');
-      }
-
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [role, navigate]);
-
-  if (loading) return <Spinner />;
-  return granted ? children : null;
-};
-
+// Utility wrapper to pass origin
 const WithOrigin = ({ children }) => {
   const location = useLocation();
   return React.cloneElement(children, { origin: location.pathname });
@@ -135,47 +86,42 @@ export default function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
 
+        {/* Reservation + Transactions */}
         <Route
           path="/reserve/:productId"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="User">
+              <ProtectedRoute allowedRole="User">
                 <ReservationPage />
               </ProtectedRoute>
             </RequireVerifiedEmail>
           }
         />
-
-        {/* ✅ Invoice Route */}
         <Route
           path="/invoice/:reservationId"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="User">
+              <ProtectedRoute allowedRole="User">
                 <InvoicePage />
               </ProtectedRoute>
             </RequireVerifiedEmail>
           }
         />
-
-        {/* ✅ Payment Route */}
         <Route
           path="/payment/:reservationId"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="User">
+              <ProtectedRoute allowedRole="User">
                 <PaymentPage />
               </ProtectedRoute>
             </RequireVerifiedEmail>
           }
         />
-
-        {/* ✅ Receipt Route */}
         <Route
           path="/receipt/:reservationId"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="User">
+              <ProtectedRoute allowedRole="User">
                 <ReceiptPage />
               </ProtectedRoute>
             </RequireVerifiedEmail>
@@ -187,7 +133,7 @@ export default function App() {
           path="/profile"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="User">
+              <ProtectedRoute allowedRole="User">
                 <UserProfile />
               </ProtectedRoute>
             </RequireVerifiedEmail>
@@ -197,7 +143,7 @@ export default function App() {
           path="/user-dashboard"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="User">
+              <ProtectedRoute allowedRole="User">
                 <UserDashboard />
               </ProtectedRoute>
             </RequireVerifiedEmail>
@@ -209,7 +155,7 @@ export default function App() {
           path="/admin-dashboard"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="Admin">
+              <ProtectedRoute allowedRole="Admin">
                 <AdminDashboard />
               </ProtectedRoute>
             </RequireVerifiedEmail>
@@ -230,7 +176,7 @@ export default function App() {
           path="/staff-dashboard"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="Staff">
+              <ProtectedRoute allowedRole="Staff">
                 <StaffDashboard />
               </ProtectedRoute>
             </RequireVerifiedEmail>
@@ -240,7 +186,7 @@ export default function App() {
           path="/staff-inventory"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="Staff">
+              <ProtectedRoute allowedRole="Staff">
                 <StaffInventory />
               </ProtectedRoute>
             </RequireVerifiedEmail>
@@ -250,7 +196,7 @@ export default function App() {
           path="/staff-sales"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="Staff">
+              <ProtectedRoute allowedRole="Staff">
                 <StaffSales />
               </ProtectedRoute>
             </RequireVerifiedEmail>
@@ -260,7 +206,7 @@ export default function App() {
           path="/staff-reservation"
           element={
             <RequireVerifiedEmail>
-              <ProtectedRoute role="Staff">
+              <ProtectedRoute allowedRole="Staff">
                 <StaffReservation />
               </ProtectedRoute>
             </RequireVerifiedEmail>
@@ -268,7 +214,10 @@ export default function App() {
         />
 
         {/* Fallback 404 */}
-        <Route path="*" element={<div className="text-center p-10">404 - Page Not Found</div>} />
+        <Route
+          path="*"
+          element={<div className="text-center p-10">404 - Page Not Found</div>}
+        />
       </Routes>
     </Router>
   );

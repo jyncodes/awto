@@ -8,8 +8,8 @@ import {
   doc,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from '../firebase';
-import '../styles/MySelections.css';
+import { db, auth } from '../../firebase';
+import '../../styles/MySelections.css'; 
 import { useNavigate } from 'react-router-dom';
 
 const MySelections = () => {

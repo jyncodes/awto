@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/Manual.css";
+import "../../styles/Manual.css";
 
 // Example manual dataset (you can expand this)
 const manualData = {

@@ -8,8 +8,8 @@ import {
   fetchModels,
   fetchTrims,
   fetchTrimDetails,
-} from "../hooks/useFitment";
-import "../styles/Fitment.css";
+} from "../../hooks/useFitment";
+import "../../styles/Fitment.css";
 
 const Fitment = () => {
   const navigate = useNavigate();

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/LandingPage.css';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import Footer from '../components/user-components/Footer';
 import LoginSection from '../components/LoginSection';
-import Manual from '../components/Manual';  // ⬅️ Replaced Fitment with Manual
+import Manual from "../components/user-components/Manual";
 
 // ✅ Brand images (local)
 import arivoImg from '../pages/user-page/images/brands/arivo.png';

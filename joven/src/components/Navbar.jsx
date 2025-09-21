@@ -17,7 +17,7 @@ import {
 import '../styles/Navbar.css';
 
 import LoginSection from './LoginSection';
-import NotificationPanel from './NotificationPanel';
+import NotificationPanel from './user-components/NotificationPanel';
 
 const Navbar = () => {
   const navigate = useNavigate();

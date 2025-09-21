@@ -5,9 +5,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebase";
 import Navbar from "../../components/Navbar";
-import Filter from "../../components/Filter";
-import CatalogBox from "../../components/CatalogBox";
-import Fitment from "../../components/Fitment"; // ✅ Import Fitment
+import Filter from "../../components/user-components/Filter";
+import CatalogBox from "../../components/user-components/CatalogBox";
+import Fitment from "../../components/user-components/Fitment";
 import "../../styles/UserDashboard.css";
 
 const UserDashboard = () => {

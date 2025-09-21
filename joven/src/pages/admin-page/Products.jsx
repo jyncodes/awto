@@ -1,6 +1,6 @@
 // src/pages/admin-dashboard/Products.jsx
 import React, { useEffect, useState } from 'react';
-import { db, auth } from '../../firebase';
+import { db, auth, storage } from '../../firebase'; // ✅ storage imported directly
 import {
   collection,
   getDocs,
@@ -12,6 +12,7 @@ import {
   setDoc,
   serverTimestamp,
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // ✅ Storage helpers
 import "../../styles/admin-styles/Products.css";
 import ResetCounterModal from '../../components/admin-components/ResetCounterModal';
 
@@ -32,7 +33,8 @@ const Products = () => {
     plyRating: '',
     type: 'Tire',
     sizeFormat: 'metric',
-    productId: ''
+    productId: '',
+    modelUrl: ''   // ✅ 3D Model URL
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -88,6 +90,24 @@ const Products = () => {
 
     if (name === 'type' && !isEditMode) {
       await fetchNextProductId(value);
+    }
+  };
+
+  // ✅ Upload GLB file to Storage
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const storageRef = ref(storage, `models/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+
+      const downloadUrl = await getDownloadURL(storageRef);
+      setFormData((prev) => ({ ...prev, modelUrl: downloadUrl }));
+      alert("3D Model uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading GLB:", error);
+      alert("Failed to upload 3D model.");
     }
   };
 
@@ -152,6 +172,7 @@ const Products = () => {
       type: formData.type,
       sizeFormat: formData.sizeFormat,
       size,
+      modelUrl: formData.modelUrl || '',   // ✅ saved link
       productId: isEditMode ? formData.productId : generatedId,
       ...(isEditMode
         ? { updatedAt: serverTimestamp() }
@@ -185,7 +206,8 @@ const Products = () => {
       plyRating: '',
       type: 'Tire',
       sizeFormat: 'metric',
-      productId: ''
+      productId: '',
+      modelUrl: ''  // ✅ reset
     });
 
     fetchProducts();
@@ -209,7 +231,8 @@ const Products = () => {
       plyRating: product.plyRating || '',
       type: product.type || 'Tire',
       sizeFormat: product.overallDiameter ? 'flotation' : 'metric',
-      productId: product.productId || ''
+      productId: product.productId || '',
+      modelUrl: product.modelUrl || ''   // ✅ preload model
     });
     setNextProductId(product.productId || 'N/A');
     setIsEditMode(true);
@@ -314,7 +337,8 @@ const Products = () => {
               plyRating: '',
               type: 'Tire',
               sizeFormat: 'metric',
-              productId: ''
+              productId: '',
+              modelUrl: ''
             });
             await fetchNextProductId('Tire');
             setIsModalOpen(true);
@@ -347,7 +371,7 @@ const Products = () => {
                     onChange={handleSelectAll}
                   />
                 </th>
-                {['type','productId','brand','size','model','pattern','loadRating','plyRating','price','description'].map((field) => (
+                {['type','productId','brand','size','model','pattern','loadRating','plyRating','price','description','modelUrl'].map((field) => ( // ✅ added modelUrl
                   <th key={field} onClick={() => handleSort(field)} style={{ cursor: 'pointer' }}>
                     {field.charAt(0).toUpperCase() + field.slice(1)}
                     {sortField === field ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : ''}
@@ -376,6 +400,11 @@ const Products = () => {
                   <td>{product.plyRating}</td>
                   <td>{product.price}</td>
                   <td>{product.description}</td>
+                  <td>
+                    {product.modelUrl ? (
+                      <a href={product.modelUrl} target="_blank" rel="noopener noreferrer">View 3D</a>
+                    ) : 'N/A'}
+                  </td>
                   <td className="action-buttons">
                     <button onClick={() => handleEdit(product)}>Edit</button>
                     <button className="delete-button" onClick={() => handleDelete(product.id)}>Delete</button>
@@ -474,6 +503,18 @@ const Products = () => {
               <div className="form-group">
                 <label>Description</label>
                 <textarea name="description" value={formData.description} onChange={handleInputChange} />
+              </div>
+
+              {/* ✅ 3D Model Upload */}
+              <div className="form-group">
+                <label>3D Model (GLB)</label>
+                <input type="file" accept=".glb" onChange={handleFileUpload} />
+                {formData.modelUrl && (
+                  <p style={{ fontSize: "12px", color: "green" }}>
+                    Uploaded ✅ <br />
+                    <a href={formData.modelUrl} target="_blank" rel="noopener noreferrer">Preview</a>
+                  </p>
+                )}
               </div>
 
               <div className="form-actions">

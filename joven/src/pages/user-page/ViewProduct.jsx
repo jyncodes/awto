@@ -11,8 +11,11 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { FiShoppingCart } from "react-icons/fi";
-import { db, auth } from "../firebase";
-import "../styles/ViewProduct.css";
+import { db, auth } from "../../firebase";
+import "../../styles/ViewProduct.css";  // updated path
+
+// Import ModelViewer
+import ModelViewer from "../../components/user-components/ModelViewer";
 
 const ViewProduct = () => {
   const { id } = useParams();
@@ -130,6 +133,14 @@ const ViewProduct = () => {
               />
             ))}
           </div>
+
+          {/* 3D Model Viewer */}
+          {product.modelUrl && (
+            <div className="model-viewer-wrapper">
+              <h3>3D Interactive Preview</h3>
+              <ModelViewer modelUrl={product.modelUrl} />
+            </div>
+          )}
         </div>
 
         {/* Product Info */}
