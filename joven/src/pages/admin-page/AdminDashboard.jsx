@@ -1,11 +1,10 @@
 import React from 'react';
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase';
 import '../../styles/admin-styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
-  const location = useLocation();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -28,7 +27,6 @@ const AdminDashboard = () => {
     { path: 'reservations', label: 'Reservations' },
     { path: 'settings', label: 'Settings' },
   ];
-  
 
   return (
     <div className="admin-dashboard">
@@ -43,7 +41,7 @@ const AdminDashboard = () => {
             {navItems.map((item) => (
               <li key={item.path}>
                 <NavLink
-                  to={item.path}
+                  to={item.path === '' ? '/admin-dashboard' : `/admin-dashboard/${item.path}`}
                   end={item.path === ''}
                   className={({ isActive }) =>
                     isActive ? 'admin-nav-link active' : 'admin-nav-link'

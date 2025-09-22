@@ -1,53 +1,55 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
-const ProtectedRoute = ({ role, children }) => {
+const ProtectedRoute = ({ allowedRole, children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        navigate('/login'); 
+        setIsAuthorized(false);
+        setLoading(false);
         return;
       }
 
       try {
+        // First check users collection
         let ref = doc(db, 'users', user.uid);
         let snap = await getDoc(ref);
 
         if (!snap.exists()) {
+          // Then check staff collection
           ref = doc(db, 'staff', user.uid);
           snap = await getDoc(ref);
         }
 
         if (snap.exists()) {
-          const { role: userRole } = snap.data();
-          if (userRole === role) {
+          const { role } = snap.data();
+          if (role === allowedRole) {
             setIsAuthorized(true);
           } else {
-            navigate('/'); // redirect home if wrong role
+            setIsAuthorized(false);
           }
         } else {
-          navigate('/');
+          setIsAuthorized(false);
         }
       } catch (err) {
-        console.error('Authorization error:', err);
-        navigate('/');
+        console.error('Authorization error (Firestore read):', err);
+        setIsAuthorized(false);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [role, navigate]);
+  }, [allowedRole]);
 
   if (loading) return <div className="text-center py-20 text-lg">Loading...</div>;
-  return isAuthorized ? children : null;
+  return isAuthorized ? children : <Navigate to="/" replace />;
 };
 
 export default ProtectedRoute;

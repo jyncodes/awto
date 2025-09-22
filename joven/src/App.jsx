@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useLocation,
-} from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
@@ -43,13 +38,6 @@ import StaffReservation from './pages/staff-page/StaffReservation';
 import ProtectedRoute from './routes/ProtectedRoute';
 import RedirectIfAuthenticated from './routes/RedirectIfAuthenticated';
 import RequireVerifiedEmail from './routes/RequireVerifiedEmail';
-
-// Spinner UI (can stay here if you want to reuse in routes later)
-const Spinner = () => (
-  <div className="flex justify-center items-center h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid"></div>
-  </div>
-);
 
 // Utility wrapper to pass origin
 const WithOrigin = ({ children }) => {
@@ -152,7 +140,7 @@ export default function App() {
 
         {/* Admin Routes */}
         <Route
-          path="/admin-dashboard"
+          path="/admin-dashboard/*"
           element={
             <RequireVerifiedEmail>
               <ProtectedRoute allowedRole="Admin">
@@ -161,6 +149,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         >
+          {/* Nested Admin Pages */}
           <Route index element={<AdminDashboardContent />} />
           <Route path="sales" element={<AdminSales />} />
           <Route path="inventory" element={<AdminInventory />} />

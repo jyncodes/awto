@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -17,12 +16,11 @@ const RedirectIfAuthenticated = ({ children, origin }) => {
       }
 
       try {
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
+        let snap = await getDoc(doc(db, 'users', user.uid));
+        if (!snap.exists()) snap = await getDoc(doc(db, 'staff', user.uid));
 
-        if (userSnap.exists()) {
-          const { role } = userSnap.data() || {};
-
+        if (snap.exists()) {
+          const { role } = snap.data() || {};
           switch (role) {
             case 'Admin':
               setRedirectTo('/admin-dashboard');
@@ -31,28 +29,23 @@ const RedirectIfAuthenticated = ({ children, origin }) => {
               setRedirectTo('/staff-dashboard');
               break;
             case 'User':
-              // 🔥 Smart redirection for user role
-              if (origin === '/register') {
-                setRedirectTo('/');
-              } else {
-                setRedirectTo('/user-dashboard');
-              }
+              setRedirectTo(origin === '/register' ? '/' : '/user-dashboard');
               break;
             default:
               setRedirectTo('/');
           }
         }
-      } catch (error) {
-        console.error('Error checking user role:', error);
+      } catch (err) {
+        console.error('RedirectIfAuthenticated error:', err);
+      } finally {
+        setChecking(false);
       }
-
-      setChecking(false);
     });
 
     return () => unsubscribe();
   }, [origin]);
 
-  if (checking) return null; // Can replace with a spinner if needed
+  if (checking) return null;
   if (redirectTo) return <Navigate to={redirectTo} replace />;
   return children;
 };
