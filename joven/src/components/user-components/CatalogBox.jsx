@@ -8,7 +8,13 @@ import "../../styles/CatalogBox.css";
 const CatalogBox = ({ filters }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { size: fitmentSizes = [], vehicleLabel = "" } = location.state || {};
+
+  // ✅ Receive fitment data (sizes + specs from Manual.jsx)
+  const {
+    size: fitmentSizes = [],
+    vehicleLabel = "",
+    fitment = null, // { boltPattern, offset, wheelSize }
+  } = location.state || {};
 
   const [products, setProducts] = useState([]);
   const [sortOption, setSortOption] = useState("default");
@@ -22,11 +28,13 @@ const CatalogBox = ({ filters }) => {
         const fetched = snapshot.docs.map((doc) => {
           const data = doc.data();
           let size = data.size;
+
           if (!size && data.width && data.rimDiameter) {
             size = data.aspectRatio
               ? `${data.width}/${data.aspectRatio}R${data.rimDiameter}`
               : `${data.width}R${data.rimDiameter}`;
           }
+
           return { id: doc.id, ...data, size };
         });
         setProducts(fetched);
@@ -37,58 +45,14 @@ const CatalogBox = ({ filters }) => {
     fetchProducts();
   }, []);
 
-  // 🔹 Parse product size object
-  const parseProductSize = (product) => {
-    if (!product) return null;
-    if (product.overallDiameter && product.sectionWidth && product.rimDiameter) {
-      return {
-        type: "flotation",
-        overallDiameter: String(product.overallDiameter),
-        sectionWidth: String(product.sectionWidth),
-        rimDiameter: String(product.rimDiameter),
-      };
-    }
-    if (product.width && product.rimDiameter) {
-      return {
-        type: "metric",
-        width: String(product.width),
-        aspectRatio: product.aspectRatio ? String(product.aspectRatio) : null,
-        rimDiameter: String(product.rimDiameter),
-      };
-    }
-    return null;
-  };
-
   // 🔹 Parse fitment size string
   const parseFitmentSize = (sizeStr) => {
     if (!sizeStr) return null;
     let match = sizeStr.match(/^(\d{3})\/(\d{2,3})R(\d{2}(?:\.\d)?)$/i);
-    if (match) return { type: "metric", width: match[1], aspectRatio: match[2], rimDiameter: match[3] };
+    if (match) return { width: match[1], aspectRatio: match[2], rimDiameter: match[3] };
     match = sizeStr.match(/^(\d{3})R(\d{2}(?:\.\d)?)$/i);
-    if (match) return { type: "metric", width: match[1], aspectRatio: null, rimDiameter: match[2] };
-    match = sizeStr.match(/^(\d+)\s*X\s*([\d.]+)\s*R(\d+)$/i);
-    if (match) return { type: "flotation", overallDiameter: match[1], sectionWidth: match[2], rimDiameter: match[3] };
+    if (match) return { width: match[1], aspectRatio: null, rimDiameter: match[2] };
     return null;
-  };
-
-  // 🔹 Compare product and fitment
-  const isSizeMatch = (spec, f) => {
-    if (!spec || !f || spec.type !== f.type) return false;
-    if (spec.type === "metric") {
-      return (
-        String(spec.width) === String(f.width) &&
-        (String(spec.aspectRatio) === String(f.aspectRatio) || !spec.aspectRatio || !f.aspectRatio) &&
-        String(spec.rimDiameter) === String(f.rimDiameter)
-      );
-    }
-    if (spec.type === "flotation") {
-      return (
-        String(spec.overallDiameter) === String(f.overallDiameter) &&
-        String(spec.sectionWidth) === String(f.sectionWidth) &&
-        String(spec.rimDiameter) === String(f.rimDiameter)
-      );
-    }
-    return false;
   };
 
   // 🔹 Filter + sort products
@@ -105,15 +69,29 @@ const CatalogBox = ({ filters }) => {
       );
     }
 
-    // Fitment filter (vehicle input)
-    if (fitmentSizes.length > 0) {
+    // ✅ Fitment filter (size + boltPattern + offset + wheelSize)
+    if (fitmentSizes.length > 0 || fitment) {
       const fitmentSpecs = fitmentSizes.map(parseFitmentSize).filter(Boolean);
+
       result = result.filter((product) => {
         const productSizes = Array.isArray(product.size) ? product.size : [product.size];
-        return productSizes.some((psize) => {
-          const parsedSpec = parseFitmentSize(psize) || parseProductSize(product);
-          return fitmentSpecs.some((f) => isSizeMatch(parsedSpec, f));
-        });
+        const sizeMatch =
+          fitmentSpecs.length === 0 ||
+          productSizes.some((psize) => {
+            const parsedSpec = parseFitmentSize(psize);
+            return fitmentSpecs.some(
+              (f) =>
+                f.width === parsedSpec?.width &&
+                f.rimDiameter === parsedSpec?.rimDiameter &&
+                (!f.aspectRatio || f.aspectRatio === parsedSpec?.aspectRatio)
+            );
+          });
+
+        const boltMatch = !fitment?.boltPattern || product.boltPattern === fitment.boltPattern;
+        const offsetMatch = !fitment?.offset || product.offset === fitment.offset;
+        const wheelMatch = !fitment?.wheelSize || product.wheelSize === fitment.wheelSize;
+
+        return sizeMatch && boltMatch && offsetMatch && wheelMatch;
       });
     }
 
@@ -130,7 +108,7 @@ const CatalogBox = ({ filters }) => {
       default:
         return result;
     }
-  }, [products, filters, fitmentSizes, sortOption]);
+  }, [products, filters, fitmentSizes, fitment, sortOption]);
 
   // Pagination
   const startIdx = (currentPage - 1) * itemsPerPage;
@@ -158,37 +136,22 @@ const CatalogBox = ({ filters }) => {
         {paginatedProducts.length === 0 ? (
           <p className="no-products">No products available.</p>
         ) : (
-          paginatedProducts.map((product, idx) => {
-            const { id, imageUrl, brand, model, pattern, size, loadRating, plyRating, price, description, reviews = [], new: isNew } = product;
-
-            const productSizes = Array.isArray(size) ? size : [size];
-            const fitmentSpecs = fitmentSizes.map(parseFitmentSize).filter(Boolean);
-            const isFitmentMatch = productSizes.some((psize) => {
-              const parsedSpec = parseFitmentSize(psize) || parseProductSize(product);
-              return fitmentSpecs.some((f) => isSizeMatch(parsedSpec, f));
-            });
-
-            return (
-              <div key={id || idx} className="product-card" onClick={() => handleView(id)}>
-                {isNew && <div className="tag">NEW</div>}
-                {fitmentSizes.length > 0 && isFitmentMatch && <div className="tag fitment-tag">FITMENT MATCH</div>}
-                <img
-                  src={imageUrl || "https://placehold.co/150x150?text=No+Image"}
-                  alt={`${brand || "Brand"} ${model || "Model"}`}
-                  className="product-img"
-                  onError={(e) => (e.target.src = "https://placehold.co/150x150?text=No+Image")}
-                />
-                <h4 className="product-name">{brand || "Unknown Brand"}</h4>
-                <p className="product-model-size">{size} {model} {pattern}</p>
-                <p className="product-extra">{loadRating && `Load: ${loadRating} `}{plyRating && `| Ply: ${plyRating}`}</p>
-                <p className="product-price">₱{price?.toLocaleString() || "N/A"}</p>
-                <p className="product-desc">{description}</p>
-                <div className="product-rating">
-                  ★★★★☆ ({reviews.length || 1} Review{reviews.length > 1 ? "s" : ""})
-                </div>
-              </div>
-            );
-          })
+          paginatedProducts.map((product) => (
+            <div key={product.id} className="product-card" onClick={() => handleView(product.id)}>
+              {fitment && <div className="tag fitment-tag">FITMENT MATCH</div>}
+              <img
+                src={product.imageUrl || "https://placehold.co/150x150?text=No+Image"}
+                alt={`${product.brand || "Brand"} ${product.model || "Model"}`}
+                className="product-img"
+                onError={(e) => (e.target.src = "https://placehold.co/150x150?text=No+Image")}
+              />
+              <h4 className="product-name">{product.brand || "Unknown Brand"}</h4>
+              <p className="product-model-size">
+                {product.size} {product.model} {product.pattern}
+              </p>
+              <p className="product-price">₱{product.price?.toLocaleString() || "N/A"}</p>
+            </div>
+          ))
         )}
       </div>
 

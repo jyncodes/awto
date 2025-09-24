@@ -1,58 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/Manual.css";
-
-// Example manual dataset (you can expand this)
-const manualData = {
-  Honda: {
-    2020: {
-      Civic: [
-        {
-          id: "civic-2020-lx",
-          name: "LX",
-          tireSize: "215/55R16",
-          wheelSize: "16x7",
-          boltPattern: "5x114.3",
-          offset: "45mm",
-          hubBore: "64.1mm",
-        },
-        {
-          id: "civic-2020-ex",
-          name: "EX",
-          tireSize: "215/50R17",
-          wheelSize: "17x7",
-          boltPattern: "5x114.3",
-          offset: "45mm",
-          hubBore: "64.1mm",
-        },
-      ],
-      Accord: [
-        {
-          id: "accord-2020-lx",
-          name: "LX",
-          tireSize: "225/50R17",
-          wheelSize: "17x7.5",
-          boltPattern: "5x114.3",
-          offset: "50mm",
-          hubBore: "64.1mm",
-        },
-      ],
-    },
-    2021: {
-      Civic: [
-        {
-          id: "civic-2021-sport",
-          name: "Sport",
-          tireSize: "235/40R18",
-          wheelSize: "18x8",
-          boltPattern: "5x114.3",
-          offset: "45mm",
-          hubBore: "64.1mm",
-        },
-      ],
-    },
-  },
-};
+import hondaData from "../../Data/HondaData"; // ✅ import dataset
 
 const Manual = () => {
   const navigate = useNavigate();
@@ -62,16 +11,16 @@ const Manual = () => {
   const [selectedTrim, setSelectedTrim] = useState("");
   const [trimDetails, setTrimDetails] = useState(null);
 
-  const make = "Honda"; // since we’re only focusing on Honda
-  const years = Object.keys(manualData[make]);
+  const make = "Honda"; // fixed for now
+  const years = Object.keys(hondaData);
 
-  const models = selectedYear ? Object.keys(manualData[make][selectedYear]) : [];
+  const models = selectedYear ? Object.keys(hondaData[selectedYear]) : [];
   const trims =
     selectedYear && selectedModel
-      ? manualData[make][selectedYear][selectedModel]
+      ? hondaData[selectedYear][selectedModel]
       : [];
 
-  // Handle Shop Now click
+  // Shop Now → passes fitment specs to user-dashboard
   const handleShopNow = () => {
     if (!trimDetails) return;
 
@@ -79,13 +28,17 @@ const Manual = () => {
 
     navigate("/user-dashboard", {
       state: {
-        size: [trimDetails.tireSize],
+        fitment: {
+          boltPattern: trimDetails.boltPattern,
+          offset: trimDetails.offset,
+          wheelSize: trimDetails.wheelSize,
+        },
         vehicleLabel,
       },
     });
   };
 
-  // Handle Clear click
+  // Clear
   const handleClear = () => {
     setSelectedYear("");
     setSelectedModel("");
@@ -133,7 +86,7 @@ const Manual = () => {
         ))}
       </select>
 
-      {/* Trim + Buttons */}
+      {/* Trim */}
       <div className="trim-shop-wrapper">
         <select
           value={selectedTrim}
@@ -165,25 +118,15 @@ const Manual = () => {
         </button>
       </div>
 
-      {/* Recommended Specs */}
+      {/* Specs */}
       {trimDetails && (
         <div className="trim-details">
           <h2>Recommended Specs</h2>
-          <p>
-            <strong>Tire Size:</strong> {trimDetails.tireSize}
-          </p>
-          <p>
-            <strong>Wheel Size:</strong> {trimDetails.wheelSize}
-          </p>
-          <p>
-            <strong>Bolt Pattern:</strong> {trimDetails.boltPattern}
-          </p>
-          <p>
-            <strong>Offset:</strong> {trimDetails.offset}
-          </p>
-          <p>
-            <strong>Hub Bore:</strong> {trimDetails.hubBore}
-          </p>
+          <p><strong>Tire Size:</strong> {trimDetails.tireSize}</p>
+          <p><strong>Wheel Size:</strong> {trimDetails.wheelSize}</p>
+          <p><strong>Bolt Pattern:</strong> {trimDetails.boltPattern}</p>
+          <p><strong>Offset:</strong> {trimDetails.offset}</p>
+          <p><strong>Hub Bore:</strong> {trimDetails.hubBore}</p>
         </div>
       )}
     </div>

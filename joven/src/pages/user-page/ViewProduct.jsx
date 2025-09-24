@@ -1,5 +1,6 @@
+// src/pages/user-pages/ViewProduct.jsx
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   doc,
   getDoc,
@@ -12,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
-import "../../styles/ViewProduct.css";  // updated path
+import "../../styles/ViewProduct.css";
 
 // Import ModelViewer
 import ModelViewer from "../../components/user-components/ModelViewer";
@@ -20,6 +21,11 @@ import ModelViewer from "../../components/user-components/ModelViewer";
 const ViewProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Grab vehicle context if passed
+  const { vehicleLabel = "", size: fitmentSizes = [] } = location.state || {};
+
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
 
@@ -44,7 +50,9 @@ const ViewProduct = () => {
 
   const handleReserveClick = () => {
     if (product?.id) {
-      navigate(`/reserve/${product.id}`);
+      navigate(`/reserve/${product.id}`, {
+        state: { vehicleLabel, fitmentSizes },
+      });
     }
   };
 
@@ -86,9 +94,10 @@ const ViewProduct = () => {
         brand: product.brand || "Unknown",
         price: typeof product.price === "number" ? product.price : 0,
         createdAt: serverTimestamp(),
+        vehicleLabel: vehicleLabel || null,
       });
 
-      alert("Added to My Selections!");
+      alert("✅ Added to My Selections!");
     } catch (error) {
       console.error("Add to cart error:", error);
       alert("Failed to add to My Selections.");
@@ -145,8 +154,13 @@ const ViewProduct = () => {
 
         {/* Product Info */}
         <div className="product-info">
-          <span className="tag">NEW</span>
+          {vehicleLabel && (
+            <div className="fitment-context">
+              🚗 Showing fitment for: <strong>{vehicleLabel}</strong>
+            </div>
+          )}
 
+          <span className="tag">NEW</span>
           <h2 className="brand-logo">{product.brand || "No Brand"}</h2>
           <h1 className="product-name">{displayName}</h1>
           <p className="review-label">Be The First To Review This Product</p>
@@ -174,7 +188,7 @@ const ViewProduct = () => {
 
           <div className="fitment-warning">
             🚗 This product is fitment specific.{" "}
-            <a href="#">Select a vehicle</a> to see if this fits.
+            <a href="/manual">Select a vehicle</a> to see if this fits.
           </div>
 
           <details className="desc-section" open>
