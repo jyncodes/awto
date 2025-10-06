@@ -7,19 +7,18 @@ import { auth } from "../../firebase";
 import Navbar from "../../components/Navbar";
 import Filter from "../../components/user-components/Filter";
 import CatalogBox from "../../components/user-components/CatalogBox";
-import Fitment from "../../components/user-components/Fitment";
+import Manual from "../../components/user-components/Manual"; // ✅ Replaced Fitment with Manual
 import "../../styles/UserDashboard.css";
 
 const UserDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Pull filters & label from Fitment, or empty object if none
+  // ✅ Pull filters & label from Manual or previous state
   const { size, vehicleLabel } = location.state || {};
-  const [filters, setFilters] = useState(
-    size ? { size } : {} // Only prefill filter if size was passed
-  );
+  const [filters, setFilters] = useState(size ? { size } : {}); // Prefill filter if size was passed
 
+  // ✅ Logout handler
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -38,9 +37,9 @@ const UserDashboard = () => {
       />
 
       <div className="user-dashboard-container">
-        {/* ✅ Fitment component at the top */}
+        {/* ✅ Manual fitment selector at the top */}
         <div className="fitment-section">
-          <Fitment />
+          <Manual />
         </div>
 
         {vehicleLabel && size && (
@@ -54,7 +53,7 @@ const UserDashboard = () => {
 
         {!vehicleLabel && (
           <p className="dashboard-intro">
-            Select your vehicle and browse fitment-matching products.
+            Select your vehicle below and browse fitment-matching products.
           </p>
         )}
 
@@ -62,6 +61,7 @@ const UserDashboard = () => {
           <div className="filter-panel">
             <Filter onChange={setFilters} />
           </div>
+
           <div className="catalog-panel">
             <CatalogBox filters={filters} />
           </div>

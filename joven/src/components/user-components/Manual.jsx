@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import vehicleData from "../../data/vehicleData"; // ✅ dataset
 import "../../styles/Manual.css";
-import hondaData from "../../Data/HondaData"; // ✅ import dataset
 
 const Manual = () => {
   const navigate = useNavigate();
