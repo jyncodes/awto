@@ -1,4 +1,3 @@
-// src/pages/user-pages/ViewProduct.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -14,16 +13,12 @@ import {
 import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
 import "../../styles/ViewProduct.css";
-
-// Import ModelViewer
 import ModelViewer from "../../components/user-components/ModelViewer";
 
 const ViewProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Grab vehicle context if passed
   const { vehicleLabel = "", size: fitmentSizes = [] } = location.state || {};
 
   const [product, setProduct] = useState(null);
@@ -37,9 +32,12 @@ const ViewProduct = () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setProduct({ ...data, id: docSnap.id });
-          setMainImage(data.images?.[0] || data.imageUrl || null);
-        } else {
-          console.error("Product not found");
+
+          // Show main image only if no GLB is available
+          const hasGLB = data.modelUrl || (data.productId && data.type === "Mags");
+          if (!hasGLB) {
+            setMainImage(data.images?.[0] || data.imageUrl || null);
+          }
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -50,23 +48,14 @@ const ViewProduct = () => {
 
   const handleReserveClick = () => {
     if (product?.id) {
-      navigate(`/reserve/${product.id}`, {
-        state: { vehicleLabel, fitmentSizes },
-      });
+      navigate(`/reserve/${product.id}`, { state: { vehicleLabel, fitmentSizes } });
     }
   };
 
   const handleAddToCart = async () => {
     const user = auth.currentUser;
-    if (!user) {
-      alert("You must be logged in to add to selections.");
-      return;
-    }
-
-    if (!product || !product.id) {
-      alert("Product data is not ready.");
-      return;
-    }
+    if (!user) return alert("You must be logged in to add to selections.");
+    if (!product?.id) return alert("Product data is not ready.");
 
     try {
       const cartRef = collection(db, "cartSelections");
@@ -76,11 +65,7 @@ const ViewProduct = () => {
         where("productId", "==", product.id)
       );
       const existing = await getDocs(q);
-
-      if (!existing.empty) {
-        alert("Item is already in your selections.");
-        return;
-      }
+      if (!existing.empty) return alert("Item is already in your selections.");
 
       const productName =
         product.name?.trim() ||
@@ -90,7 +75,7 @@ const ViewProduct = () => {
       await addDoc(cartRef, {
         userId: user.uid,
         productId: product.id,
-        productName: productName,
+        productName,
         brand: product.brand || "Unknown",
         price: typeof product.price === "number" ? product.price : 0,
         createdAt: serverTimestamp(),
@@ -104,33 +89,34 @@ const ViewProduct = () => {
     }
   };
 
-  if (!product) {
-    return <div className="view-product">Loading product details...</div>;
-  }
+  if (!product) return <div className="view-product">Loading product details...</div>;
 
-  const displayName =
-    product.size && product.model
-      ? `${product.size} ${product.model}`
-      : product.name || "No Name";
+  const displayName = product.size && product.model
+    ? `${product.size} ${product.model}`
+    : product.name || "No Name";
+
+  const hasGLB = product.modelUrl || (product.productId && product.type === "Mags");
+
+  const modelUrl = product.modelUrl
+    ? product.modelUrl.startsWith("/") ? product.modelUrl : `/${product.modelUrl}`
+    : product.productId && product.type === "Mags" ? `/models/mags/${product.productId}.glb` : "";
 
   return (
     <div className="view-product">
-      <button className="back-button" onClick={() => navigate(-1)}>
-        ← Back
-      </button>
+      <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
 
       <div className="product-container">
-        {/* Images */}
         <div className="product-images">
-          <img
-            src={mainImage || "https://placehold.co/300x300?text=No+Image"}
-            alt="Main"
-            className="main-image"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "https://placehold.co/300x300?text=No+Image";
-            }}
-          />
+          {/* Show image only if no GLB */}
+          {!hasGLB && (
+            <img
+              src={mainImage || "https://placehold.co/300x300?text=No+Image"}
+              alt="Main"
+              className="main-image"
+              onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/300x300?text=No+Image"; }}
+            />
+          )}
+
           <div className="thumbnail-row">
             {(product.images || []).map((img, index) => (
               <img
@@ -143,16 +129,14 @@ const ViewProduct = () => {
             ))}
           </div>
 
-          {/* 3D Model Viewer */}
-          {product.modelUrl && (
+          {/* Render GLB if available */}
+          {hasGLB && modelUrl && (
             <div className="model-viewer-wrapper">
-              <h3>3D Interactive Preview</h3>
-              <ModelViewer modelUrl={product.modelUrl} />
+              <ModelViewer modelUrl={modelUrl} />
             </div>
           )}
         </div>
 
-        {/* Product Info */}
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">
@@ -165,30 +149,19 @@ const ViewProduct = () => {
           <h1 className="product-name">{displayName}</h1>
           <p className="review-label">Be The First To Review This Product</p>
 
-          <p className="detail-line">
-            <strong>Finish:</strong> {product.finish || "N/A"}
-          </p>
-
-          <p className="price">
-            <strong>Price:</strong> ₱{product.price?.toLocaleString() || "N/A"}
-          </p>
+          <p className="detail-line"><strong>Finish:</strong> {product.finish || "N/A"}</p>
+          <p className="price"><strong>Price:</strong> ₱{product.price?.toLocaleString() || "N/A"}</p>
 
           <div className="options-section">
             <label htmlFor="options-select">Options:</label>
             <select id="options-select">
               <option value="front-rear">Front and Rear</option>
             </select>
-            <input
-              type="number"
-              min="1"
-              defaultValue="4"
-              className="qty-input"
-            />
+            <input type="number" min="1" defaultValue="4" className="qty-input" />
           </div>
 
           <div className="fitment-warning">
-            🚗 This product is fitment specific.{" "}
-            <a href="/manual">Select a vehicle</a> to see if this fits.
+            🚗 This product is fitment specific. <a href="/manual">Select a vehicle</a> to see if this fits.
           </div>
 
           <details className="desc-section" open>
@@ -198,22 +171,12 @@ const ViewProduct = () => {
 
           <details className="details-section">
             <summary>Product Details</summary>
-            <p>
-              More specifications can go here (diameter, width, bolt pattern,
-              etc.)
-            </p>
+            <p>More specifications can go here (diameter, width, bolt pattern, etc.)</p>
           </details>
 
-          {/* Buttons */}
           <div className="button-row">
-            <button className="reserve-button" onClick={handleReserveClick}>
-              Reserve Now
-            </button>
-            <button
-              className="icon-button"
-              onClick={handleAddToCart}
-              title="Add to My Selections"
-            >
+            <button className="reserve-button" onClick={handleReserveClick}>Reserve Now</button>
+            <button className="icon-button" onClick={handleAddToCart} title="Add to My Selections">
               <FiShoppingCart size={24} />
             </button>
           </div>

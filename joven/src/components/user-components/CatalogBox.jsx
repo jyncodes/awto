@@ -1,20 +1,14 @@
-// src/components/CatalogBox.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../firebase"; 
-import "../../styles/CatalogBox.css"; 
+import { db } from "../../firebase";
+import "../../styles/CatalogBox.css";
+import ModelViewer from "../../components/user-components/ModelViewer";
 
 const CatalogBox = ({ filters }) => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // ✅ Receive fitment data (sizes + specs from Manual.jsx)
-  const {
-    size: fitmentSizes = [],
-    vehicleLabel = "",
-    fitment = null, // { boltPattern, offset, wheelSize }
-  } = location.state || {};
+  const { size: fitmentSizes = [], vehicleLabel = "", fitment = null } = location.state || {};
 
   const [products, setProducts] = useState([]);
   const [sortOption, setSortOption] = useState("default");
@@ -26,15 +20,13 @@ const CatalogBox = ({ filters }) => {
       try {
         const snapshot = await getDocs(collection(db, "products"));
         const fetched = snapshot.docs.map((doc) => {
-          const data = doc.data();
+          const data = doc.data() || {};
           let size = data.size;
-
           if (!size && data.width && data.rimDiameter) {
             size = data.aspectRatio
               ? `${data.width}/${data.aspectRatio}R${data.rimDiameter}`
               : `${data.width}R${data.rimDiameter}`;
           }
-
           return { id: doc.id, ...data, size };
         });
         setProducts(fetched);
@@ -45,7 +37,6 @@ const CatalogBox = ({ filters }) => {
     fetchProducts();
   }, []);
 
-  // 🔹 Parse fitment size string
   const parseFitmentSize = (sizeStr) => {
     if (!sizeStr) return null;
     let match = sizeStr.match(/^(\d{3})\/(\d{2,3})R(\d{2}(?:\.\d)?)$/i);
@@ -55,11 +46,9 @@ const CatalogBox = ({ filters }) => {
     return null;
   };
 
-  // 🔹 Filter + sort products
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // Sidebar filters
     if (filters && Object.keys(filters).length > 0) {
       result = result.filter((product) =>
         Object.entries(filters).every(([key, values]) => {
@@ -69,10 +58,8 @@ const CatalogBox = ({ filters }) => {
       );
     }
 
-    // ✅ Fitment filter (size + boltPattern + offset + wheelSize)
     if (fitmentSizes.length > 0 || fitment) {
       const fitmentSpecs = fitmentSizes.map(parseFitmentSize).filter(Boolean);
-
       result = result.filter((product) => {
         const productSizes = Array.isArray(product.size) ? product.size : [product.size];
         const sizeMatch =
@@ -95,7 +82,6 @@ const CatalogBox = ({ filters }) => {
       });
     }
 
-    // Sorting
     switch (sortOption) {
       case "name-asc":
         return result.sort((a, b) => (a.brand || "").localeCompare(b.brand || ""));
@@ -110,20 +96,26 @@ const CatalogBox = ({ filters }) => {
     }
   }, [products, filters, fitmentSizes, fitment, sortOption]);
 
-  // Pagination
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(startIdx, startIdx + itemsPerPage);
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
-  const handleView = (id) => navigate(`/view-product/${id}`);
+  const handleView = (id) => {
+    navigate(`/view-product/${id}`, { state: { vehicleLabel, fitmentSizes, fitment } });
+  };
 
   return (
     <div className="catalog">
       <div className="catalog-header">
         <h3>
-          Product Catalog {vehicleLabel && <span className="vehicle-label">for {vehicleLabel}</span>}
+          Product Catalog{" "}
+          {vehicleLabel && <span className="vehicle-label">for {vehicleLabel}</span>}
         </h3>
-        <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="sort-select">
+        <select
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value)}
+          className="sort-select"
+        >
           <option value="default">Sort by</option>
           <option value="name-asc">Brand (A–Z)</option>
           <option value="name-desc">Brand (Z–A)</option>
@@ -136,22 +128,39 @@ const CatalogBox = ({ filters }) => {
         {paginatedProducts.length === 0 ? (
           <p className="no-products">No products available.</p>
         ) : (
-          paginatedProducts.map((product) => (
-            <div key={product.id} className="product-card" onClick={() => handleView(product.id)}>
-              {fitment && <div className="tag fitment-tag">FITMENT MATCH</div>}
-              <img
-                src={product.imageUrl || "https://placehold.co/150x150?text=No+Image"}
-                alt={`${product.brand || "Brand"} ${product.model || "Model"}`}
-                className="product-img"
-                onError={(e) => (e.target.src = "https://placehold.co/150x150?text=No+Image")}
-              />
-              <h4 className="product-name">{product.brand || "Unknown Brand"}</h4>
-              <p className="product-model-size">
-                {product.size} {product.model} {product.pattern}
-              </p>
-              <p className="product-price">₱{product.price?.toLocaleString() || "N/A"}</p>
-            </div>
-          ))
+          paginatedProducts.map((product) => {
+            let modelPath = product.modelUrl
+              ? product.modelUrl.startsWith("/")
+                ? product.modelUrl
+                : `/${product.modelUrl}`
+              : product.productId
+              ? `/models/mags/${product.productId}.glb`
+              : "";
+
+            const has3DModel = product.type === "Mags" && product.productId === "MA-00001";
+
+            return (
+              <div key={product.id} className="product-card">
+                {fitment && <div className="tag fitment-tag">FITMENT MATCH</div>}
+
+                <div className="product-media" onClick={() => handleView(product.id)}>
+                  {has3DModel ? (
+                    <ModelViewer modelUrl={modelPath} scale={0.5} cameraPosition={[0, 1, 3]} height={150} />
+                  ) : (
+                    <img
+                      src={product.imageUrl || "https://placehold.co/150x150?text=No+Image"}
+                      alt={`${product.brand || "Brand"} ${product.model || "Model"}`}
+                      className="product-img"
+                    />
+                  )}
+                </div>
+
+                <h4 className="product-name">{product.brand || "Unknown Brand"}</h4>
+                <p className="product-model-size">{product.size} {product.model} {product.pattern}</p>
+                <p className="product-price">₱{product.price?.toLocaleString() || "N/A"}</p>
+              </div>
+            );
+          })
         )}
       </div>
 

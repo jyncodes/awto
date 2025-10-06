@@ -1,6 +1,6 @@
-// src/pages/admin-dashboard/Products.jsx
+// src/pages/admin-pages/Products.jsx 
 import React, { useEffect, useState } from 'react';
-import { db, auth, storage } from '../../firebase';
+import { db, auth } from '../../firebase';
 import {
   collection,
   getDocs,
@@ -12,7 +12,6 @@ import {
   setDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import "../../styles/admin-styles/Products.css";
 import ResetCounterModal from '../../components/admin-components/ResetCounterModal';
 
@@ -38,7 +37,7 @@ const INITIAL_FORM = {
   type: 'Tire',
   sizeFormat: 'metric',
   productId: '',
-  modelUrl: ''
+  modelUrl: '' // ✅ auto-set later
 };
 
 const Products = () => {
@@ -53,8 +52,6 @@ const Products = () => {
   const [nextProductId, setNextProductId] = useState('');
   const [sortField, setSortField] = useState('productId');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
 
   // Fetch products
   const fetchProducts = async () => {
@@ -84,32 +81,6 @@ const Products = () => {
     }
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.glb')) return alert("Only .glb files are allowed.");
-
-    setIsUploading(true);
-    setUploadStatus('Uploading...');
-
-    try {
-      const user = auth.currentUser;
-      if (!user) throw new Error("You must be logged in as Admin to upload.");
-
-      const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
-      setFormData(prev => ({ ...prev, modelUrl: downloadUrl }));
-      setUploadStatus('Completed');
-    } catch (err) {
-      console.error("Error uploading GLB:", err);
-      alert("Failed to upload 3D model. Check your network or permissions.");
-      setUploadStatus('');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const verifyAdminAccess = async () => {
     const user = auth.currentUser;
     if (!user) return false;
@@ -121,8 +92,6 @@ const Products = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (isUploading) return alert("Please wait for the 3D model to finish uploading.");
 
     let generatedId, current, prefix;
     if (!isEditMode) {
@@ -139,12 +108,18 @@ const Products = () => {
       size = `${formData.overallDiameter}X${formData.sectionWidth}R${formData.rimDiameter}`;
     }
 
+    // ✅ Auto-generate modelUrl if mags and not set
+    let finalModelUrl = formData.modelUrl || selectedProduct?.modelUrl || '';
+    if (!isEditMode && formData.type === 'Mags') {
+      finalModelUrl = `/models/mags/${generatedId}.glb`;
+    }
+
     const payload = {
       ...formData,
       price: Number(formData.price) || 0,
       size,
       productId: isEditMode ? formData.productId : generatedId,
-      modelUrl: formData.modelUrl || selectedProduct?.modelUrl || '',
+      modelUrl: finalModelUrl,
       ...(isEditMode ? { updatedAt: serverTimestamp() } : { createdAt: serverTimestamp() })
     };
 
@@ -160,7 +135,6 @@ const Products = () => {
     setIsEditMode(false);
     setIsModalOpen(false);
     setNextProductId('');
-    setUploadStatus('');
     fetchProducts();
   };
 
@@ -174,7 +148,6 @@ const Products = () => {
     setNextProductId(product.productId || 'N/A');
     setIsEditMode(true);
     setIsModalOpen(true);
-    setUploadStatus(product.modelUrl ? 'Completed' : '');
   };
 
   const handleDelete = async (id) => {
@@ -326,15 +299,23 @@ const Products = () => {
               <div className="form-group"><label>Price</label><input type="number" name="price" value={formData.price} onChange={handleInputChange} /></div>
               <div className="form-group"><label>Description</label><textarea name="description" value={formData.description} onChange={handleInputChange} /></div>
 
-              {/* 3D Model Upload */}
+              {/* 3D Model Path */}
               <div className="form-group">
-                <label>3D Model (GLB)</label>
-                <input type="file" accept=".glb" onChange={handleFileUpload} disabled={isUploading} />
-                {uploadStatus && <p style={{ fontSize: "12px", color: uploadStatus === 'Completed' ? "green" : "orange" }}>{uploadStatus}</p>}
+                <label>3D Model URL</label>
+                <input
+                  type="text"
+                  name="modelUrl"
+                  placeholder="/models/mags/MA-00001.glb"
+                  value={formData.modelUrl}
+                  onChange={handleInputChange}
+                />
+                {!isEditMode && formData.type === 'Mags' && (
+                  <small>Auto-set to /models/mags/{nextProductId}.glb if left blank</small>
+                )}
               </div>
 
               <div className="form-actions">
-                <button type="submit" disabled={isUploading}>{isEditMode ? 'Update Product' : 'Add Product'}</button>
+                <button type="submit">{isEditMode ? 'Update Product' : 'Add Product'}</button>
                 <button type="button" onClick={() => setIsModalOpen(false)}>Cancel</button>
               </div>
             </form>

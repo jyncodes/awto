@@ -64,6 +64,32 @@
   border: 2px solid #0a3d62;
 }
 
+/* 3D Model Viewer Wrapper */
+.model-viewer-wrapper {
+  margin-top: 1.5rem;
+  width: 100%;
+  height: 500px; /* fixed height */
+  max-width: 600px; /* optional max width */
+  aspect-ratio: 1; /* maintain square frame */
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff; /* plain white */
+}
+
+/* Make the Canvas fit the wrapper */
+.model-viewer-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+  border-radius: 10px;
+  background-color: #ffffff !important; /* fully white background */
+}
+
 /* Product Info Section */
 .product-info {
   flex: 1;
@@ -198,6 +224,9 @@ details p {
   .reserve-button {
     width: 100%;
   }
+  .model-viewer-wrapper {
+    height: 400px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -226,5 +255,8 @@ details p {
   .button-row {
     flex-direction: column;
     align-items: stretch;
+  }
+  .model-viewer-wrapper {
+    height: 350px;
   }
 }
