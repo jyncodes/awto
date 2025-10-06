@@ -8,9 +8,9 @@
 html, body {
   height: 100%;
   width: 100%;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f4f4;
-  color: #333;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f4f4f4 !important;
+  color: #000000;
   line-height: 1.6;
 }
 

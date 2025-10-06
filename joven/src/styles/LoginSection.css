@@ -1,0 +1,202 @@
+/* ===========================
+   LOGIN POPUP OVERLAY
+=========================== */
+.login-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* ===========================
+   LOGIN FORM CONTAINER
+=========================== */
+.login-form {
+  background: #faf9f6;
+  padding: 2.5rem 2.2rem;
+  border-radius: 18px;
+  border: 2px solid #ffffff; /* ✅ White frame */
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+  width: 380px;
+  max-width: 90%;
+  position: relative;
+  font-family: 'Poppins', sans-serif;
+  animation: slideIn 0.35s ease;
+  transition: all 0.3s ease-in-out;
+}
+
+/* ===========================
+   CLOSE BUTTON
+=========================== */
+.close-popup {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1.7rem;
+  font-weight: bold;
+  color: #444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-popup:hover {
+  color: #000;
+  transform: scale(1.1);
+}
+
+/* ===========================
+   HEADER TEXT
+=========================== */
+.login-form h2 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #111;
+  text-align: center;
+  margin-bottom: 1.8rem;
+  letter-spacing: 0.5px;
+}
+
+/* ===========================
+   FORM LABELS & INPUTS
+=========================== */
+.form-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #222;
+  margin-bottom: 0.4rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1.5px solid #bbb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #222;
+  transition: all 0.25s ease;
+  background-color: #fff;
+}
+
+.form-input:focus {
+  border-color: #f39c12;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.2);
+}
+
+/* ===========================
+   PASSWORD FIELD
+=========================== */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+  color: #000;
+}
+
+/* ===========================
+   LOGIN BUTTON
+=========================== */
+.explore-button {
+  width: 100%;
+  background-color: #000;
+  color: #fff;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1.5rem;
+}
+
+.explore-button:hover {
+  background-color: #f39c12;
+  transform: translateY(-2px);
+}
+
+/* ===========================
+   CREATE ACCOUNT BUTTON (Secondary)
+=========================== */
+.register-link {
+  display: block;
+  width: 100%;
+  background-color: #000;          /* Still black for visibility */
+  color: #fff;
+  text-decoration: none;
+  padding: 0.6rem;
+  font-size: 0.9rem;               /* Smaller font size */
+  font-weight: 500;                /* Slightly lighter */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+  opacity: 0.9;                    /* Subtle faded look */
+}
+
+.register-link:hover {
+  background-color: #f39c12;       /* Gold hover */
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(243, 156, 18, 0.3);
+  opacity: 1;
+}
+
+/* ===========================
+   ANIMATIONS
+=========================== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-25px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media (max-width: 480px) {
+  .login-form {
+    padding: 2rem 1.5rem;
+    width: 90%;
+  }
+
+  .login-form h2 {
+    font-size: 1.25rem;
+  }
+
+  .form-input {
+    font-size: 0.9rem;
+  }
+
+  .explore-button {
+    font-size: 0.95rem;
+  }
+}

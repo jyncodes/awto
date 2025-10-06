@@ -1,446 +1,89 @@
-/* ================= GLOBAL ================= */
-html {
-  scroll-behavior: smooth;
-}
+  .landing-main {
+    background-color: #f4f4f4;
+    padding-top: 70px; /* space for navbar */
+    color: #222;
+  }
 
+  .section {
+    padding: 80px 20px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.8s ease;
+  }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f6fa;
-  color: #2d3436;
-}
+  .section.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
 
-/* ================= NAVBAR ================= */
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background-color: #0a3d62;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  position: sticky;
-  top: 0;
-  z-index: 999;
-}
+  /* Brand Section */
+  .brand-section {
+    background-color: #ffffff;
+  }
+  .brand-catalog {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  .brand-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+  .brand-card:hover {
+    transform: scale(1.05);
+  }
+  .brand-card img {
+    width: 130px;
+    height: auto;
+  }
 
-.left-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-}
+  /* Services Section */
+  .services-section {
+    background-color: #f8f8f8;
+  }
 
-.logo {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
+  /* About Section */
+  .about-section {
+    background-color: #fff;
+  }
 
-.brand-name {
-  font-weight: 700;
-  font-size: 1.3rem;
-  color: #fff;
-}
-
-.right-nav {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-.nav-link {
-  color: #d1d8e0;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: color 0.3s ease;
-}
-
-.nav-link:hover,
-.nav-link:focus {
-  color: #ffffff;
-}
-
-.icon-button {
-  background: none;
-  border: none;
-  font-size: 1.3rem;
-  color: #fff;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.icon-button:hover,
-.icon-button:focus {
-  transform: scale(1.1);
-}
-
-.create-account-button {
-  background-color: #f39c12;
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-}
-
-.create-account-button:hover {
-  background-color: #e67e22;
-}
-
-/* ================= SECTIONS ================= */
-.section {
-  padding: 5rem 2rem;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-}
-
-.brand-section,
-.services-section,
-.about-section {
-  background-color: #ffffff;
-}
-
-.section h2 {
-  font-size: 2.2rem;
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.section p {
-  font-size: 1.1rem;
-  max-width: 800px;
-  margin: 0 auto;
-  text-align: center;
-}
-
-/* ================= BRAND CATALOG SECTION ================= */
-/* ================= BRAND CATALOG SECTION ================= */
-.brand-catalog {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
-  padding: 0 2rem;
-}
-
-.brand-card {
-  background-color: #ffffff;
-  border-radius: 16px;
-  padding: 1.5rem;
-  text-align: center;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 220px;
-}
-
-.brand-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.15);
-}
-
-.brand-card img {
-  width: 100px;
-  height: 100px;
-  object-fit: contain;
-  margin-bottom: 1rem;
-}
-
-.brand-card p {
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: #2d3436;
-  margin: 0;
-}
-
-
-/* ================= POPUP FORM ================= */
-.login-popup-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.login-form {
-  background-color: #fff;
-  padding: 2.5rem 2rem;
-  border-radius: 15px;
-  max-width: 420px;
-  width: 100%;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
-  text-align: center;
-  position: relative;
-}
-
-.close-popup {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #555;
-}
-
-/* ================= FORM INPUTS ================= */
-.form-label {
+  .register-button {
   display: block;
-  margin: 1rem 0 0.3rem;
-  font-weight: 600;
-  font-size: 1rem;
-  text-align: left;
-}
-
-.form-input {
   width: 100%;
-  padding: 0.6rem 0.8rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: 2px solid #ccc;
-  outline: none;
-  transition: border 0.3s ease;
-}
-
-.form-input:focus {
-  border-color: #057dcd;
-}
-
-.password-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.password-wrapper .form-input {
-  padding-right: 40px;
-}
-
-.toggle-password {
-  position: absolute;
-  right: 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #555;
-  font-size: 1.2rem;
-}
-
-.explore-button {
-  margin-top: 1.5rem;
-  background-color: #057dcd;
+  background-color: #000;          /* Still black for visibility */
   color: #fff;
+  text-decoration: none;
+  padding: 0.6rem;
+  font-size: 0.9rem;               /* Smaller font size */
+  font-weight: 500;                /* Slightly lighter */
   border: none;
-  padding: 0.7rem 1.5rem;
   border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.explore-button:hover {
-  background-color: #056bb3;
-}
-
-.create-account-text {
-  margin-top: 1rem;
-  font-size: 0.95rem;
-}
-
-.create-account-text .link {
-  color: #057dcd;
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-/* ================= FITMENT SECTION ================= */
-.fitment-section {
-  background-image: url('../assets/tires-bg.jpg');
-  background-size: cover;
-  background-position: center;
-  color: white;
-  padding: 6rem 2rem;
   text-align: center;
-  position: relative;
-}
-
-.fitment-overlay {
-  background: rgba(0, 0, 0, 0.6);
-  padding: 3rem 2rem;
-  border-radius: 15px;
-  max-width: 1100px;
-  margin: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-}
-
-.fitment-subtitle {
-  font-size: 1.3rem;
-  font-weight: bold;
-  color: #adff2f;
-}
-
-.fitment-title {
-  font-size: 3rem;
-  font-weight: 800;
-  font-style: italic;
-  text-shadow: 2px 2px #000;
-}
-
-.fitment-description {
-  font-size: 1.2rem;
+  transition: all 0.3s ease;
   margin-top: 0.5rem;
-  color: #adff2f;
-}
-
-.fitment-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 1.5rem;
-}
-
-.fitment-select {
-  padding: 0.7rem;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: none;
-  min-width: 140px;
-  color: #000;
-}
-
-.fitment-button {
-  padding: 0.7rem 1.5rem;
-  font-size: 1rem;
-  background-color: #adff2f;
-  color: #000;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.fitment-button:hover {
-  background-color: #caff5f;
-}
-
-/* ================= REGISTER BUTTON ================= */
-.register-button {
-  background-color: #1d4ed8;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  opacity: 0.9;                    /* Subtle faded look */
 }
 
 .register-button:hover {
-  background-color: #2563eb;
-  transform: translateY(-2px);
-}
-
-.register-button:active {
-  background-color: #1e40af;
-  transform: translateY(0);
-}
-
-/* ================= MOBILE NAV ================= */
-.menu-toggle {
-  display: none;
-  background: none;
-  border: none;
-  font-size: 1.8rem;
+  background-color: #f39c12;       /* Gold hover */
   color: #fff;
-  cursor: pointer;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(243, 156, 18, 0.3);
+  opacity: 1;
 }
 
-@media (max-width: 768px) {
-  .navbar {
-    flex-direction: column;
-    align-items: flex-start;
+  /* Responsive */
+  @media (max-width: 768px) {
+    .brand-catalog {
+      flex-direction: column;
+      align-items: center;
+    }
   }
-
-  .menu-toggle {
-    display: block;
-    margin-left: auto;
-  }
-
-  .right-nav {
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
-    display: none;
-  }
-
-  .right-nav.open {
-    display: flex;
-    margin-top: 1rem;
-  }
-
-  .nav-link,
-  .icon-button,
-  .create-account-button {
-    width: 100%;
-    text-align: left;
-  }
-
-  .create-account-button {
-    margin-top: 0.5rem;
-  }
-
-  .section h2 {
-    font-size: 1.8rem;
-  }
-
-  .explore-button {
-    font-size: 1rem;
-    padding: 0.5rem 1.2rem;
-  }
-
-  .fitment-title {
-    font-size: 2.3rem;
-  }
-
-  .fitment-form {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .fitment-select,
-  .fitment-button {
-    width: 100%;
-  }
-
-  .brand-card img {
-    width: 70px;
-  }
-
-  .brand-card p {
-    font-size: 0.9rem;
-  }
-}
