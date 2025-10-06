@@ -12,7 +12,7 @@ import {
 } from "firebase/firestore";
 import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
-import "../../styles/ViewProduct.css";
+import "../../styles/user-styles/ViewProduct.css";
 import ModelViewer from "../../components/user-components/ModelViewer";
 
 const ViewProduct = () => {

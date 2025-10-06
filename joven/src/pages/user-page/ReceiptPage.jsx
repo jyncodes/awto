@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
-import "../../styles/ReceiptPage.css"; // ✅ Updated CSS import
+import "../../styles/user-styles/ReceiptPage.css";
 
 const ReceiptPage = () => {
   const { reservationId } = useParams();

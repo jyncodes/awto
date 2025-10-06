@@ -8,7 +8,7 @@ import Navbar from "../../components/Navbar";
 import Filter from "../../components/user-components/Filter";
 import CatalogBox from "../../components/user-components/CatalogBox";
 import Manual from "../../components/user-components/Manual"; // ✅ Replaced Fitment with Manual
-import "../../styles/UserDashboard.css";
+import "../../styles/user-styles/UserDashboard.css";
 
 const UserDashboard = () => {
   const navigate = useNavigate();

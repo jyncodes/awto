@@ -3,8 +3,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
-import ModelViewer from "./ModelViewer"; // ✅ Added 3D Model Viewer
-import "../../styles/CatalogBox.css";
+import ModelViewer from "./ModelViewer";
+import "../../styles/user-styles/CatalogBox.css";
 
 const CatalogBox = ({ filters }) => {
   const navigate = useNavigate();

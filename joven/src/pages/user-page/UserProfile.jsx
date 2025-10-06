@@ -21,7 +21,7 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
 } from "firebase/auth";
-import "../../styles/UserProfile.css";
+import "../../styles/user-styles/UserProfile.css";
 
 const UserProfile = () => {
   const navigate = useNavigate();

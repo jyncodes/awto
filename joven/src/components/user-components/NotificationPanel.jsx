@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../styles/NotificationPanel.css';
+import '../../styles/user-styles/NotificationPanel.css';
 import { useNavigate } from 'react-router-dom';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';

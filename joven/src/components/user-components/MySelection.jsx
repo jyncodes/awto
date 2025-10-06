@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../../firebase';
-import '../../styles/MySelections.css'; 
+import '../../styles/user-styles/MySelections.css'; 
 import { useNavigate } from 'react-router-dom';
 
 const MySelections = () => {

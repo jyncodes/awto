@@ -17,7 +17,7 @@ import { db, auth } from "../../firebase";
 import Calendar from "react-calendar";
 import axios from "axios";
 import "react-calendar/dist/Calendar.css";
-import "../../styles/ReservationPage.css";
+import "../../styles/user-styles/ReservationPage.css";
 
 const ReservationPage = () => {
   const { productId } = useParams();

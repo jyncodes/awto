@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../firebase";
-import "../../styles/PaymentPage.css";
+import "../../styles/user-styles/PaymentPage.css";
 
 const PaymentPage = () => {
   const { reservationId } = useParams();
