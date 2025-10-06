@@ -1,100 +1,123 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { doc, deleteDoc } from "firebase/firestore";
-import { db } from "../../firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+} from "firebase/firestore"; // Firestore-specific imports
+import { onAuthStateChanged } from "firebase/auth"; // Auth-specific import
+import { auth, db } from "../../firebase";
 import "../../styles/user-styles/MySelection.css";
+import { FiX } from "react-icons/fi"; // For close button icon
 
-const MySelection = ({ cartItems, onClose }) => {
+const MySelection = ({ isOpen = true, onClose }) => {
   const navigate = useNavigate();
-  const [items, setItems] = useState(cartItems || []);
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser ] = useState(null);
 
   useEffect(() => {
-    setItems(cartItems);
-  }, [cartItems]);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser ) => {
+      setUser (currentUser );
+      if (currentUser ) {
+        fetchCartItems(currentUser .uid);
+      } else {
+        setCartItems([]);
+        setLoading(false);
+      }
+    });
 
-  const handleRemoveItem = async (itemId) => {
-    const confirmed = window.confirm("Are you sure you want to remove this item?");
-    if (!confirmed) return;
+    return () => unsubscribe();
+  }, []);
 
+  const fetchCartItems = async (userId) => {
+    if (!userId) return;
     try {
-      await deleteDoc(doc(db, "cartSelections", itemId));
-      setItems((prev) => prev.filter((item) => item.id !== itemId));
+      setLoading(true);
+      const q = query(collection(db, "cartSelections"), where("userId", "==", userId));
+      const querySnapshot = await getDocs(q);
+      const items = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setCartItems(items);
     } catch (error) {
-      console.error("Failed to remove item:", error);
+      console.error("Error fetching cart:", error);
+      alert("Failed to load selections.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleReserve = (item) => {
-    navigate(`/reservation/${item.productId}`, {
-      state: {
-        vehicleLabel: item.vehicleLabel || "",
-        size: item.size || [],
-        productName: item.productName,
-        brand: item.brand,
-        price: item.price,
-      },
-    });
-    onClose();
+  const handleView = (productId) => {
+    console.log("View button clicked for productId:", productId); // DEBUG: Check if click fires
+    try {
+      if (onClose) onClose();
+      navigate(`/product/${productId}`); // Adjust route if needed, e.g., '/view-product/${productId}'
+      console.log("Navigation attempted to:", `/product/${productId}`); // DEBUG
+    } catch (error) {
+      console.error("Navigation error:", error);
+      alert("Failed to navigate to product.");
+    }
   };
 
-  const handleViewProduct = (item) => {
-    navigate(`/view-product/${item.productId}`, {
-      state: {
-        vehicleLabel: item.vehicleLabel || "",
-        size: item.size || [],
-      },
-    });
-    onClose();
+  const handleRemove = async (itemId) => {
+    console.log("Remove button clicked for itemId:", itemId); // DEBUG: Check if click fires
+    if (!user) {
+      console.log("No user logged in for remove"); // DEBUG
+      return alert("You must be logged in.");
+    }
+    try {
+      await deleteDoc(doc(db, "cartSelections", itemId));
+      setCartItems((prev) => prev.filter((item) => item.id !== itemId));
+      // Refetch to ensure sync
+      await fetchCartItems(user.uid);
+      if (onClose) onClose();
+      alert("Item removed from selections.");
+      console.log("Remove successful"); // DEBUG
+    } catch (error) {
+      console.error("Remove error:", error);
+      alert("Failed to remove item.");
+    }
   };
 
-  const handleOverlayClick = () => {
-    onClose();
-  };
+  if (!isOpen) return null;
 
   return (
-    <div className="my-selection-panel-overlay" onClick={handleOverlayClick}>
-      <div
-        className="my-selection-panel"
-        onClick={(e) => e.stopPropagation()} // <-- This prevents overlay from blocking clicks inside panel
-      >
+    <div className="my-selection-panel-overlay">
+      <div className="my-selection-panel">
         <div className="my-selection-header">
-          <h3>🛒 My Selection</h3>
+          <h3>My Selections ({cartItems.length})</h3>
           <button className="close-button" onClick={onClose}>
-            &times;
+            <FiX size={20} />
           </button>
         </div>
 
         <div className="my-selection-body">
-          {items.length === 0 ? (
-            <p className="empty">No items in your selection.</p>
+          {loading ? (
+            <div className="empty">Loading...</div>
+          ) : cartItems.length === 0 ? (
+            <div className="empty">Your selections are empty. Add some products!</div>
           ) : (
             <ul className="cart-list">
-              {items.map((item) => (
+              {cartItems.map((item) => (
                 <li key={item.id} className="cart-item">
                   <p className="cart-name">{item.productName}</p>
-                  <p className="cart-brand">
-                    <strong>Brand:</strong> {item.brand}
-                  </p>
-                  <p className="cart-price">
-                    <strong>Price:</strong> ₱{item.price?.toLocaleString()}
-                  </p>
-
+                  <p className="cart-brand">Brand: {item.brand}</p>
+                  <p className="cart-price">₱{item.price?.toLocaleString() || "N/A"}</p>
+                  {item.vehicleLabel && <p className="cart-brand">Vehicle: {item.vehicleLabel}</p>}
                   <div className="cart-buttons">
                     <button
                       className="view-button"
-                      onClick={() => handleViewProduct(item)}
+                      onClick={() => handleView(item.productId)}
+                      style={{ pointerEvents: 'auto' }} // Fallback for clickability
                     >
                       View
                     </button>
                     <button
-                      className="reserve-button"
-                      onClick={() => handleReserve(item)}
-                    >
-                      Reserve
-                    </button>
-                    <button
                       className="remove-button"
-                      onClick={() => handleRemoveItem(item.id)}
+                      onClick={() => handleRemove(item.id)}
+                      style={{ pointerEvents: 'auto' }} // Fallback for clickability
                     >
                       Remove
                     </button>

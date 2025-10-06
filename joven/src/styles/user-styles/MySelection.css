@@ -1,25 +1,27 @@
 .my-selection-panel-overlay {
   position: fixed;
-  top: 60px; /* adjust to Navbar height */
+  top: 60px;
   right: 20px;
-  z-index: 1000;
+  z-index: 9999; /* High z-index to prevent overlaps from other UI elements */
   width: auto;
   height: auto;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.1); /* Subtle backdrop for isolation (transparent but helps layering) */
+  backdrop-filter: blur(2px); /* Optional: Adds depth without blocking */
+  pointer-events: auto !important; /* Ensure entire overlay responds to events */
 }
 
 .my-selection-panel {
   position: relative;
-  pointer-events: auto;
   width: 320px;
   max-height: 400px;
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
   overflow-y: auto;
-  animation: fadeInSlide 0.3s ease;
-  font-family: 'Poppins', sans-serif;
   padding: 0.5rem 0.75rem;
+  font-family: 'Poppins', sans-serif;
+  animation: fadeInSlide 0.3s ease;
+  pointer-events: auto !important; /* Force panel to be interactive */
 }
 
 .my-selection-header {
@@ -43,10 +45,13 @@
   font-size: 1.2rem;
   cursor: pointer;
   color: #555;
+  pointer-events: auto !important; /* Ensure close button is clickable */
+  user-select: none; /* Prevent text selection on click */
 }
 
 .my-selection-body {
   padding: 0.5rem 0;
+  pointer-events: auto; /* Ensure body content is interactive */
 }
 
 .empty {
@@ -67,6 +72,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  pointer-events: auto !important; /* Ensure item container doesn't block clicks */
+}
+
+.cart-item * {
+  pointer-events: auto !important; /* Force all children (e.g., buttons) to be clickable */
 }
 
 .cart-name {
@@ -76,7 +86,8 @@
   color: #333;
 }
 
-.cart-brand, .cart-price {
+.cart-brand,
+.cart-price {
   font-size: 0.85rem;
   margin: 0;
   color: #555;
@@ -86,50 +97,72 @@
   display: flex;
   gap: 0.25rem;
   margin-top: 0.25rem;
+  pointer-events: auto !important; /* Ensure buttons container is clickable */
+  z-index: 100; /* High z-index for buttons layer */
+  /* border: 1px solid red; */ /* TEMP DEBUG: Remove in production to visualize buttons */
 }
 
-.view-button, .reserve-button, .remove-button {
+.view-button,
+.remove-button {
   flex: 1;
-  padding: 6px 0;
+  padding: 6px 12px; /* Slightly more padding for better touch targets */
   font-size: 0.8rem;
   border-radius: 5px;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  pointer-events: auto !important; /* Explicitly ensure buttons are clickable */
+  position: relative;
+  z-index: 100; /* Ensure buttons are on top of everything */
+  user-select: none; /* Prevent text selection */
+  touch-action: manipulation; /* Improve mobile click response */
 }
 
 .view-button {
   background-color: #f59e0b;
   color: #fff;
 }
-.view-button:hover {
-  background-color: #d97706;
-}
 
-.reserve-button {
-  background-color: #1d4ed8;
-  color: #fff;
-}
-.reserve-button:hover {
-  background-color: #2563eb;
+.view-button:hover,
+.view-button:focus {
+  background-color: #d97706;
+  outline: none; /* Remove default focus outline if desired */
 }
 
 .remove-button {
   background-color: #ef4444;
   color: #fff;
 }
-.remove-button:hover {
+
+.remove-button:hover,
+.remove-button:focus {
   background-color: #f87171;
+  outline: none;
 }
 
 @keyframes fadeInSlide {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateX(20px); /* Slide in from right for better side-panel feel */
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
+  }
+}
+
+/* Responsive: Adjust width on smaller screens for better usability */
+@media (max-width: 768px) {
+  .my-selection-panel {
+    width: 280px;
+    max-height: 80vh; /* Use viewport height on mobile */
+    right: 10px;
+  }
+
+  .view-button,
+  .remove-button {
+    padding: 8px 12px; /* Larger touch targets on mobile */
+    font-size: 0.9rem;
   }
 }
