@@ -1,132 +1,174 @@
+// src/components/Manual.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import vehicleData from "../../data/vehicleData"; // ✅ dataset
 import "../../styles/Manual.css";
-import hondaData from "../../Data/HondaData";
+import hondaData from "../../Data/HondaData"; // ✅ import dataset
 
 const Manual = () => {
   const navigate = useNavigate();
 
-  const [selectedYear, setSelectedYear] = useState("");
-  const [selectedModel, setSelectedModel] = useState("");
-  const [selectedTrim, setSelectedTrim] = useState("");
-  const [trimDetails, setTrimDetails] = useState(null);
+  // Selections
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [type, setType] = useState(""); // Tire or Wheel
+  const [size, setSize] = useState("");
 
-  const make = "Honda"; // fixed for now
-  const years = Object.keys(hondaData);
+  // Handle Shop Now
+  const handleShopNow = (e) => {
+    e.preventDefault();
+    if (!brand || !model || !type || !size) return;
 
-  const models = selectedYear ? Object.keys(hondaData[selectedYear]) : [];
-  const trims =
-    selectedYear && selectedModel
-      ? hondaData[selectedYear][selectedModel]
-      : [];
+    const selectedFitment =
+      vehicleData[brand]?.[model]?.[type]?.find((s) => s.size === size);
 
-  // Shop Now → passes fitment specs to user-dashboard
-  const handleShopNow = () => {
-    if (!trimDetails) return;
-
-    const vehicleLabel = `${selectedYear} ${make} ${selectedModel} ${trimDetails.name}`;
+    if (!selectedFitment) return;
 
     navigate("/user-dashboard", {
       state: {
+        selectionType: "fitment",
+        vehicleLabel: `${brand} ${model} - ${type} ${size}`,
         fitment: {
-          boltPattern: trimDetails.boltPattern,
-          offset: trimDetails.offset,
-          wheelSize: trimDetails.wheelSize,
+          type: type.toLowerCase(),
+          size: selectedFitment.size,
+          rimDiameter: selectedFitment.rimDiameter,
+          width: selectedFitment.width,
+          aspectRatio: selectedFitment.aspectRatio || null,
+          boltPattern: selectedFitment.boltPattern || null,
+          offset: selectedFitment.offset || null,
         },
-        vehicleLabel,
       },
     });
   };
 
-  // Clear
+  // Reset selections
   const handleClear = () => {
-    setSelectedYear("");
-    setSelectedModel("");
-    setSelectedTrim("");
-    setTrimDetails(null);
+    setBrand("");
+    setModel("");
+    setType("");
+    setSize("");
   };
+
+  // Preview selected fitment
+  const selectedFitment =
+    brand && model && type && size
+      ? vehicleData[brand]?.[model]?.[type]?.find((s) => s.size === size)
+      : null;
 
   return (
     <div className="fitment-container">
       <h1 className="fitment-title">Fitment Recommendation</h1>
+      <form onSubmit={handleShopNow}>
+        {/* Inline dropdowns */}
+        <div className="fitment-row">
+          {/* Brand */}
+          <select
+            value={brand}
+            onChange={(e) => {
+              setBrand(e.target.value);
+              setModel("");
+              setType("");
+              setSize("");
+            }}
+          >
+            <option value="">Select Brand</option>
+            {Object.keys(vehicleData).map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
 
-      {/* Year */}
-      <select
-        value={selectedYear}
-        onChange={(e) => {
-          setSelectedYear(e.target.value);
-          setSelectedModel("");
-          setSelectedTrim("");
-          setTrimDetails(null);
-        }}
-      >
-        <option value="">Select Year</option>
-        {years.map((year) => (
-          <option key={year} value={year}>
-            {year}
-          </option>
-        ))}
-      </select>
+          {/* Model */}
+          <select
+            value={model}
+            onChange={(e) => {
+              setModel(e.target.value);
+              setType("");
+              setSize("");
+            }}
+            disabled={!brand}
+          >
+            <option value="">Select Model</option>
+            {brand &&
+              Object.keys(vehicleData[brand]).map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+          </select>
 
-      {/* Model */}
-      <select
-        value={selectedModel}
-        onChange={(e) => {
-          setSelectedModel(e.target.value);
-          setSelectedTrim("");
-          setTrimDetails(null);
-        }}
-        disabled={!models.length}
-      >
-        <option value="">Select Model</option>
-        {models.map((model) => (
-          <option key={model} value={model}>
-            {model}
-          </option>
-        ))}
-      </select>
+          {/* Type */}
+          <select
+            value={type}
+            onChange={(e) => {
+              setType(e.target.value);
+              setSize("");
+            }}
+            disabled={!model}
+          >
+            <option value="">Select Type</option>
+            {brand &&
+              model &&
+              Object.keys(vehicleData[brand][model]).map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+          </select>
 
-      {/* Trim */}
-      <div className="trim-shop-wrapper">
-        <select
-          value={selectedTrim}
-          onChange={(e) => {
-            setSelectedTrim(e.target.value);
-            const selected = trims.find((t) => t.id === e.target.value);
-            setTrimDetails(selected || null);
-          }}
-          disabled={!trims.length}
-        >
-          <option value="">Select Trim</option>
-          {trims.map((trim) => (
-            <option key={trim.id} value={trim.id}>
-              {trim.name}
-            </option>
-          ))}
-        </select>
+          {/* Size */}
+          <select
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+            disabled={!type}
+          >
+            <option value="">Select Size</option>
+            {brand &&
+              model &&
+              type &&
+              vehicleData[brand][model][type].map((s) => (
+                <option key={s.size} value={s.size}>
+                  {s.size}
+                </option>
+              ))}
+          </select>
 
-        <button
-          onClick={handleShopNow}
-          disabled={!selectedTrim}
-          className="shop-now-btn"
-        >
-          Shop Now
-        </button>
+          {/* Buttons */}
+          <button
+            type="submit"
+            disabled={!brand || !model || !type || !size}
+            className="shop-now-btn"
+          >
+            Shop Now
+          </button>
+          <button type="button" onClick={handleClear} className="clear-btn">
+            Clear
+          </button>
+        </div>
+      </form>
 
-        <button onClick={handleClear} className="clear-btn">
-          Clear
-        </button>
-      </div>
-
-      {/* Specs */}
-      {trimDetails && (
-        <div className="trim-details">
-          <h2>Recommended Specs</h2>
-          <p><strong>Tire Size:</strong> {trimDetails.tireSize}</p>
-          <p><strong>Wheel Size:</strong> {trimDetails.wheelSize}</p>
-          <p><strong>Bolt Pattern:</strong> {trimDetails.boltPattern}</p>
-          <p><strong>Offset:</strong> {trimDetails.offset}</p>
-          <p><strong>Hub Bore:</strong> {trimDetails.hubBore}</p>
+      {/* Preview */}
+      {selectedFitment && (
+        <div className="fitment-preview">
+          <h3>Selected Vehicle</h3>
+          <p>
+            {brand} {model} - {type} {size}
+          </p>
+          <h4>Fitment Specs</h4>
+          <ul>
+            <li>Rim Diameter: {selectedFitment.rimDiameter}</li>
+            <li>Width: {selectedFitment.width}</li>
+            {selectedFitment.aspectRatio && (
+              <li>Aspect Ratio: {selectedFitment.aspectRatio}</li>
+            )}
+            {type === "Wheel" && (
+              <>
+                <li>Bolt Pattern: {selectedFitment.boltPattern}</li>
+                <li>Offset: {selectedFitment.offset}</li>
+              </>
+            )}
+          </ul>
         </div>
       )}
     </div>

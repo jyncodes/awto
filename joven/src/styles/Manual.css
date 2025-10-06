@@ -1,153 +1,208 @@
-/* ================= MANUAL FITMENT STYLING ================= */
+/* ================= MANUAL FITMENT STYLING (Orange + White Modern Theme) ================= */
 
 .fitment-container {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1rem;
-  background: linear-gradient(to bottom, #1e1f22, #3b3e45);
-  padding: 1.5rem;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-  max-width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  background: #ffffff;
+  padding: 2.2rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+  max-width: 1100px;
   margin: 2rem auto;
+  border: 2px solid #ffa72633;
+  transition: all 0.3s ease;
 }
 
 .fitment-title {
   width: 100%;
-  color: #ffffff;
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  color: #ff6f00;
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 0.8rem;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  position: relative;
 }
 
-.fitment-container select {
-  background-color: #dceaf7;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
-  font-size: 0.95rem;
-  min-width: 150px;
+.fitment-title::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #ff6f00, #ff9800);
+  margin: 0.6rem auto 0;
+  border-radius: 2px;
+}
+
+/* ================= DROPDOWNS ROW ================= */
+.fitment-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.fitment-row select {
+  background-color: #fff;
+  border: 2px solid #ffa726;
+  padding: 0.85rem 1rem;
+  border-radius: 0.85rem;
+  font-size: 1rem;
+  flex: 1;
+  min-width: 180px;
+  max-width: 220px;
   color: #2d3436;
   font-weight: 500;
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg fill='%235400A0' height='12' viewBox='0 0 24 24' width='12' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23ff6f00' height='14' viewBox='0 0 24 24' width='14' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 0.75rem;
-  transition: box-shadow 0.2s ease;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+  background-position: right 1rem center;
+  background-size: 1rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(255, 111, 0, 0.1);
 }
 
-.fitment-container select:focus {
+.fitment-row select:hover {
+  border-color: #fb8c00;
+}
+
+.fitment-row select:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #d1ff00aa;
+  border-color: #ff6f00;
+  box-shadow: 0 0 0 3px #ffcc8033;
 }
 
-.fitment-container select:disabled {
-  opacity: 0.5;
+.fitment-row select:disabled {
+  opacity: 0.55;
   cursor: not-allowed;
+  background-color: #fafafa;
 }
 
-.trim-shop-wrapper {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-/* Shop Now Button */
-.shop-now-btn {
-  padding: 0.75rem 1.5rem;
-  border: 2px solid #00000033;
-  border-radius: 2rem;
-  background-color: #d1ff00;
-  color: #2d3436;
-  font-weight: 600;
-  font-size: 0.95rem;
+/* ================= BUTTONS ================= */
+.shop-now-btn,
+.clear-btn {
+  padding: 0.9rem 2rem;
+  border-radius: 2.2rem;
+  font-weight: 700;
+  font-size: 1.05rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 0 12px #d1ff00aa;
-  min-width: 150px;
+  min-width: 170px;
+}
+
+/* Shop Now */
+.shop-now-btn {
+  border: none;
+  background: linear-gradient(135deg, #ff6f00, #ff9800);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(255, 111, 0, 0.4);
 }
 
 .shop-now-btn:hover {
-  background-color: #c8f900;
-  box-shadow: 0 0 18px #484940dd;
+  background: linear-gradient(135deg, #fb8c00, #ffb74d);
+  box-shadow: 0 6px 18px rgba(255, 111, 0, 0.55);
+  transform: translateY(-2px);
 }
 
 .shop-now-btn:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .shop-now-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.65;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-/* Clear Button */
+/* Clear */
 .clear-btn {
-  padding: 0.75rem 1.5rem;
-  border: 2px solid #00000033;
-  border-radius: 2rem;
+  border: 2px solid #ffa726;
   background-color: #ffffff;
-  color: #2d3436;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
-  min-width: 150px;
+  color: #ff6f00;
+  box-shadow: 0 4px 10px rgba(255, 167, 38, 0.25);
 }
 
 .clear-btn:hover {
-  background-color: #f1f1f1;
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.7);
+  background-color: #fff7f0;
+  box-shadow: 0 6px 14px rgba(255, 167, 38, 0.35);
+  transform: translateY(-2px);
 }
 
 .clear-btn:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .clear-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-/* Trim Details Box */
-.trim-details {
+/* ================= PREVIEW BOX ================= */
+.fitment-preview {
   width: 100%;
-  border: 1px solid #dfe6e9;
-  padding: 1rem;
+  border: 2px solid #ffa72633;
+  padding: 1.5rem;
   border-radius: 1rem;
-  background-color: #ffffffdd;
+  background-color: #fffdf9;
   color: #2d3436;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  margin-top: 1.5rem;
+  animation: fadeIn 0.4s ease;
 }
 
-.trim-details h2 {
+.fitment-preview h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ff6f00;
+  margin-bottom: 0.6rem;
+}
+
+.fitment-preview h4 {
   font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  color: #e65100;
+  margin: 0.8rem 0 0.5rem;
 }
 
-/* Responsive */
+.fitment-preview ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.fitment-preview ul li {
+  margin: 0.3rem 0;
+  font-weight: 500;
+}
+
+/* ================= ANIMATIONS ================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================= RESPONSIVE ================= */
 @media (max-width: 768px) {
-  .fitment-container {
+  .fitment-row {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .fitment-container select,
+  .fitment-row select,
   .shop-now-btn,
   .clear-btn {
     width: 100%;
-  }
-
-  .trim-shop-wrapper {
-    flex-direction: column;
-    align-items: stretch;
   }
 }
