@@ -109,20 +109,22 @@
   display: inline-block;
 }
 
-.profile-info {
-  background-color: transparent;
-  border: 2px solid #000000;
+.account-link {
+  background: none;
+  border: none;
   color: #000000 !important;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
+  transition: color 0.2s ease, transform 0.2s ease;
+  padding: 0.4rem 0.8rem;
 }
 
-.profile-info:hover {
-  background-color: #000000;
-  color: #ffffff !important;
+.account-link:hover {
+  color: #f39c12 !important;
+  transform: scale(1.05);
 }
 
 .dropdown-menu {
@@ -181,11 +183,8 @@
     display: flex;
   }
 
-  .nav-link {
+  .nav-link,
+  .account-link {
     font-size: 0.9rem;
-  }
-
-  .profile-info {
-    font-size: 0.85rem;
   }
 }

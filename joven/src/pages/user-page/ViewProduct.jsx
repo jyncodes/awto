@@ -5,10 +5,10 @@ import {
   getDoc,
   addDoc,
   collection,
-  serverTimestamp,
   query,
   where,
   getDocs,
+  serverTimestamp,
 } from "firebase/firestore";
 import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
@@ -27,17 +27,12 @@ const ViewProduct = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const docRef = doc(db, "products", id);
-        const docSnap = await getDoc(docRef);
+        const docSnap = await getDoc(doc(db, "products", id));
         if (docSnap.exists()) {
           const data = docSnap.data();
           setProduct({ ...data, id: docSnap.id });
-
-          // Show main image only if no GLB is available
           const hasGLB = data.modelUrl || (data.productId && data.type === "Mags");
-          if (!hasGLB) {
-            setMainImage(data.images?.[0] || data.imageUrl || null);
-          }
+          if (!hasGLB) setMainImage(data.images?.[0] || data.imageUrl || null);
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -48,7 +43,7 @@ const ViewProduct = () => {
 
   const handleReserveClick = () => {
     if (product?.id) {
-      navigate(`/reserve/${product.id}`, { state: { vehicleLabel, fitmentSizes } });
+      navigate(`/reservation/${product.id}`, { state: { vehicleLabel, fitmentSizes } });
     }
   };
 
@@ -59,11 +54,7 @@ const ViewProduct = () => {
 
     try {
       const cartRef = collection(db, "cartSelections");
-      const q = query(
-        cartRef,
-        where("userId", "==", user.uid),
-        where("productId", "==", product.id)
-      );
+      const q = query(cartRef, where("userId", "==", user.uid), where("productId", "==", product.id));
       const existing = await getDocs(q);
       if (!existing.empty) return alert("Item is already in your selections.");
 
@@ -96,7 +87,6 @@ const ViewProduct = () => {
     : product.name || "No Name";
 
   const hasGLB = product.modelUrl || (product.productId && product.type === "Mags");
-
   const modelUrl = product.modelUrl
     ? product.modelUrl.startsWith("/") ? product.modelUrl : `/${product.modelUrl}`
     : product.productId && product.type === "Mags" ? `/models/mags/${product.productId}.glb` : "";
@@ -107,7 +97,6 @@ const ViewProduct = () => {
 
       <div className="product-container">
         <div className="product-images">
-          {/* Show image only if no GLB */}
           {!hasGLB && (
             <img
               src={mainImage || "https://placehold.co/300x300?text=No+Image"}
@@ -129,7 +118,6 @@ const ViewProduct = () => {
             ))}
           </div>
 
-          {/* Render GLB if available */}
           {hasGLB && modelUrl && (
             <div className="model-viewer-wrapper">
               <ModelViewer modelUrl={modelUrl} />
@@ -137,7 +125,7 @@ const ViewProduct = () => {
           )}
         </div>
 
-        <div className="product-info">
+        <div className="product-info" onClick={(e) => e.stopPropagation()}>
           {vehicleLabel && (
             <div className="fitment-context">
               🚗 Showing fitment for: <strong>{vehicleLabel}</strong>
@@ -161,7 +149,8 @@ const ViewProduct = () => {
           </div>
 
           <div className="fitment-warning">
-            🚗 This product is fitment specific. <a href="/manual">Select a vehicle</a> to see if this fits.
+            🚗 This product is fitment specific.{" "}
+            <span onClick={() => navigate("/manual")} className="select-vehicle-link">Select a vehicle</span>
           </div>
 
           <details className="desc-section" open>
