@@ -1,19 +1,26 @@
-// src/components/Manual.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import vehicleData from "../../data/vehicleData"; // ✅ dataset
+import vehicleData from "../../data/vehicleData";
 import "../../styles/user-styles/Manual.css";
 
 const Manual = () => {
   const navigate = useNavigate();
 
-  // Selections
+  // Selection states
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [type, setType] = useState(""); // Tire or Wheel
   const [size, setSize] = useState("");
 
-  // Handle Shop Now
+  // Reset selections
+  const handleClear = () => {
+    setBrand("");
+    setModel("");
+    setType("");
+    setSize("");
+  };
+
+  // Handle "Shop Now"
   const handleShopNow = (e) => {
     e.preventDefault();
     if (!brand || !model || !type || !size) return;
@@ -23,6 +30,7 @@ const Manual = () => {
 
     if (!selectedFitment) return;
 
+    // Navigate with fitment details
     navigate("/user-dashboard", {
       state: {
         selectionType: "fitment",
@@ -35,20 +43,13 @@ const Manual = () => {
           aspectRatio: selectedFitment.aspectRatio || null,
           boltPattern: selectedFitment.boltPattern || null,
           offset: selectedFitment.offset || null,
+          centerBore: selectedFitment.centerBore || null,
         },
       },
     });
   };
 
-  // Reset selections
-  const handleClear = () => {
-    setBrand("");
-    setModel("");
-    setType("");
-    setSize("");
-  };
-
-  // Preview selected fitment
+  // Get selected fitment for preview
   const selectedFitment =
     brand && model && type && size
       ? vehicleData[brand]?.[model]?.[type]?.find((s) => s.size === size)
@@ -56,11 +57,11 @@ const Manual = () => {
 
   return (
     <div className="fitment-container">
-      <h1 className="fitment-title">Fitment Recommendation</h1>
+      <h1 className="fitment-title">Manual Fitment Selector</h1>
+
       <form onSubmit={handleShopNow}>
-        {/* Inline dropdowns */}
         <div className="fitment-row">
-          {/* Brand */}
+          {/* Brand Dropdown */}
           <select
             value={brand}
             onChange={(e) => {
@@ -78,7 +79,7 @@ const Manual = () => {
             ))}
           </select>
 
-          {/* Model */}
+          {/* Model Dropdown */}
           <select
             value={model}
             onChange={(e) => {
@@ -97,7 +98,7 @@ const Manual = () => {
               ))}
           </select>
 
-          {/* Type */}
+          {/* Type Dropdown */}
           <select
             value={type}
             onChange={(e) => {
@@ -116,7 +117,7 @@ const Manual = () => {
               ))}
           </select>
 
-          {/* Size */}
+          {/* Size Dropdown */}
           <select
             value={size}
             onChange={(e) => setSize(e.target.value)}
@@ -136,36 +137,37 @@ const Manual = () => {
           {/* Buttons */}
           <button
             type="submit"
-            disabled={!brand || !model || !type || !size}
             className="shop-now-btn"
+            disabled={!brand || !model || !type || !size}
           >
             Shop Now
           </button>
-          <button type="button" onClick={handleClear} className="clear-btn">
+
+          <button type="button" className="clear-btn" onClick={handleClear}>
             Clear
           </button>
         </div>
       </form>
 
-      {/* Preview */}
+      {/* Fitment Preview */}
       {selectedFitment && (
         <div className="fitment-preview">
           <h3>Selected Vehicle</h3>
           <p>
-            {brand} {model} - {type} {size}
+            {brand} {model} — {type} {size}
           </p>
-          <h4>Fitment Specs</h4>
+
+          <h4>Fitment Details</h4>
           <ul>
             <li>Rim Diameter: {selectedFitment.rimDiameter}</li>
             <li>Width: {selectedFitment.width}</li>
             {selectedFitment.aspectRatio && (
               <li>Aspect Ratio: {selectedFitment.aspectRatio}</li>
             )}
-            {type === "Wheel" && (
-              <>
-                <li>Bolt Pattern: {selectedFitment.boltPattern}</li>
-                <li>Offset: {selectedFitment.offset}</li>
-              </>
+            <li>Bolt Pattern: {selectedFitment.boltPattern}</li>
+            <li>Offset: {selectedFitment.offset}</li>
+            {selectedFitment.centerBore && (
+              <li>Center Bore: {selectedFitment.centerBore}</li>
             )}
           </ul>
         </div>
