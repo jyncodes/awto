@@ -10,40 +10,50 @@ const CatalogBox = ({ filters }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ Safely receive fitment data (from Manual.jsx)
-  const {
-    size: fitmentSizes = [],
-    vehicleLabel = "",
-    fitment = {}, // { type, boltPattern, offset, width, rimDiameter, aspectRatio }
-  } = location.state || {};
+  // ✅ Get fitment/vehicle info from previous page
+  const { size: fitmentSizes = [], vehicleLabel = "", fitment = {} } =
+    location.state || {};
 
   const [products, setProducts] = useState([]);
   const [sortOption, setSortOption] = useState("default");
   const [currentPage, setCurrentPage] = useState(1);
-
-  // ✅ Pagination constant
   const itemsPerPage = 12;
 
-  // 🔹 Fetch products from Firestore
+  // ✅ Fetch Tire & Mag products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "products"));
-        const fetched = snapshot.docs.map((doc) => {
-          const data = doc.data();
+        const collections = [
+          { name: "Tire", ref: collection(db, "products_tires") },
+          { name: "Mags", ref: collection(db, "products_mags") },
+        ];
 
-          // Generate size string if missing
-          let size = data.size;
-          if (!size && data.width && data.rimDiameter) {
-            size = data.aspectRatio
-              ? `${data.width}/${data.aspectRatio}R${data.rimDiameter}`
-              : `${data.width}R${data.rimDiameter}`;
-          }
+        const allProducts = [];
 
-          return { id: doc.id, ...data, size };
-        });
+        for (const { name, ref } of collections) {
+          const snapshot = await getDocs(ref);
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            allProducts.push({
+              id: doc.id,
+              category: name,
+              ...data,
+              type: data.type || name,
+              brand: data.brand || "Unbranded",
+              model: data.model || "",
+              price: data.price ? Number(data.price) : 0,
+              size:
+                data.size ||
+                (data.tireWidth && data.rimDiameter
+                  ? data.aspectRatio
+                    ? `${data.tireWidth}/${data.aspectRatio}R${data.rimDiameter}`
+                    : `${data.tireWidth}R${data.rimDiameter}`
+                  : "Unknown"),
+            });
+          });
+        }
 
-        setProducts(fetched);
+        setProducts(allProducts);
       } catch (error) {
         console.error("❌ Error fetching products:", error);
       }
@@ -52,21 +62,23 @@ const CatalogBox = ({ filters }) => {
     fetchProducts();
   }, []);
 
-  // 🔹 Parse tire size string (e.g., 215/50R17 or 215R17)
+  // ✅ Parse tire size (e.g., 215/55R17)
   const parseFitmentSize = (sizeStr) => {
     if (!sizeStr) return null;
     let match = sizeStr.match(/^(\d{3})\/(\d{2,3})R(\d{2}(?:\.\d)?)$/i);
-    if (match) return { width: match[1], aspectRatio: match[2], rimDiameter: match[3] };
+    if (match)
+      return { width: match[1], aspectRatio: match[2], rimDiameter: match[3] };
     match = sizeStr.match(/^(\d{3})R(\d{2}(?:\.\d)?)$/i);
-    if (match) return { width: match[1], aspectRatio: null, rimDiameter: match[2] };
+    if (match)
+      return { width: match[1], aspectRatio: null, rimDiameter: match[2] };
     return null;
   };
 
-  // 🔹 Filter + sort logic
+  // ✅ Filter + Sort
   const filteredProducts = useMemo(() => {
-    let result = Array.isArray(products) ? [...products] : [];
+    let result = [...products];
 
-    // ✅ Apply custom filters
+    // 🔍 Sidebar filters
     if (filters && Object.keys(filters).length > 0) {
       result = result.filter((product) =>
         Object.entries(filters).every(([key, values]) => {
@@ -76,37 +88,40 @@ const CatalogBox = ({ filters }) => {
       );
     }
 
-    // ✅ Apply fitment filtering (size, bolt pattern, offset, etc.)
-    if ((fitmentSizes && fitmentSizes.length > 0) || Object.keys(fitment).length > 0) {
-      const fitmentSpecs = (fitmentSizes || []).map(parseFitmentSize).filter(Boolean);
+    // 🚘 Fitment filters
+    if (fitmentSizes.length > 0 || Object.keys(fitment).length > 0) {
+      const fitmentSpecs = fitmentSizes.map(parseFitmentSize).filter(Boolean);
 
       result = result.filter((product) => {
-        // 🔸 Tires
-        if (fitment.type?.toLowerCase() === "tire" && product.type?.toLowerCase() === "tire") {
+        if (
+          fitment.type?.toLowerCase() === "tire" &&
+          product.type?.toLowerCase() === "tire"
+        ) {
           return (
             (!fitment.width ||
-              product.width?.toString() === fitment.width?.toString()) &&
+              product.tireWidth?.toString() === fitment.width?.toString()) &&
             (!fitment.aspectRatio ||
-              product.aspectRatio?.toString() === fitment.aspectRatio?.toString()) &&
+              product.aspectRatio?.toString() ===
+                fitment.aspectRatio?.toString()) &&
             (!fitment.rimDiameter ||
-              product.rimDiameter?.toString() === fitment.rimDiameter?.toString())
+              product.rimDiameter?.toString() ===
+                fitment.rimDiameter?.toString())
           );
         }
 
-        // 🔸 Wheels or mags
         if (
           fitment.type?.toLowerCase() === "wheel" &&
-          (product.type?.toLowerCase() === "wheel" ||
-            product.type?.toLowerCase() === "mags")
+          ["wheel", "mags"].includes(product.type?.toLowerCase())
         ) {
           return (
             (!fitment.rimDiameter ||
-              product.rimDiameter?.toString() === fitment.rimDiameter?.toString()) &&
+              product.rimDiameter?.toString() ===
+                fitment.rimDiameter?.toString()) &&
             (!fitment.boltPattern ||
-              product.pcd?.toString().toLowerCase() ===
+              product.boltPattern?.toString().toLowerCase() ===
                 fitment.boltPattern?.toString().toLowerCase()) &&
             (!fitment.offset ||
-              product.et?.toString().toLowerCase() ===
+              product.offset?.toString().toLowerCase() ===
                 fitment.offset?.toString().toLowerCase())
           );
         }
@@ -115,35 +130,42 @@ const CatalogBox = ({ filters }) => {
       });
     }
 
-    // ✅ Sorting
+    // 🔄 Sorting
     switch (sortOption) {
       case "name-asc":
-        return result.sort((a, b) => (a.brand || "").localeCompare(b.brand || ""));
+        return result.sort((a, b) =>
+          (a.brand || "").localeCompare(b.brand || "")
+        );
       case "name-desc":
-        return result.sort((a, b) => (b.brand || "").localeCompare(a.brand || ""));
+        return result.sort((a, b) =>
+          (b.brand || "").localeCompare(a.brand || "")
+        );
       case "price-asc":
-        return result.sort(
-          (a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0)
-        );
+        return result.sort((a, b) => a.price - b.price);
       case "price-desc":
-        return result.sort(
-          (a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0)
-        );
+        return result.sort((a, b) => b.price - a.price);
       default:
         return result;
     }
-  }, [products, filters, fitment, sortOption, fitmentSizes]);
+  }, [products, filters, fitment, fitmentSizes, sortOption]);
 
-  // ✅ Pagination logic
+  // ✅ Pagination
   const startIdx = (currentPage - 1) * itemsPerPage;
-  const paginatedProducts = filteredProducts.slice(startIdx, startIdx + itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    startIdx,
+    startIdx + itemsPerPage
+  );
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
-  // ✅ Handle product view
-  const handleView = (id) => navigate(`/view-product/${id}`, { state: location.state });
+  // ✅ View product
+  const handleView = (category, id) =>
+    navigate(`/view-product/${id}`, {
+      state: { ...location.state, category },
+    });
 
   return (
     <div className="catalog">
+      {/* Header + Sorting */}
       <div className="catalog-header">
         <h3>
           Product Catalog{" "}
@@ -164,52 +186,55 @@ const CatalogBox = ({ filters }) => {
         </select>
       </div>
 
+      {/* Product Grid */}
       <div className="product-grid">
         {paginatedProducts.length === 0 ? (
           <p className="no-products">
-            ⚠️ No products matched your filters. Try removing filters or changing your fitment.
+            ⚠️ No products matched your filters. Try removing filters or
+            adjusting fitment.
           </p>
         ) : (
           paginatedProducts.map((product) => {
-            const hasGLB = product.modelUrl || (product.productId && product.type === "Mags");
-
+            const hasGLB =
+              product.modelUrl || (product.id && product.category === "Mags");
             const modelUrl = product.modelUrl
               ? product.modelUrl.startsWith("/")
                 ? product.modelUrl
                 : `/${product.modelUrl}`
-              : product.productId && product.type === "Mags"
-              ? `/models/mags/${product.productId}.glb`
+              : product.category === "Mags"
+              ? `/models/mags/${product.id}.glb`
               : "";
 
             return (
               <div
                 key={product.id}
                 className="product-card"
-                onClick={() => handleView(product.id)}
+                onClick={() => handleView(product.category, product.id)}
               >
-                {fitment && Object.keys(fitment).length > 0 && (
-                  <div className="tag fitment-tag">FITMENT MATCH</div>
-                )}
-
-                {/* ✅ 3D Model Viewer */}
                 {hasGLB && modelUrl ? (
                   <div className="model-preview">
                     <ModelViewer modelUrl={modelUrl} />
                   </div>
                 ) : (
                   <img
-                    src={product.imageUrl || "https://placehold.co/150x150?text=No+Image"}
-                    alt={`${product.brand || "Brand"} ${product.model || "Model"}`}
+                    src={
+                      product.imageUrl ||
+                      "https://placehold.co/150x150?text=No+Image"
+                    }
+                    alt={`${product.brand || "Brand"} ${
+                      product.model || "Model"
+                    }`}
                     className="product-img"
                     onError={(e) =>
-                      (e.target.src = "https://placehold.co/150x150?text=No+Image")
+                      (e.target.src =
+                        "https://placehold.co/150x150?text=No+Image")
                     }
                   />
                 )}
 
-                <h4 className="product-name">{product.brand || "Unknown Brand"}</h4>
+                <h4 className="product-name">{product.brand}</h4>
                 <p className="product-model-size">
-                  {product.size} {product.model} {product.pattern}
+                  {product.size} {product.model}
                 </p>
                 <p className="product-price">
                   ₱{product.price?.toLocaleString() || "N/A"}
@@ -220,6 +245,7 @@ const CatalogBox = ({ filters }) => {
         )}
       </div>
 
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="pagination">
           {Array.from({ length: totalPages }, (_, i) => (

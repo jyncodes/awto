@@ -1,6 +1,6 @@
-// src/pages/admin-pages/Products.jsx 
-import React, { useEffect, useState } from 'react';
-import { db, auth } from '../../firebase';
+// src/pages/admin-dashboard/Products.jsx
+import React, { useEffect, useState } from "react";
+import { db, auth } from "../../firebase";
 import {
   collection,
   getDocs,
@@ -11,234 +11,202 @@ import {
   getDoc,
   setDoc,
   serverTimestamp,
-} from 'firebase/firestore';
+} from "firebase/firestore";
 import "../../styles/admin-styles/Products.css";
-import ResetCounterModal from '../../components/admin-components/ResetCounterModal';
+import ResetCounterModal from "../../components/admin-components/ResetCounterModal";
 
 const PRODUCT_TYPE_PREFIXES = {
-  Tire: 'TI',
-  Mags: 'MA',
-  Accessories: 'AC'
+  Tire: "TI",
+  Mags: "MA",
 };
 
 const INITIAL_FORM = {
-  brand: '',
-  pattern: '',
-  model: '',
-  price: '',
-  width: '',
-  aspectRatio: '',
-  rimDiameter: '',
-  overallDiameter: '',
-  sectionWidth: '',
-  description: '',
-  loadRating: '',
-  plyRating: '',
-  type: 'Tire',
-  sizeFormat: 'metric',
-  productId: '',
-  modelUrl: ''
+  type: "Tire",
+  productId: "",
+  brand: "",
+  model: "",
+  tireWidth: "",
+  aspectRatio: "",
+  rimDiameter: "",
+  wheelDiameter: "",
+  wheelWidth: "",
+  offset: "",
+  boltPattern: "",
+  centerBore: "",
+  price: "",
+  description: "",
 };
 
 const Products = () => {
-  const [products, setProducts] = useState([]);
+  const [tires, setTires] = useState([]);
+  const [mags, setMags] = useState([]);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showResetModal, setShowResetModal] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [nextProductId, setNextProductId] = useState('');
-  const [sortField, setSortField] = useState('productId');
-  const [sortOrder, setSortOrder] = useState('asc');
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
+  const [nextProductId, setNextProductId] = useState("");
+  const [currentView, setCurrentView] = useState("tires");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch products
-  const fetchProducts = async () => {
-    const querySnapshot = await getDocs(collection(db, 'products'));
-    setProducts(querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
+  // ================================
+  // FETCH PRODUCTS
+  // ================================
+  const fetchTires = async () => {
+    const snapshot = await getDocs(collection(db, "products_tires"));
+    setTires(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+  };
+
+  const fetchMags = async () => {
+    const snapshot = await getDocs(collection(db, "products_mags"));
+    setMags(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchTires();
+    fetchMags();
   }, []);
 
-  const fetchNextProductId = async (type = formData.type) => {
-    const prefix = PRODUCT_TYPE_PREFIXES[type];
-    const counterRef = doc(db, `counters`, `productCounter_${prefix}`);
-    const counterSnap = await getDoc(counterRef);
-    const current = counterSnap.exists() ? counterSnap.data().lastId || 0 : 0;
-    const padded = String(current + 1).padStart(5, '0');
-    const id = `${prefix}-${padded}`;
-    setNextProductId(id);
-    return { id, current, prefix };
-  };
-
-  const handleInputChange = async (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value || '' }));
-    if (name === 'type' && !isEditMode) {
-      await fetchNextProductId(value);
-    }
-  };
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.glb')) return alert("Only .glb files are allowed.");
-
-    setIsUploading(true);
-    setUploadStatus('Uploading...');
-
+  // ================================
+  // GENERATE PRODUCT ID
+  // ================================
+  const fetchNextProductId = async (type = "Tire") => {
     try {
-      const user = auth.currentUser;
-      if (!user) throw new Error("You must be logged in as Admin to upload.");
-
-      const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
-      setFormData(prev => ({ ...prev, modelUrl: downloadUrl }));
-      setUploadStatus('Completed');
-    } catch (err) {
-      console.error("Error uploading GLB:", err);
-      alert("Failed to upload 3D model. Check your network or permissions.");
-      setUploadStatus('');
-    } finally {
-      setIsUploading(false);
+      const prefix = PRODUCT_TYPE_PREFIXES[type];
+      const counterRef = doc(db, "counters", `productCounter_${prefix}`);
+      const counterSnap = await getDoc(counterRef);
+      const current = counterSnap.exists() ? counterSnap.data().lastId || 0 : 0;
+      const padded = String(current + 1).padStart(5, "0");
+      const id = `${prefix}-${padded}`;
+      setNextProductId(id);
+      return { id, current, prefix };
+    } catch (error) {
+      console.error("Error fetching product ID:", error);
+      alert("Failed to generate product ID. Please try again.");
     }
   };
 
+  // ================================
+  // INPUT HANDLER
+  // ================================
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ================================
+  // VERIFY ADMIN
+  // ================================
   const verifyAdminAccess = async () => {
     const user = auth.currentUser;
     if (!user) return false;
-    const userSnap = await getDoc(doc(db, 'users', user.uid));
-    if (userSnap.exists() && userSnap.data().role === 'Admin') return true;
-    alert('You are not authorized to perform this action.');
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    if (userSnap.exists() && userSnap.data().role === "Admin") return true;
+    alert("You are not authorized.");
     return false;
   };
 
+  // ================================
+  // ADD / EDIT PRODUCT
+  // ================================
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    if (isUploading) return alert("Please wait for the 3D model to finish uploading.");
+    try {
+      let generatedId, current, prefix;
 
-    let generatedId, current, prefix;
-    if (!isEditMode) {
-      const result = await fetchNextProductId(formData.type);
-      generatedId = result.id;
-      current = result.current;
-      prefix = result.prefix;
-    }
-
-    let size = '';
-    if (formData.type === 'Tire') {
-      if (formData.sizeFormat === 'metric' && formData.width && formData.rimDiameter) {
-        size = formData.aspectRatio
-          ? `${formData.width}/${formData.aspectRatio}R${formData.rimDiameter}`
-          : `${formData.width}R${formData.rimDiameter}`;
-      } else if (formData.sizeFormat === 'flotation' && formData.overallDiameter && formData.sectionWidth && formData.rimDiameter) {
-        size = `${formData.overallDiameter}X${formData.sectionWidth}R${formData.rimDiameter}`;
+      if (!isEditMode) {
+        const result = await fetchNextProductId(formData.type);
+        if (!result?.id) throw new Error("Failed to generate product ID");
+        generatedId = result.id;
+        current = result.current;
+        prefix = result.prefix;
       }
-    } else if (formData.type === 'Mags') {
-      size = formData.size || '';
+
+      const payload = {
+        ...formData,
+        productId: isEditMode ? formData.productId : generatedId,
+        price: Number(formData.price) || 0,
+        updatedAt: serverTimestamp(),
+        ...(isEditMode ? {} : { createdAt: serverTimestamp() }),
+      };
+
+      const collectionName =
+        formData.type === "Tire" ? "products_tires" : "products_mags";
+
+      if (isEditMode && selectedProduct) {
+        await updateDoc(doc(db, collectionName, selectedProduct.id), payload);
+        alert("Product updated successfully!");
+      } else {
+        await setDoc(doc(db, collectionName, generatedId), payload);
+        await setDoc(doc(db, "counters", `productCounter_${prefix}`), {
+          lastId: current + 1,
+        });
+        alert("Product added successfully!");
+      }
+
+      setFormData(INITIAL_FORM);
+      setIsModalOpen(false);
+      setIsEditMode(false);
+      if (formData.type === "Tire") await fetchTires();
+      else await fetchMags();
+    } catch (error) {
+      console.error("Error adding/updating product:", error);
+      alert("Something went wrong. Please check your input or try again later.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // ✅ Auto-generate modelUrl if mags and not set
-    let finalModelUrl = formData.modelUrl || selectedProduct?.modelUrl || '';
-    if (!isEditMode && formData.type === 'Mags') {
-      finalModelUrl = `/models/mags/${generatedId}.glb`;
-    }
-
-    const payload = {
-      ...formData,
-      price: Number(formData.price) || 0,
-      size,
-      productId: isEditMode ? formData.productId : generatedId,
-      modelUrl: finalModelUrl,
-      ...(isEditMode ? { updatedAt: serverTimestamp() } : { createdAt: serverTimestamp() })
-    };
-
-    if (isEditMode && selectedProduct) {
-      await updateDoc(doc(db, 'products', selectedProduct.id), payload);
-    } else {
-      await addDoc(collection(db, 'products'), payload);
-      await setDoc(doc(db, 'counters', `productCounter_${prefix}`), { lastId: current + 1 });
-    }
-
-    setFormData(INITIAL_FORM);
-    setSelectedProduct(null);
-    setIsEditMode(false);
-    setIsModalOpen(false);
-    setNextProductId('');
-    fetchProducts();
   };
 
-  const handleEdit = (product) => {
+  // ================================
+  // EDIT PRODUCT
+  // ================================
+  const handleEdit = (product, type) => {
     setSelectedProduct(product);
-    setFormData({ ...INITIAL_FORM, ...product, sizeFormat: product.overallDiameter ? 'flotation' : 'metric' });
-    setNextProductId(product.productId || 'N/A');
+    setFormData({ ...INITIAL_FORM, ...product, type });
+    setNextProductId(product.productId || "");
     setIsEditMode(true);
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (await verifyAdminAccess()) {
-      await deleteDoc(doc(db, 'products', id));
-      fetchProducts();
-    }
-  };
-
-  const handleBulkDelete = async () => {
+  // ================================
+  // DELETE PRODUCT
+  // ================================
+  const handleDelete = async (product, type) => {
     if (!(await verifyAdminAccess())) return;
-    await Promise.all(selectedProducts.map(id => deleteDoc(doc(db, 'products', id))));
-    setSelectedProducts([]);
-    fetchProducts();
+    const collectionName = type === "Tire" ? "products_tires" : "products_mags";
+    await deleteDoc(doc(db, collectionName, product.id));
+    if (type === "Tire") fetchTires();
+    else fetchMags();
+    alert("Product deleted successfully!");
   };
 
-  const toggleProductSelection = (id) => {
-    setSelectedProducts(prev =>
-      prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+  // ================================
+  // OPEN ADD MODAL
+  // ================================
+  const openAddModal = async (type) => {
+    setIsEditMode(false);
+    setFormData({ ...INITIAL_FORM, type });
+    await fetchNextProductId(type);
+    setIsModalOpen(true);
+  };
+
+  // ================================
+  // FILTER PRODUCTS BY SEARCH
+  // ================================
+  const filterProducts = (arr) =>
+    arr.filter((p) =>
+      ["brand", "productId", "model"].some((key) =>
+        (p[key] || "").toLowerCase().includes(searchTerm.toLowerCase())
+      )
     );
-  };
 
-  const handleSelectAll = (e, list) => {
-    setSelectedProducts(e.target.checked ? list.map(p => p.id) : []);
-  };
-
-  const handleSort = (field) => {
-    if (field === sortField)
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
-
-  const sortedProducts = [...products].sort((a, b) => {
-    let valA = (a[sortField] || '').toString().toLowerCase();
-    let valB = (b[sortField] || '').toString().toLowerCase();
-    if (!valA || !valB) return 0;
-    if (!isNaN(valA) && !isNaN(valB)) {
-      valA = parseFloat(valA);
-      valB = parseFloat(valB);
-    }
-    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  const filteredProducts = sortedProducts.filter(product =>
-    ['brand', 'model', 'pattern', 'completeCode'].some(key =>
-      (product[key] || '').toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  ).filter(p => {
-    if (viewFilter === 'tires') return p.type === 'Tire';
-    if (viewFilter === 'wheels') return p.type === 'Mags' || p.type === 'Accessories';
-    return true;
-  });
-
+  // ================================
+  // RENDER
+  // ================================
   return (
     <div className="products-page-container">
       <h1 className="products-page-title">Products</h1>
@@ -248,202 +216,265 @@ const Products = () => {
           type="text"
           placeholder="Search..."
           value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          className="search-input"
+          onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <button onClick={() => setViewFilter('all')}>All</button>
-        <button onClick={() => setViewFilter('tires')}>Tires Only</button>
-        <button onClick={() => setViewFilter('wheels')}>Wheels Only</button>
-        <button
-          onClick={async () => {
-            setIsEditMode(false);
-            setFormData({ ...INITIAL_FORM, type: 'Tire' });
-            await fetchNextProductId('Tire');
-            setIsModalOpen(true);
-          }}
-        >
-          Add Tire
-        </button>
-        <button
-          onClick={async () => {
-            setIsEditMode(false);
-            setFormData({ ...INITIAL_FORM, type: 'Mags' });
-            await fetchNextProductId('Mags');
-            setIsModalOpen(true);
-          }}
-        >
-          Add Wheel
-        </button>
-        <button onClick={() => setShowResetModal(true)}>
-          Reset Product ID Counter
-        </button>
-        {selectedProducts.length > 0 && (
-          <button onClick={handleBulkDelete}>
-            Delete Selected ({selectedProducts.length})
-          </button>
-        )}
+        <button onClick={() => setCurrentView("tires")}>Tires</button>
+        <button onClick={() => setCurrentView("mags")}>Mags</button>
+        <button onClick={() => openAddModal("Tire")}>Add Tire</button>
+        <button onClick={() => openAddModal("Mags")}>Add Mag</button>
+        <button onClick={() => setShowResetModal(true)}>Reset Counter</button>
       </div>
 
-      {/* ✅ Products Table */}
-      {filteredProducts.length === 0 ? (
-        <p>No products found.</p>
-      ) : (
+      {/* ================= TIRES TABLE ================= */}
+      {currentView === "tires" && (
         <div className="product-table-wrapper">
-          <table className="product-table">
-            <thead>
-              <tr>
-                <th>
-                  <input
-                    type="checkbox"
-                    checked={selectedProducts.length === filteredProducts.length}
-                    onChange={e => handleSelectAll(e, filteredProducts)}
-                  />
-                </th>
-                {[
-                  'type',
-                  'productId',
-                  'brand',
-                  'size',
-                  'model',
-                  'pattern',
-                  'loadRating',
-                  'plyRating',
-                  'completeCode',
-                  'price',
-                  'description',
-                  'qty',
-                  'cash',
-                  'modelUrl'
-                ].map(field => (
-                  <th
-                    key={field}
-                    onClick={() => handleSort(field)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {field.charAt(0).toUpperCase() + field.slice(1)}
-                    {sortField === field ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : ''}
-                  </th>
-                ))}
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.map(product => (
-                <tr key={product.id}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedProducts.includes(product.id)}
-                      onChange={() => toggleProductSelection(product.id)}
-                    />
-                  </td>
-                  <td>{product.type}</td>
-                  <td>{product.productId}</td>
-                  <td>{product.brand}</td>
-                  <td>{product.size}</td>
-                  <td>{product.model}</td>
-                  <td>{product.pattern}</td>
-                  <td>{product.loadRating}</td>
-                  <td>{product.plyRating}</td>
-                  <td>{product.completeCode}</td>
-                  <td>{product.price}</td>
-                  <td>{product.description}</td>
-                  <td>{product.qty}</td>
-                  <td>{product.cash}</td>
-                  <td>
-                    {product.modelUrl ? (
-                      <a href={product.modelUrl} target="_blank" rel="noopener noreferrer">
-                        View 3D
-                      </a>
-                    ) : (
-                      'N/A'
-                    )}
-                  </td>
-                  <td>
-                    <button onClick={() => handleEdit(product)}>Edit</button>
-                    <button onClick={() => handleDelete(product.id)}>Delete</button>
-                  </td>
+          <h2>Tires</h2>
+          {filterProducts(tires).length === 0 ? (
+            <p>No tires found.</p>
+          ) : (
+            <table className="product-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Brand</th>
+                  <th>Model</th>
+                  <th>Width</th>
+                  <th>Aspect</th>
+                  <th>Rim</th>
+                  <th>Price</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filterProducts(tires).map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.productId}</td>
+                    <td>{p.brand}</td>
+                    <td>{p.model}</td>
+                    <td>{p.tireWidth}</td>
+                    <td>{p.aspectRatio}</td>
+                    <td>{p.rimDiameter}</td>
+                    <td>{p.price}</td>
+                    <td>
+                      <button onClick={() => handleEdit(p, "Tire")}>Edit</button>
+                      <button onClick={() => handleDelete(p, "Tire")}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
-      {/* ✅ Add/Edit Modal Form */}
+      {/* ================= MAGS TABLE ================= */}
+      {currentView === "mags" && (
+        <div className="product-table-wrapper">
+          <h2>Mags</h2>
+          {filterProducts(mags).length === 0 ? (
+            <p>No mags found.</p>
+          ) : (
+            <table className="product-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Brand</th>
+                  <th>Model</th>
+                  <th>Wheel Diameter</th>
+                  <th>Wheel Width</th>
+                  <th>Offset</th>
+                  <th>Bolt Pattern</th>
+                  <th>Center Bore</th>
+                  <th>Price</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filterProducts(mags).map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.productId}</td>
+                    <td>{p.brand}</td>
+                    <td>{p.model}</td>
+                    <td>{p.wheelDiameter}</td>
+                    <td>{p.wheelWidth}</td>
+                    <td>{p.offset}</td>
+                    <td>{p.boltPattern}</td>
+                    <td>{p.centerBore}</td>
+                    <td>{p.price}</td>
+                    <td>
+                      <button onClick={() => handleEdit(p, "Mags")}>Edit</button>
+                      <button onClick={() => handleDelete(p, "Mags")}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* ================= ADD / EDIT MODAL ================= */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="form-modal-content">
-            <h2>{isEditMode ? 'Edit Product' : 'Add New Product'}</h2>
+            <h2>{isEditMode ? "Edit Product" : `Add New ${formData.type}`}</h2>
             <form onSubmit={handleSubmit} className="form-grid">
-              {/* Type & Product ID */}
-              <div className="form-group">
-                <label>Type</label>
-                <select name="type" value={formData.type} onChange={handleInputChange} required disabled={isEditMode}>
-                  <option value="Tire">Tire</option>
-                  <option value="Mags">Mags</option>
-                  <option value="Accessories">Accessories</option>
-                </select>
-              </div>
               <div className="form-group">
                 <label>Product ID</label>
-                <input type="text" value={isEditMode ? formData.productId : nextProductId || 'Loading...'} readOnly />
+                <input
+                  type="text"
+                  value={
+                    isEditMode
+                      ? formData.productId
+                      : nextProductId || "Generating..."
+                  }
+                  readOnly
+                />
               </div>
 
-              {/* Brand */}
               <div className="form-group">
                 <label>Brand</label>
-                <input type="text" name="brand" value={formData.brand} onChange={handleInputChange} required />
+                <input
+                  type="text"
+                  name="brand"
+                  value={formData.brand}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
 
-              {/* Size */}
               <div className="form-group">
-                <label>Size Format</label>
-                <select name="sizeFormat" value={formData.sizeFormat} onChange={handleInputChange}>
-                  <option value="metric">Metric (205/55R16)</option>
-                  <option value="flotation">Flotation (31X10.5R15)</option>
-                </select>
+                <label>Model</label>
+                <input
+                  type="text"
+                  name="model"
+                  value={formData.model}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
 
-              {formData.sizeFormat === 'metric' ? (
+              {formData.type === "Tire" ? (
                 <>
-                  <div className="form-group"><label>Width</label><input type="number" name="width" value={formData.width} onChange={handleInputChange} /></div>
-                  <div className="form-group"><label>Aspect Ratio</label><input type="number" name="aspectRatio" value={formData.aspectRatio} onChange={handleInputChange} /></div>
-                  <div className="form-group"><label>Rim Diameter</label><input type="number" name="rimDiameter" value={formData.rimDiameter} onChange={handleInputChange} /></div>
+                  <div className="form-group">
+                    <label>Tire Width (mm)</label>
+                    <input
+                      type="number"
+                      name="tireWidth"
+                      value={formData.tireWidth}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Aspect Ratio</label>
+                    <input
+                      type="number"
+                      name="aspectRatio"
+                      value={formData.aspectRatio}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Rim Diameter</label>
+                    <input
+                      type="number"
+                      name="rimDiameter"
+                      value={formData.rimDiameter}
+                      onChange={handleInputChange}
+                    />
+                  </div>
                 </>
               ) : (
                 <>
-                  <div className="form-group"><label>Overall Diameter</label><input type="number" name="overallDiameter" value={formData.overallDiameter} onChange={handleInputChange} /></div>
-                  <div className="form-group"><label>Section Width</label><input type="number" step="0.1" name="sectionWidth" value={formData.sectionWidth} onChange={handleInputChange} /></div>
-                  <div className="form-group"><label>Rim Diameter</label><input type="number" name="rimDiameter" value={formData.rimDiameter} onChange={handleInputChange} /></div>
+                  <div className="form-group">
+                    <label>Wheel Diameter</label>
+                    <input
+                      type="number"
+                      name="wheelDiameter"
+                      value={formData.wheelDiameter}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Wheel Width</label>
+                    <input
+                      type="number"
+                      name="wheelWidth"
+                      value={formData.wheelWidth}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Offset</label>
+                    <input
+                      type="text"
+                      name="offset"
+                      value={formData.offset}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Bolt Pattern</label>
+                    <input
+                      type="text"
+                      name="boltPattern"
+                      value={formData.boltPattern}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Center Bore</label>
+                    <input
+                      type="text"
+                      name="centerBore"
+                      value={formData.centerBore}
+                      onChange={handleInputChange}
+                    />
+                  </div>
                 </>
               )}
 
-              {/* Other fields */}
-              <div className="form-group"><label>Model</label><input type="text" name="model" value={formData.model} onChange={handleInputChange} /></div>
-              <div className="form-group"><label>Pattern</label><input type="text" name="pattern" value={formData.pattern} onChange={handleInputChange} /></div>
-              <div className="form-group"><label>Load Rating</label><input type="text" name="loadRating" value={formData.loadRating} onChange={handleInputChange} /></div>
-              <div className="form-group"><label>Ply Rating</label><input type="text" name="plyRating" value={formData.plyRating} onChange={handleInputChange} /></div>
-              <div className="form-group"><label>Price</label><input type="number" name="price" value={formData.price} onChange={handleInputChange} /></div>
-              <div className="form-group"><label>Description</label><textarea name="description" value={formData.description} onChange={handleInputChange} /></div>
-
-              {/* 3D Model Upload */}
               <div className="form-group">
-                <label>3D Model (GLB)</label>
-                <input type="file" accept=".glb" onChange={handleFileUpload} disabled={isUploading} />
-                {uploadStatus && <p style={{ fontSize: "12px", color: uploadStatus === 'Completed' ? "green" : "orange" }}>{uploadStatus}</p>}
+                <label>Price</label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="form-group full">
+                <label>Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                ></textarea>
               </div>
 
               <div className="form-actions">
-                <button type="submit" disabled={isUploading}>{isEditMode ? 'Update Product' : 'Add Product'}</button>
-                <button type="button" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button type="submit" disabled={isSubmitting}>
+                  {isSubmitting
+                    ? "Saving..."
+                    : isEditMode
+                    ? "Update"
+                    : "Add Product"}
+                </button>
+                <button type="button" onClick={() => setIsModalOpen(false)}>
+                  Cancel
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* ✅ Reset Counter Modal */}
+      {/* RESET COUNTER MODAL */}
       <ResetCounterModal
         isOpen={showResetModal}
         onClose={() => setShowResetModal(false)}
