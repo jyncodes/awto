@@ -46,19 +46,24 @@
 
 /* ===================== BUTTONS ===================== */
 .controls-bar button {
-  background-color: #2563eb;
-  color: white;
   border: none;
-  padding: 0.55rem 1.1rem;
+  padding: 0.55rem 1.2rem;
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: white;
 }
 
 .controls-bar button:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.controls-bar button:nth-child(2) { /* All */
+  background-color: #2563eb;
+}
+.controls-bar button:nth-child(2):hover {
   background-color: #1e40af;
-  box-shadow: 0 2px 6px rgba(30, 64, 175, 0.25);
 }
 
 .controls-bar button:nth-child(3) { /* Tires Only */
@@ -72,6 +77,20 @@
   background-color: #9333ea;
 }
 .controls-bar button:nth-child(4):hover {
+  background-color: #7e22ce;
+}
+
+.controls-bar button:nth-child(5) { /* Add Tire */
+  background-color: #16a34a;
+}
+.controls-bar button:nth-child(5):hover {
+  background-color: #15803d;
+}
+
+.controls-bar button:nth-child(6) { /* Add Wheel */
+  background-color: #9333ea;
+}
+.controls-bar button:nth-child(6):hover {
   background-color: #7e22ce;
 }
 
@@ -164,35 +183,62 @@
   z-index: 1000;
 }
 
-.modal {
+.form-modal-content {
   background: white;
   padding: 2rem;
   border-radius: 12px;
   width: 100%;
-  max-width: 650px;
+  max-width: 700px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   animation: fadeIn 0.25s ease;
 }
 
-.modal h2 {
+.form-modal-content h2 {
   font-size: 1.4rem;
   font-weight: 600;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.5rem;
   color: #1e293b;
 }
 
-/* ===================== MODAL FORM ===================== */
-.modal label {
-  display: block;
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-top: 0.9rem;
-  margin-bottom: 0.3rem;
-  color: #475569;
+/* ===================== FORM GRID & BOXES ===================== */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
-.modal input,
-.modal textarea {
+.form-box {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  background-color: #f9fafb;
+}
+
+.form-box-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.8rem;
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.3rem;
+}
+
+.tire-box {
+  border-color: #16a34a;
+}
+
+.mags-box {
+  border-color: #9333ea;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
   width: 100%;
   padding: 0.6rem 0.75rem;
   border-radius: 6px;
@@ -201,26 +247,28 @@
   transition: all 0.2s ease;
 }
 
-.modal input:focus,
-.modal textarea:focus {
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
 }
 
-.modal textarea {
+.form-group textarea {
   min-height: 80px;
   resize: vertical;
 }
 
-.modal-actions {
+/* ===================== MODAL ACTIONS ===================== */
+.form-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 1.5rem;
   gap: 0.8rem;
+  margin-top: 1rem;
 }
 
-.modal-actions button {
+.form-actions button {
   padding: 0.55rem 1.2rem;
   border: none;
   border-radius: 6px;
@@ -228,19 +276,19 @@
   cursor: pointer;
 }
 
-.modal-actions button[type="submit"] {
+.form-actions button[type="submit"] {
   background-color: #2563eb;
   color: white;
 }
-.modal-actions button[type="submit"]:hover {
+.form-actions button[type="submit"]:hover {
   background-color: #1e40af;
 }
 
-.modal-actions button[type="button"] {
+.form-actions button[type="button"] {
   background-color: #94a3b8;
   color: white;
 }
-.modal-actions button[type="button"]:hover {
+.form-actions button[type="button"]:hover {
   background-color: #64748b;
 }
 
@@ -248,4 +296,18 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (min-width: 768px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .form-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
