@@ -17,6 +17,7 @@ import AdminReservations from './pages/admin-page/Reservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
+import Vehicles from './pages/admin-page/Vehicles'; // ✅ Added Vehicle Fitment Page
 
 // User Pages
 import UserDashboard from './pages/user-page/UserDashboard';
@@ -154,6 +155,7 @@ export default function App() {
           <Route path="sales" element={<AdminSales />} />
           <Route path="inventory" element={<AdminInventory />} />
           <Route path="products" element={<AdminProducts />} />
+          <Route path="vehicle-fitment" element={<Vehicles />} /> {/* ✅ New route */}
           <Route path="staffs" element={<AdminStaffs />} />
           <Route path="reservations" element={<AdminReservations />} />
           <Route path="customers" element={<AdminCustomers />} />

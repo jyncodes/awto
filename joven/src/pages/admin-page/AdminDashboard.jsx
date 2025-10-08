@@ -22,6 +22,7 @@ const AdminDashboard = () => {
     { path: 'sales', label: 'Sales' },
     { path: 'inventory', label: 'Inventory' },
     { path: 'products', label: 'Products' },
+    { path: 'vehicle-fitment', label: 'Vehicle Fitment' }, // ✅ New Section
     { path: 'staffs', label: 'Staffs' },
     { path: 'customers', label: 'Customers' },
     { path: 'reservations', label: 'Reservations' },
@@ -41,7 +42,11 @@ const AdminDashboard = () => {
             {navItems.map((item) => (
               <li key={item.path}>
                 <NavLink
-                  to={item.path === '' ? '/admin-dashboard' : `/admin-dashboard/${item.path}`}
+                  to={
+                    item.path === ''
+                      ? '/admin-dashboard'
+                      : `/admin-dashboard/${item.path}`
+                  }
                   end={item.path === ''}
                   className={({ isActive }) =>
                     isActive ? 'admin-nav-link active' : 'admin-nav-link'
