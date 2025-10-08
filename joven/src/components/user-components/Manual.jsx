@@ -79,7 +79,6 @@ const Manual = () => {
       return;
     }
 
-    // Navigate to user dashboard with selection details
     navigate("/user-dashboard", {
       state: {
         selectionType: "fitment",
@@ -109,12 +108,7 @@ const Manual = () => {
             {/* Brand Dropdown */}
             <select
               value={brand}
-              onChange={(e) => {
-                setBrand(e.target.value);
-                setModel("");
-                setType("");
-                setSize("");
-              }}
+              onChange={(e) => setBrand(e.target.value)}
             >
               <option value="">Select Brand</option>
               {brandOptions.map((b) => (
@@ -127,11 +121,7 @@ const Manual = () => {
             {/* Model Dropdown */}
             <select
               value={model}
-              onChange={(e) => {
-                setModel(e.target.value);
-                setType("");
-                setSize("");
-              }}
+              onChange={(e) => setModel(e.target.value)}
               disabled={!brand}
             >
               <option value="">Select Model</option>
@@ -145,10 +135,7 @@ const Manual = () => {
             {/* Type Dropdown */}
             <select
               value={type}
-              onChange={(e) => {
-                setType(e.target.value);
-                setSize("");
-              }}
+              onChange={(e) => setType(e.target.value)}
               disabled={!model}
             >
               <option value="">Select Type</option>

@@ -1,4 +1,3 @@
-// src/components/user-components/CatalogBox.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
@@ -6,11 +5,12 @@ import { db } from "../../firebase";
 import ModelViewer from "./ModelViewer";
 import "../../styles/user-styles/CatalogBox.css";
 
+const SUPABASE_BASE_URL =
+  "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
+
 const CatalogBox = ({ filters }) => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // ✅ Get fitment/vehicle info from previous page
   const { size: fitmentSizes = [], vehicleLabel = "", fitment = {} } =
     location.state || {};
 
@@ -19,7 +19,6 @@ const CatalogBox = ({ filters }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  // ✅ Fetch Tire & Mag products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -62,7 +61,6 @@ const CatalogBox = ({ filters }) => {
     fetchProducts();
   }, []);
 
-  // ✅ Parse tire size (e.g., 215/55R17)
   const parseFitmentSize = (sizeStr) => {
     if (!sizeStr) return null;
     let match = sizeStr.match(/^(\d{3})\/(\d{2,3})R(\d{2}(?:\.\d)?)$/i);
@@ -74,11 +72,25 @@ const CatalogBox = ({ filters }) => {
     return null;
   };
 
-  // ✅ Filter + Sort
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // 🔍 Sidebar filters
+    // ✅ Type-based filtering — Only show matching product type
+    if (fitment?.type) {
+      if (fitment.type.toLowerCase() === "tire") {
+        result = result.filter(
+          (product) => product.type?.toLowerCase() === "tire"
+        );
+      } else if (fitment.type.toLowerCase() === "wheel") {
+        result = result.filter(
+          (product) =>
+            product.type?.toLowerCase() === "wheel" ||
+            product.type?.toLowerCase() === "mags"
+        );
+      }
+    }
+
+    // ✅ Apply extra filters (brand, price, etc.)
     if (filters && Object.keys(filters).length > 0) {
       result = result.filter((product) =>
         Object.entries(filters).every(([key, values]) => {
@@ -88,7 +100,7 @@ const CatalogBox = ({ filters }) => {
       );
     }
 
-    // 🚘 Fitment filters
+    // ✅ Fitment spec filtering
     if (fitmentSizes.length > 0 || Object.keys(fitment).length > 0) {
       const fitmentSpecs = fitmentSizes.map(parseFitmentSize).filter(Boolean);
 
@@ -130,7 +142,7 @@ const CatalogBox = ({ filters }) => {
       });
     }
 
-    // 🔄 Sorting
+    // ✅ Sorting
     switch (sortOption) {
       case "name-asc":
         return result.sort((a, b) =>
@@ -149,7 +161,6 @@ const CatalogBox = ({ filters }) => {
     }
   }, [products, filters, fitment, fitmentSizes, sortOption]);
 
-  // ✅ Pagination
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(
     startIdx,
@@ -157,15 +168,11 @@ const CatalogBox = ({ filters }) => {
   );
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
-  // ✅ View product
   const handleView = (category, id) =>
-    navigate(`/view-product/${id}`, {
-      state: { ...location.state, category },
-    });
+    navigate(`/view-product/${id}`, { state: { ...location.state, category } });
 
   return (
     <div className="catalog">
-      {/* Header + Sorting */}
       <div className="catalog-header">
         <h3>
           Product Catalog{" "}
@@ -186,7 +193,6 @@ const CatalogBox = ({ filters }) => {
         </select>
       </div>
 
-      {/* Product Grid */}
       <div className="product-grid">
         {paginatedProducts.length === 0 ? (
           <p className="no-products">
@@ -195,15 +201,8 @@ const CatalogBox = ({ filters }) => {
           </p>
         ) : (
           paginatedProducts.map((product) => {
-            const hasGLB =
-              product.modelUrl || (product.id && product.category === "Mags");
-            const modelUrl = product.modelUrl
-              ? product.modelUrl.startsWith("/")
-                ? product.modelUrl
-                : `/${product.modelUrl}`
-              : product.category === "Mags"
-              ? `/models/mags/${product.id}.glb`
-              : "";
+            const modelUrl = `${SUPABASE_BASE_URL}/${product.id}.glb`;
+            const hasGLB = product.id.startsWith("MA-");
 
             return (
               <div
@@ -211,7 +210,7 @@ const CatalogBox = ({ filters }) => {
                 className="product-card"
                 onClick={() => handleView(product.category, product.id)}
               >
-                {hasGLB && modelUrl ? (
+                {hasGLB ? (
                   <div className="model-preview">
                     <ModelViewer modelUrl={modelUrl} />
                   </div>
@@ -221,9 +220,7 @@ const CatalogBox = ({ filters }) => {
                       product.imageUrl ||
                       "https://placehold.co/150x150?text=No+Image"
                     }
-                    alt={`${product.brand || "Brand"} ${
-                      product.model || "Model"
-                    }`}
+                    alt={`${product.brand || "Brand"} ${product.model || ""}`}
                     className="product-img"
                     onError={(e) =>
                       (e.target.src =
@@ -231,7 +228,6 @@ const CatalogBox = ({ filters }) => {
                     }
                   />
                 )}
-
                 <h4 className="product-name">{product.brand}</h4>
                 <p className="product-model-size">
                   {product.size} {product.model}
@@ -245,7 +241,6 @@ const CatalogBox = ({ filters }) => {
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="pagination">
           {Array.from({ length: totalPages }, (_, i) => (

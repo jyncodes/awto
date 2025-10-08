@@ -31,7 +31,6 @@ const Vehicles = () => {
     centerBore: "",
   });
 
-  // --- Fetch Fitments from Firestore ---
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,19 +52,16 @@ const Vehicles = () => {
     fetchData();
   }, []);
 
-  // --- Add Fitment to Local List ---
   const handleAddFitment = () => {
     const isEmpty = Object.values(fitmentFields).every((val) => val === "");
     if (isEmpty) {
       alert("⚠️ Please fill at least one fitment field before adding.");
       return;
     }
-
     setForm({
       ...form,
       fitments: [...form.fitments, fitmentFields],
     });
-
     setFitmentFields({
       size: "",
       wheelDiameter: "",
@@ -76,16 +72,13 @@ const Vehicles = () => {
     });
   };
 
-  // --- Remove Fitment from List ---
   const handleRemoveFitment = (index) => {
     const updated = form.fitments.filter((_, i) => i !== index);
     setForm({ ...form, fitments: updated });
   };
 
-  // --- Upload to Firestore ---
   const handleUpload = async (e) => {
     e.preventDefault();
-
     const hasUnadded = Object.values(fitmentFields).some((val) => val.trim() !== "");
     const updatedFitments = hasUnadded
       ? [...form.fitments, fitmentFields]
@@ -106,8 +99,6 @@ const Vehicles = () => {
       });
 
       alert("✅ Vehicle fitment uploaded successfully!");
-
-      // Reset form
       setForm({ brand: "", model: "", type: "", fitments: [] });
       setFitmentFields({
         size: "",
@@ -123,7 +114,6 @@ const Vehicles = () => {
     }
   };
 
-  // --- Dropdown Logic for View Section ---
   const handleBrandChange = (e) => {
     setSelectedBrand(e.target.value);
     setSelectedModel("");
@@ -154,23 +144,18 @@ const Vehicles = () => {
       <div className="vehicles-wrapper">
         <h1 className="vehicles-title">🚗 Vehicle Fitment Manager</h1>
 
-        {/* Upload Form Section */}
         <form className="upload-form" onSubmit={handleUpload}>
           <h2>Upload Vehicle Fitment Data</h2>
-          <p className="note">
-            Fill in the details and upload directly to your Firestore database.
-          </p>
-
           <div className="form-grid">
             <input
               type="text"
-              placeholder="Brand (e.g. Toyota)"
+              placeholder="Brand"
               value={form.brand}
               onChange={(e) => setForm({ ...form, brand: e.target.value })}
             />
             <input
               type="text"
-              placeholder="Model (e.g. Hilux)"
+              placeholder="Model"
               value={form.model}
               onChange={(e) => setForm({ ...form, model: e.target.value })}
             />
@@ -178,23 +163,14 @@ const Vehicles = () => {
               value={form.type}
               onChange={(e) => {
                 setForm({ ...form, type: e.target.value });
-                setFitmentFields({
-                  size: "",
-                  wheelDiameter: "",
-                  wheelWidth: "",
-                  boltPattern: "",
-                  offset: "",
-                  centerBore: "",
-                });
               }}
             >
               <option value="">Select Type</option>
-              <option value="Wheel">Wheel</option>
               <option value="Tire">Tire</option>
+              <option value="Wheel">Wheel</option>
             </select>
           </div>
 
-          {/* Conditional Fitment Inputs */}
           {form.type === "Tire" && (
             <div className="fitment-fields">
               <input
@@ -262,7 +238,6 @@ const Vehicles = () => {
             </button>
           </div>
 
-          {/* Fitment Preview List */}
           {form.fitments.length > 0 && (
             <ul className="fitment-preview">
               {form.fitments.map((f, idx) => (
@@ -286,7 +261,6 @@ const Vehicles = () => {
 
         <hr className="divider" />
 
-        {/* View Uploaded Data */}
         <h2>View Uploaded Fitments</h2>
         {loading ? (
           <p>Loading data...</p>

@@ -1,3 +1,4 @@
+// src/pages/user-page/ViewProduct.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -15,6 +16,9 @@ import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
 import ModelViewer from "../../components/user-components/ModelViewer";
 
+const SUPABASE_BASE_URL =
+  "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
+
 const ViewProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,7 +28,6 @@ const ViewProduct = () => {
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
 
-  // ✅ Determine collection based on productId prefix
   const getCollectionName = (productId) => {
     if (!productId) return null;
     if (productId.startsWith("TI-")) return "products_tires";
@@ -32,13 +35,11 @@ const ViewProduct = () => {
     return null;
   };
 
-  // ✅ Fetch product from correct collection
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         let collectionName = getCollectionName(id);
 
-        // 🔎 If user navigated without prefix (e.g., direct link), try both
         if (!collectionName) {
           const tiresRef = doc(db, "products_tires", id);
           const magsRef = doc(db, "products_mags", id);
@@ -49,8 +50,6 @@ const ViewProduct = () => {
             const data = docSnap.data();
             setProduct({ ...data, id: docSnap.id });
             setMainImage(data.imageUrl || data.images?.[0] || null);
-          } else {
-            console.warn("No product found");
           }
           return;
         }
@@ -62,8 +61,6 @@ const ViewProduct = () => {
           const data = docSnap.data();
           setProduct({ ...data, id: docSnap.id });
           setMainImage(data.imageUrl || data.images?.[0] || null);
-        } else {
-          console.warn("No product found");
         }
       } catch (error) {
         console.error("❌ Error fetching product:", error);
@@ -73,7 +70,6 @@ const ViewProduct = () => {
     fetchProduct();
   }, [id]);
 
-  // ✅ Add to Cart
   const handleAddToCart = async () => {
     const user = auth.currentUser;
     if (!user) return alert("You must be logged in to add to selections.");
@@ -129,12 +125,8 @@ const ViewProduct = () => {
       ? `${product.size} ${product.model}`
       : product.name || "No Name";
 
-  const hasGLB = product.modelUrl || (product.productId && product.type === "Mags");
-  const modelUrl = hasGLB
-    ? product.modelUrl?.startsWith("/")
-      ? product.modelUrl
-      : `/${product.modelUrl}`
-    : "";
+  const hasGLB = id.startsWith("MA-"); // only mags will have GLB
+  const modelUrl = hasGLB ? `${SUPABASE_BASE_URL}/${id}.glb` : null;
 
   return (
     <div className="view-product">
