@@ -1,0 +1,225 @@
+/* === VEHICLES PAGE (Formal Corporate Style) === */
+
+.vehicles-container {
+  background-color: #f4f6f9;
+  min-height: 100vh;
+  padding: 2rem 3rem;
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+}
+
+.vehicles-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem 3rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* Page Title */
+.vehicles-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #d63384; /* corporate pink accent */
+  text-align: center;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+/* Section Dividers */
+.divider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 2rem 0;
+}
+
+/* --- Upload Form --- */
+.upload-form {
+  background: #fafafa;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+}
+
+.upload-form h2 {
+  color: #444;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1.2rem;
+}
+
+/* Grid Inputs */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.upload-form input,
+.upload-form select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fff;
+  transition: 0.2s ease;
+}
+
+.upload-form input:focus,
+.upload-form select:focus {
+  border-color: #d63384;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(214, 51, 132, 0.15);
+}
+
+/* Fitment Fields */
+.fitment-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* Buttons */
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  border: none;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #d63384;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: #b92a72;
+}
+
+.btn-secondary {
+  background-color: #f3f4f6;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+  background-color: #e4e6ea;
+}
+
+/* Fitment Preview List */
+.fitment-preview {
+  margin-top: 1rem;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.fitment-preview li {
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.fitment-preview li:last-child {
+  border-bottom: none;
+}
+
+/* --- Dropdown Section --- */
+.dropdown-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.dropdown-section select {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.dropdown-section select:focus {
+  border-color: #d63384;
+  box-shadow: 0 0 0 3px rgba(214, 51, 132, 0.1);
+}
+
+/* --- Fitment Table --- */
+.fitment-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.2rem;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.fitment-table th {
+  background-color: #f8d7e4;
+  color: #d63384;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fitment-table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #f1f1f1;
+  font-size: 0.93rem;
+}
+
+.fitment-table tr:hover {
+  background-color: #fef4f9;
+  transition: 0.2s;
+}
+
+/* Empty / Loading States */
+.vehicles-wrapper p {
+  text-align: center;
+  color: #888;
+  font-size: 0.95rem;
+  margin-top: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .vehicles-container {
+    padding: 1.2rem;
+  }
+
+  .vehicles-wrapper {
+    padding: 1.5rem;
+  }
+
+  .form-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+}
