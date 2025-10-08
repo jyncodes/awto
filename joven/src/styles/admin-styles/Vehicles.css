@@ -1,92 +1,91 @@
-/* === VEHICLES PAGE (Formal Corporate Style) === */
-
+/* ================= GLOBAL STYLES ================= */
 .vehicles-container {
-  background-color: #f4f6f9;
+  background-color: #ffffff;
+  color: #2c3e50;
+  font-family: "Poppins", sans-serif;
+  padding: 2rem;
   min-height: 100vh;
-  padding: 2rem 3rem;
-  font-family: 'Poppins', sans-serif;
-  color: #333;
 }
 
 .vehicles-wrapper {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
-  background: #fff;
-  border-radius: 16px;
-  padding: 2rem 3rem;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  background-color: #f9f9f9;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Page Title */
+/* ================= HEADER ================= */
 .vehicles-title {
   font-size: 2rem;
-  font-weight: 700;
-  color: #d63384; /* corporate pink accent */
+  font-weight: 600;
+  color: #2c3e50;
   text-align: center;
-  margin-bottom: 1.5rem;
-  letter-spacing: 0.5px;
+  margin-bottom: 2rem;
 }
 
-/* Section Dividers */
-.divider {
-  border: none;
-  border-top: 1px solid #e5e7eb;
-  margin: 2rem 0;
-}
-
-/* --- Upload Form --- */
+/* ================= FORM SECTION ================= */
 .upload-form {
-  background: #fafafa;
-  border: 1px solid #eaeaea;
+  background-color: #ffffff;
   border-radius: 12px;
-  padding: 1.5rem 2rem;
+  padding: 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   margin-bottom: 2rem;
 }
 
 .upload-form h2 {
-  color: #444;
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 1.2rem;
+  font-size: 1.5rem;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  text-align: center;
 }
 
-/* Grid Inputs */
+.upload-form .note {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #7f8c8d;
+  margin-bottom: 1.5rem;
+}
+
+/* ================= INPUT GRID ================= */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1rem;
 }
 
 .upload-form input,
 .upload-form select {
   padding: 0.75rem 1rem;
-  border: 1px solid #d0d7de;
+  border: 1px solid #dfe6e9;
   border-radius: 8px;
-  font-size: 0.95rem;
-  background: #fff;
-  transition: 0.2s ease;
+  font-size: 1rem;
+  background-color: #ffffff;
+  color: #2c3e50;
+  outline: none;
+  transition: border 0.2s ease;
 }
 
 .upload-form input:focus,
 .upload-form select:focus {
-  border-color: #d63384;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(214, 51, 132, 0.15);
+  border-color: #2980b9;
 }
 
-/* Fitment Fields */
+/* ================= FITMENT FIELDS ================= */
 .fitment-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
 }
 
-/* Buttons */
+/* ================= BUTTONS ================= */
 .form-buttons {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  align-items: center;
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -94,132 +93,136 @@
 .btn-primary,
 .btn-secondary {
   border: none;
-  padding: 0.7rem 1.5rem;
-  font-size: 0.95rem;
-  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
   border-radius: 8px;
   cursor: pointer;
-  transition: 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-primary {
-  background-color: #d63384;
+  background-color: #2980b9;
   color: #fff;
 }
 
 .btn-primary:hover {
-  background-color: #b92a72;
+  background-color: #1f6390;
 }
 
 .btn-secondary {
-  background-color: #f3f4f6;
-  color: #333;
-  border: 1px solid #ddd;
+  background-color: #ecf0f1;
+  color: #2c3e50;
 }
 
 .btn-secondary:hover {
-  background-color: #e4e6ea;
+  background-color: #dcdde1;
 }
 
-/* Fitment Preview List */
+/* ================= FITMENT PREVIEW ================= */
 .fitment-preview {
-  margin-top: 1rem;
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  padding: 0.8rem 1rem;
   list-style: none;
+  padding: 0;
+  margin-top: 1rem;
+}
+
+.fitment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f4f6f7;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.btn-remove {
+  background: none;
+  border: none;
+  color: #e74c3c;
+  cursor: pointer;
   font-size: 0.9rem;
+  transition: color 0.2s ease;
 }
 
-.fitment-preview li {
-  padding: 0.3rem 0;
-  border-bottom: 1px solid #f1f1f1;
+.btn-remove:hover {
+  color: #c0392b;
 }
 
-.fitment-preview li:last-child {
-  border-bottom: none;
+/* ================= DIVIDER ================= */
+.divider {
+  border: none;
+  height: 1px;
+  background-color: #ecf0f1;
+  margin: 2rem 0;
 }
 
-/* --- Dropdown Section --- */
+/* ================= VIEW SECTION ================= */
 .dropdown-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
-  margin: 1.5rem 0;
+  justify-content: center;
+  margin-bottom: 1.5rem;
 }
 
 .dropdown-section select {
-  padding: 0.75rem;
-  border: 1px solid #ccc;
+  padding: 0.75rem 1rem;
+  border: 1px solid #dfe6e9;
   border-radius: 8px;
-  font-size: 0.95rem;
-  background: #fff;
-  transition: all 0.2s ease;
+  font-size: 1rem;
+  background-color: #ffffff;
+  color: #2c3e50;
 }
 
-.dropdown-section select:focus {
-  border-color: #d63384;
-  box-shadow: 0 0 0 3px rgba(214, 51, 132, 0.1);
-}
-
-/* --- Fitment Table --- */
+/* ================= TABLE ================= */
 .fitment-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1.2rem;
-  background: #fff;
-  border-radius: 12px;
+  background-color: #ffffff;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+}
+
+.fitment-table th,
+.fitment-table td {
+  padding: 0.75rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid #ecf0f1;
 }
 
 .fitment-table th {
-  background-color: #f8d7e4;
-  color: #d63384;
-  text-align: left;
-  padding: 0.9rem 1rem;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  background-color: #2980b9;
+  color: #ffffff;
+  font-weight: 500;
 }
 
-.fitment-table td {
-  padding: 0.8rem 1rem;
-  border-bottom: 1px solid #f1f1f1;
-  font-size: 0.93rem;
+.fitment-table tr:nth-child(even) {
+  background-color: #f9f9f9;
 }
 
-.fitment-table tr:hover {
-  background-color: #fef4f9;
-  transition: 0.2s;
-}
-
-/* Empty / Loading States */
-.vehicles-wrapper p {
-  text-align: center;
-  color: #888;
-  font-size: 0.95rem;
-  margin-top: 1rem;
-}
-
-/* Responsive */
+/* ================= RESPONSIVE DESIGN ================= */
 @media (max-width: 768px) {
-  .vehicles-container {
-    padding: 1.2rem;
+  .vehicles-wrapper {
+    padding: 1.5rem;
   }
 
-  .vehicles-wrapper {
+  .upload-form {
     padding: 1.5rem;
   }
 
   .form-buttons {
     flex-direction: column;
-    align-items: stretch;
   }
 
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
+  .fitment-table th,
+  .fitment-table td {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .vehicles-title {
+    font-size: 1.6rem;
   }
 }
