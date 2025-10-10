@@ -1,5 +1,11 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
@@ -71,7 +77,7 @@ export default function App() {
     <Router>
       <GlobalKeyboardShortcuts />
       <Routes>
-        {/* Public Routes */}
+        {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<LandingPage />} />
         <Route
           path="/login"
@@ -96,12 +102,12 @@ export default function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
 
-        {/* DevTools Route */}
+        {/* ✅ DevTools Route */}
         <Route path="/devtools" element={<DevTools />} />
 
-        {/* Reservation + Transactions */}
+        {/* ================= USER FLOW (RESERVATION + TRANSACTIONS) ================= */}
         <Route
-          path="/reserve/:productId"
+          path="/reservation/:productId"
           element={
             <RequireVerifiedEmail>
               <ProtectedRoute allowedRole="User">
@@ -141,7 +147,7 @@ export default function App() {
           }
         />
 
-        {/* User Routes */}
+        {/* ================= USER ROUTES ================= */}
         <Route
           path="/profile"
           element={
@@ -163,7 +169,7 @@ export default function App() {
           }
         />
 
-        {/* Admin Routes */}
+        {/* ================= ADMIN ROUTES ================= */}
         <Route
           path="/admin-dashboard/*"
           element={
@@ -185,7 +191,7 @@ export default function App() {
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 
-        {/* Staff Routes */}
+        {/* ================= STAFF ROUTES ================= */}
         <Route
           path="/staff-dashboard"
           element={
@@ -227,7 +233,7 @@ export default function App() {
           }
         />
 
-        {/* Fallback 404 */}
+        {/* ================= 404 FALLBACK ================= */}
         <Route
           path="*"
           element={<div className="text-center p-10">404 - Page Not Found</div>}

@@ -113,24 +113,19 @@ const ViewProduct = () => {
     }
   };
 
-  // ✅ Reservation navigation
   const handleReserveClick = () => {
     if (product?.id) {
       navigate(`/reservation/${product.id}`, {
-        state: { vehicleLabel, fitmentSizes },
+        state: {
+          product, // full product data
+          vehicleLabel,
+          fitmentSizes,
+        },
       });
     }
   };
 
-  // ✅ Direct AR launch
-  const handleARClick = () => {
-    if (modelRef.current) {
-      modelRef.current.activateAR();
-    }
-  };
-
-  if (!product)
-    return <div className="view-product">Loading product details...</div>;
+  if (!product) return <div className="view-product">Loading product details...</div>;
 
   const displayName =
     product.size && product.model
@@ -170,7 +165,6 @@ const ViewProduct = () => {
             />
           )}
 
-          {/* ✅ Thumbnails */}
           {product.images && (
             <div className="thumbnail-row">
               {product.images.map((img, i) => (
