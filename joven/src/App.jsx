@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
@@ -17,7 +17,7 @@ import AdminReservations from './pages/admin-page/Reservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
-import Vehicles from './pages/admin-page/Vehicles'; // ✅ Added Vehicle Fitment Page
+import Vehicles from './pages/admin-page/Vehicles';
 
 // User Pages
 import UserDashboard from './pages/user-page/UserDashboard';
@@ -25,6 +25,7 @@ import UserProfile from './pages/user-page/UserProfile';
 import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
 import ReceiptPage from './pages/user-page/ReceiptPage';
+import DevTools from './pages/user-page/DevTools'; // ✅ Added DevTools
 
 // Reservation Page
 import ReservationPage from './pages/user-page/ReservationPage';
@@ -46,9 +47,29 @@ const WithOrigin = ({ children }) => {
   return React.cloneElement(children, { origin: location.pathname });
 };
 
+// ✅ Shortcut key hook
+const GlobalKeyboardShortcuts = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.key === 'D' && e.shiftKey) || e.key === 'd') {
+        e.preventDefault();
+        navigate('/devtools');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
+
+  return null;
+};
+
 export default function App() {
   return (
     <Router>
+      <GlobalKeyboardShortcuts /> {/* ✅ Global listener for shortcut key */}
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -74,6 +95,9 @@ export default function App() {
         />
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
+
+        {/* ✅ DevTools Route */}
+        <Route path="/devtools" element={<DevTools />} />
 
         {/* Reservation + Transactions */}
         <Route
@@ -150,12 +174,11 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         >
-          {/* Nested Admin Pages */}
           <Route index element={<AdminDashboardContent />} />
           <Route path="sales" element={<AdminSales />} />
           <Route path="inventory" element={<AdminInventory />} />
           <Route path="products" element={<AdminProducts />} />
-          <Route path="vehicle-fitment" element={<Vehicles />} /> {/* ✅ New route */}
+          <Route path="vehicle-fitment" element={<Vehicles />} />
           <Route path="staffs" element={<AdminStaffs />} />
           <Route path="reservations" element={<AdminReservations />} />
           <Route path="customers" element={<AdminCustomers />} />
