@@ -22,7 +22,7 @@ const AdminDashboard = () => {
     { path: 'sales', label: 'Sales' },
     { path: 'inventory', label: 'Inventory' },
     { path: 'products', label: 'Products' },
-    { path: 'vehicle-fitment', label: 'Vehicle Fitment' }, // ✅ New Section
+    // Removed Vehicle Fitment
     { path: 'staffs', label: 'Staffs' },
     { path: 'customers', label: 'Customers' },
     { path: 'reservations', label: 'Reservations' },

@@ -23,7 +23,7 @@ import AdminReservations from './pages/admin-page/Reservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
-import Vehicles from './pages/admin-page/Vehicles';
+// Removed Vehicles import
 
 // User Pages
 import UserDashboard from './pages/user-page/UserDashboard';
@@ -53,7 +53,7 @@ const WithOrigin = ({ children }) => {
   return React.cloneElement(children, { origin: location.pathname });
 };
 
-// ✅ Shortcut key hook
+// Global shortcut key hook
 const GlobalKeyboardShortcuts = () => {
   const navigate = useNavigate();
 
@@ -101,6 +101,8 @@ export default function App() {
         />
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
+
+        {/* ✅ DevTools Route */}
         <Route path="/devtools" element={<DevTools />} />
 
         {/* ================= USER FLOW (RESERVATION + TRANSACTIONS) ================= */}
@@ -182,7 +184,7 @@ export default function App() {
           <Route path="sales" element={<AdminSales />} />
           <Route path="inventory" element={<AdminInventory />} />
           <Route path="products" element={<AdminProducts />} />
-          <Route path="vehicle-fitment" element={<Vehicles />} />
+          {/* Removed vehicle-fitment route */}
           <Route path="staffs" element={<AdminStaffs />} />
           <Route path="reservations" element={<AdminReservations />} />
           <Route path="customers" element={<AdminCustomers />} />

@@ -11,10 +11,10 @@ import {
   onSnapshot,
   getDocs,
 } from "firebase/firestore";
-import { db } from "../../firebase";
-import "../../styles/admin-styles/Vehicles.css";
+import { db } from "../firebase";
+import "../styles/CarData.css";
 
-const Vehicles = () => {
+const CarData = () => {
   const [vehicleData, setVehicleData] = useState({});
   const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
@@ -239,9 +239,8 @@ const Vehicles = () => {
       <div className="vehicles-wrapper">
         <h1 className="vehicles-title">🚗 Vehicle Fitment Manager</h1>
 
-        {/* === Upload Section === */}
+        {/* Upload Form */}
         <form className="upload-form" onSubmit={handleUpload}>
-          <h2>Upload or Update Vehicle Fitment</h2>
           <div className="form-grid">
             <input
               type="text"
@@ -265,40 +264,31 @@ const Vehicles = () => {
             </select>
           </div>
 
-          {/* === Fitment Inputs === */}
+          {/* Fitment Inputs */}
           {form.type === "Tire" && (
             <div className="fitment-fields">
               <input
                 type="text"
-                placeholder="Tire Width (e.g., 225)"
+                placeholder="Tire Width"
                 value={fitmentFields.tireWidth}
                 onChange={(e) =>
-                  setFitmentFields({
-                    ...fitmentFields,
-                    tireWidth: e.target.value,
-                  })
+                  setFitmentFields({ ...fitmentFields, tireWidth: e.target.value })
                 }
               />
               <input
                 type="text"
-                placeholder="Aspect Ratio (e.g., 45)"
+                placeholder="Aspect Ratio"
                 value={fitmentFields.aspectRatio}
                 onChange={(e) =>
-                  setFitmentFields({
-                    ...fitmentFields,
-                    aspectRatio: e.target.value,
-                  })
+                  setFitmentFields({ ...fitmentFields, aspectRatio: e.target.value })
                 }
               />
               <input
                 type="text"
-                placeholder="Rim Diameter (e.g., 17)"
+                placeholder="Rim Diameter"
                 value={fitmentFields.rimDiameter}
                 onChange={(e) =>
-                  setFitmentFields({
-                    ...fitmentFields,
-                    rimDiameter: e.target.value,
-                  })
+                  setFitmentFields({ ...fitmentFields, rimDiameter: e.target.value })
                 }
               />
             </div>
@@ -308,96 +298,44 @@ const Vehicles = () => {
             <div className="fitment-fields">
               <input
                 type="text"
-                placeholder="Wheel Diameter (e.g., 18)"
+                placeholder="Wheel Diameter"
                 value={fitmentFields.wheelDiameter}
                 onChange={(e) =>
-                  setFitmentFields({
-                    ...fitmentFields,
-                    wheelDiameter: e.target.value,
-                  })
+                  setFitmentFields({ ...fitmentFields, wheelDiameter: e.target.value })
                 }
               />
               <input
                 type="text"
-                placeholder="Wheel Width (e.g., 8.5)"
+                placeholder="Wheel Width"
                 value={fitmentFields.wheelWidth}
                 onChange={(e) =>
-                  setFitmentFields({
-                    ...fitmentFields,
-                    wheelWidth: e.target.value,
-                  })
+                  setFitmentFields({ ...fitmentFields, wheelWidth: e.target.value })
                 }
               />
               <input
                 type="text"
-                placeholder="Bolt Pattern (e.g., 5x114.3)"
+                placeholder="Bolt Pattern"
                 value={fitmentFields.boltPattern}
                 onChange={(e) =>
-                  setFitmentFields({
-                    ...fitmentFields,
-                    boltPattern: e.target.value,
-                  })
+                  setFitmentFields({ ...fitmentFields, boltPattern: e.target.value })
                 }
               />
             </div>
           )}
 
           <div className="form-buttons">
-            <button
-              type="button"
-              onClick={handleAddFitment}
-              className="btn-secondary"
-            >
+            <button type="button" className="btn-secondary" onClick={handleAddFitment}>
               ➕ Add Fitment
             </button>
             <button type="submit" className="btn-primary">
               🚀 Save to Firestore
             </button>
           </div>
-
-          {/* === Preview Fitments Before Save === */}
-          {form.type === "Tire" && form.tireFitments.length > 0 && (
-            <ul className="fitment-preview">
-              {form.tireFitments.map((f, i) => (
-                <li key={i} className="fitment-item">
-                  <span>
-                    {f.tireWidth} / {f.aspectRatio} / {f.rimDiameter}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveFitment(i, "Tire")}
-                    className="btn-remove"
-                  >
-                    ❌ Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {form.type === "Wheel" && form.wheelFitments.length > 0 && (
-            <ul className="fitment-preview">
-              {form.wheelFitments.map((f, i) => (
-                <li key={i} className="fitment-item">
-                  <span>
-                    {f.wheelDiameter} / {f.wheelWidth} / {f.boltPattern}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveFitment(i, "Wheel")}
-                    className="btn-remove"
-                  >
-                    ❌ Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </form>
 
         <hr className="divider" />
 
-        {/* === View Section === */}
+        {/* View Uploaded Fitments */}
         <h2>View Uploaded Fitments</h2>
         {loading ? (
           <p>Loading data...</p>
@@ -473,4 +411,4 @@ const Vehicles = () => {
   );
 };
 
-export default Vehicles;
+export default CarData;
