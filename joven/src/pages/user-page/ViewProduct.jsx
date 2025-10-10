@@ -28,15 +28,13 @@ const ViewProduct = () => {
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
 
-  // ✅ Determine collection name based on prefix
   const getCollectionName = (productId) => {
     if (!productId) return null;
     if (productId.startsWith("TI-")) return "products_tires";
     if (productId.startsWith("MA-")) return "products_mags";
     return null;
-  };  
+  };
 
-  // ✅ Fetch product by ID
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -72,7 +70,6 @@ const ViewProduct = () => {
     fetchProduct();
   }, [id]);
 
-  // ✅ Add product to My Selections
   const handleAddToCart = async () => {
     const user = auth.currentUser;
     if (!user) return alert("You must be logged in to add to selections.");
@@ -113,12 +110,12 @@ const ViewProduct = () => {
     }
   };
 
-  // ✅ Navigate to ReservationPage with product info
+  // ✅ Navigate to ReservationPage and pass full product details
   const handleReserveClick = () => {
     if (product?.id) {
       navigate(`/reservation/${product.id}`, {
         state: {
-          product, // full product details for ReservationPage
+          product, // full product data
           vehicleLabel,
           fitmentSizes,
         },
@@ -134,7 +131,7 @@ const ViewProduct = () => {
       ? `${product.size} ${product.model}`
       : product.name || "No Name";
 
-  const hasGLB = id.startsWith("MA-"); // only mags have 3D model
+  const hasGLB = id.startsWith("MA-");
   const modelUrl = hasGLB ? `${SUPABASE_BASE_URL}/${id}.glb` : null;
 
   return (
@@ -144,7 +141,6 @@ const ViewProduct = () => {
       </button>
 
       <div className="product-container">
-        {/* ===== IMAGES OR 3D VIEW ===== */}
         <div className="product-images">
           {!hasGLB && (
             <img
@@ -175,7 +171,6 @@ const ViewProduct = () => {
           )}
         </div>
 
-        {/* ===== PRODUCT INFO ===== */}
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">

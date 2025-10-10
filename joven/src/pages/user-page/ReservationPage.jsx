@@ -1,5 +1,6 @@
+// src/pages/user-page/ReservationPage.jsx
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   doc,
   getDoc,
@@ -21,18 +22,19 @@ import "../../styles/user-styles/ReservationPage.css";
 
 const ReservationPage = () => {
   const { productId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
 
-  const [product, setProduct] = useState(null);
+  const passedProduct = location.state?.product || null;
+  const [product, setProduct] = useState(passedProduct);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!passedProduct);
 
   const [serviceType, setServiceType] = useState("Installation");
   const [vehicleBrand, setVehicleBrand] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
   const [vehicleYear, setVehicleYear] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
-
   const [preferredDate, setPreferredDate] = useState(new Date());
   const [preferredTime, setPreferredTime] = useState("");
   const [note, setNote] = useState("");
@@ -41,28 +43,28 @@ const ReservationPage = () => {
   const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00"];
   const downpayment = 500;
 
+  // 🔹 Generate auto-increment reservation ID
   const generateReservationId = async () => {
     const counterRef = doc(db, "counters", "reservations");
     return await runTransaction(db, async (transaction) => {
       const counterSnap = await transaction.get(counterRef);
       if (!counterSnap.exists()) throw new Error("Counter document not found");
-
       const lastId = counterSnap.data().lastId || 0;
       const nextId = lastId + 1;
       transaction.update(counterRef, { lastId: nextId });
-
       return `RES${String(nextId).padStart(5, "0")}`;
     });
   };
 
-  const sendReservationEmail = async (userEmail, userName, appointmentTime) => {
+  // 🔹 Send confirmation email (optional)
+  const sendReservationEmail = async (email, name, appointmentTime) => {
     try {
       await axios.post("http://localhost:5000/send-email", {
-        to: userEmail,
-        name: userName,
+        to: email,
+        name,
         subject: "Reservation Confirmed",
         htmlContent: `
-          <p>Hello ${userName},</p>
+          <p>Hello ${name},</p>
           <p>Your reservation has been confirmed.</p>
           <p><strong>Appointment Time:</strong> ${appointmentTime}</p>
           <p>Thank you,<br/>Awto Team</p>
@@ -74,20 +76,22 @@ const ReservationPage = () => {
     }
   };
 
+  // 🔹 Track user authentication
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, setUser);
     return () => unsub();
   }, []);
 
+  // 🔹 Fetch product if not passed via navigation
   useEffect(() => {
     const fetchProduct = async () => {
+      if (passedProduct) return;
       try {
-        const snap = await getDoc(doc(db, "products", productId));
-        if (snap.exists()) {
-          setProduct({ ...snap.data(), id: snap.id });
-        } else {
-          setProduct(null);
-        }
+        const tiresRef = doc(db, "products_tires", productId);
+        const magsRef = doc(db, "products_mags", productId);
+        let snap = await getDoc(tiresRef);
+        if (!snap.exists()) snap = await getDoc(magsRef);
+        if (snap.exists()) setProduct({ ...snap.data(), id: snap.id });
       } catch (err) {
         console.error("Product fetch error:", err);
       } finally {
@@ -95,12 +99,12 @@ const ReservationPage = () => {
       }
     };
     fetchProduct();
-  }, [productId]);
+  }, [productId, passedProduct]);
 
+  // 🔹 Load reserved slots to disable times
   useEffect(() => {
     const fetchReservedSlots = async () => {
       if (!productId || !preferredDate) return;
-
       const start = new Date(preferredDate);
       start.setHours(0, 0, 0, 0);
       const end = new Date(preferredDate);
@@ -131,62 +135,66 @@ const ReservationPage = () => {
     fetchReservedSlots();
   }, [preferredDate, productId]);
 
+  // 🔹 Handle form submit
   const handleSubmit = async () => {
-    if (!user) return alert("You must be logged in.");
+    if (!user) return alert("You must be logged in to reserve.");
     if (!vehicleBrand || !vehicleModel || !vehicleYear || !plateNumber || !preferredTime)
-      return alert("Please complete all required fields.");
+      return alert("Please fill out all required fields.");
 
     if (!product || !product.brand || !product.size)
       return alert("Product information is incomplete.");
 
-    if (reservedTimes.includes(preferredTime)) {
-      return alert("Selected time is already reserved. Please choose another.");
-    }
-
-    const reservationId = await generateReservationId();
-    const date = new Date(preferredDate);
-    const [hour, minute] = preferredTime.split(":");
-    date.setHours(parseInt(hour), parseInt(minute), 0, 0);
-
-    const productName = `${product.brand} ${product.model || ""} ${product.size}`.trim();
-
-    const reservationData = {
-      id: reservationId,
-      userId: user.uid,
-      userEmail: user.email,                             // ✅ For reminder
-      userName: user.displayName || "Customer",         // ✅ For reminder
-      productId: product.id,
-      productName,
-      brand: product.brand,
-      model: product.model || "",
-      size: product.size,
-      type: product.type || "",
-      price: Number(product.price || 0),
-      downpayment,
-      serviceType,
-      vehicleBrand,
-      vehicleModel,
-      vehicleYear,
-      plateNumber,
-      preferredDateTime: Timestamp.fromDate(date),
-      note,
-      paymentMethod: "PayMongo",
-      status: "Pending Payment",
-      isCancelled: false,
-      reminderSent: false,                              // ✅ Optional flag (for Node.js check)
-      createdAt: serverTimestamp(),
-    };
+    if (reservedTimes.includes(preferredTime))
+      return alert("Selected time is already reserved.");
 
     try {
-      await setDoc(doc(db, "reservations", reservationId), reservationData);
-      alert("Reservation submitted! Redirecting to invoice...");
-      navigate(`/invoice/${reservationId}`);
+      const reservationId = await generateReservationId();
+      const date = new Date(preferredDate);
+      const [hour, minute] = preferredTime.split(":");
+      date.setHours(parseInt(hour), parseInt(minute), 0, 0);
 
+      const productName = `${product.brand} ${product.model || ""} ${product.size}`.trim();
+
+      const reservationData = {
+        id: reservationId,
+        userId: user.uid,
+        userEmail: user.email,
+        userName: user.displayName || "Customer",
+        productId: product.id,
+        productName,
+        brand: product.brand,
+        model: product.model || "",
+        size: product.size,
+        type: product.type || "",
+        price: Number(product.price || 0),
+        downpayment,
+        serviceType,
+        vehicleBrand,
+        vehicleModel,
+        vehicleYear,
+        plateNumber,
+        preferredDateTime: Timestamp.fromDate(date),
+        note,
+        paymentMethod: "PayMongo",
+        status: "Pending Payment",
+        isCancelled: false,
+        reminderSent: false,
+        createdAt: serverTimestamp(),
+      };
+
+      await setDoc(doc(db, "reservations", reservationId), reservationData);
+
+      alert("✅ Reservation submitted successfully!");
       const appointmentTime = date.toLocaleString();
+
+      // Optional email confirmation
       await sendReservationEmail(user.email, user.displayName || "Customer", appointmentTime);
+
+      // 🔹 Redirect to invoice page with data
+      navigate(`/invoice/${reservationId}`, { state: { reservation: reservationData } });
     } catch (err) {
-      console.error("Reservation error:", err);
-      alert("Failed to submit reservation. Try again.");
+      console.error("Reservation submission error:", err);
+      alert("Failed to submit reservation. Please try again.");
     }
   };
 
