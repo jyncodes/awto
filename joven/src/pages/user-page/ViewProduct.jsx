@@ -28,13 +28,15 @@ const ViewProduct = () => {
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
 
+  // ✅ Determine collection name based on prefix
   const getCollectionName = (productId) => {
     if (!productId) return null;
     if (productId.startsWith("TI-")) return "products_tires";
     if (productId.startsWith("MA-")) return "products_mags";
     return null;
-  };
+  };  
 
+  // ✅ Fetch product by ID
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -70,6 +72,7 @@ const ViewProduct = () => {
     fetchProduct();
   }, [id]);
 
+  // ✅ Add product to My Selections
   const handleAddToCart = async () => {
     const user = auth.currentUser;
     if (!user) return alert("You must be logged in to add to selections.");
@@ -110,22 +113,28 @@ const ViewProduct = () => {
     }
   };
 
+  // ✅ Navigate to ReservationPage with product info
   const handleReserveClick = () => {
     if (product?.id) {
       navigate(`/reservation/${product.id}`, {
-        state: { vehicleLabel, fitmentSizes },
+        state: {
+          product, // full product details for ReservationPage
+          vehicleLabel,
+          fitmentSizes,
+        },
       });
     }
   };
 
-  if (!product) return <div className="view-product">Loading product details...</div>;
+  if (!product)
+    return <div className="view-product">Loading product details...</div>;
 
   const displayName =
     product.size && product.model
       ? `${product.size} ${product.model}`
       : product.name || "No Name";
 
-  const hasGLB = id.startsWith("MA-"); // only mags will have GLB
+  const hasGLB = id.startsWith("MA-"); // only mags have 3D model
   const modelUrl = hasGLB ? `${SUPABASE_BASE_URL}/${id}.glb` : null;
 
   return (
@@ -135,6 +144,7 @@ const ViewProduct = () => {
       </button>
 
       <div className="product-container">
+        {/* ===== IMAGES OR 3D VIEW ===== */}
         <div className="product-images">
           {!hasGLB && (
             <img
@@ -144,7 +154,7 @@ const ViewProduct = () => {
             />
           )}
 
-          {product.images && (
+          {product.images && product.images.length > 1 && (
             <div className="thumbnail-row">
               {product.images.map((img, i) => (
                 <img
@@ -165,6 +175,7 @@ const ViewProduct = () => {
           )}
         </div>
 
+        {/* ===== PRODUCT INFO ===== */}
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">

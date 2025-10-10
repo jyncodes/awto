@@ -1,5 +1,11 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
@@ -25,7 +31,7 @@ import UserProfile from './pages/user-page/UserProfile';
 import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
 import ReceiptPage from './pages/user-page/ReceiptPage';
-import DevTools from './pages/user-page/DevTools'; // ✅ Added DevTools
+import DevTools from './pages/user-page/DevTools';
 
 // Reservation Page
 import ReservationPage from './pages/user-page/ReservationPage';
@@ -69,9 +75,9 @@ const GlobalKeyboardShortcuts = () => {
 export default function App() {
   return (
     <Router>
-      <GlobalKeyboardShortcuts /> {/* ✅ Global listener for shortcut key */}
+      <GlobalKeyboardShortcuts />
       <Routes>
-        {/* Public Routes */}
+        {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<LandingPage />} />
         <Route
           path="/login"
@@ -95,13 +101,11 @@ export default function App() {
         />
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
-
-        {/* ✅ DevTools Route */}
         <Route path="/devtools" element={<DevTools />} />
 
-        {/* Reservation + Transactions */}
+        {/* ================= USER FLOW (RESERVATION + TRANSACTIONS) ================= */}
         <Route
-          path="/reserve/:productId"
+          path="/reservation/:productId"
           element={
             <RequireVerifiedEmail>
               <ProtectedRoute allowedRole="User">
@@ -141,7 +145,7 @@ export default function App() {
           }
         />
 
-        {/* User Routes */}
+        {/* ================= USER ROUTES ================= */}
         <Route
           path="/profile"
           element={
@@ -163,7 +167,7 @@ export default function App() {
           }
         />
 
-        {/* Admin Routes */}
+        {/* ================= ADMIN ROUTES ================= */}
         <Route
           path="/admin-dashboard/*"
           element={
@@ -185,7 +189,7 @@ export default function App() {
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 
-        {/* Staff Routes */}
+        {/* ================= STAFF ROUTES ================= */}
         <Route
           path="/staff-dashboard"
           element={
@@ -227,7 +231,7 @@ export default function App() {
           }
         />
 
-        {/* Fallback 404 */}
+        {/* ================= 404 FALLBACK ================= */}
         <Route
           path="*"
           element={<div className="text-center p-10">404 - Page Not Found</div>}
