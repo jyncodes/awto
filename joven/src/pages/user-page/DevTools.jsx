@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import "../../styles/DevTools.css";
+import CarData from "../../components/CarData.jsx"; // ✅ Import CarData
 
 export default function DevTools() {
   const [visibleSection, setVisibleSection] = useState("info");
 
-  // ✅ Shortcut key listener (Shift + D)
+  // Shortcut key listener (Shift + D)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.shiftKey && (e.key === "D" || e.key === "d")) {
@@ -32,10 +33,10 @@ export default function DevTools() {
           Info
         </button>
         <button
-          className={`tab-btn ${visibleSection === "3d" ? "active" : ""}`}
-          onClick={() => setVisibleSection("3d")}
+          className={`tab-btn ${visibleSection === "vehicle" ? "active" : ""}`}
+          onClick={() => setVisibleSection("vehicle")}
         >
-          3D Tools
+          Vehicle Fitment
         </button>
         <button
           className={`tab-btn ${visibleSection === "ar" ? "active" : ""}`}
@@ -53,22 +54,17 @@ export default function DevTools() {
             <ul>
               <li>🧭 Check Firebase connection</li>
               <li>🧪 Test components</li>
-              <li>🧰 Generate 3D objects and preview</li>
+              <li>🧰 Manage vehicle fitments</li>
               <li>⚠️ Accessible only via shortcut or URL</li>
             </ul>
           </div>
         )}
 
-        {visibleSection === "3d" && (
+        {visibleSection === "vehicle" && (
           <div>
-            <h2>3D Model Testing</h2>
-            <p>Place your Three.js or GLB export functions here.</p>
-            <button
-              onClick={() => alert("3D function triggered")}
-              className="action-btn"
-            >
-              Run 3D Export
-            </button>
+            <h2>Vehicle Fitment Manager</h2>
+            <p>Manage tire and wheel fitments for vehicles.</p>
+            <CarData />
           </div>
         )}
 

@@ -17,7 +17,7 @@ import AdminReservations from './pages/admin-page/Reservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
-import Vehicles from './pages/admin-page/Vehicles';
+// Removed Vehicles import
 
 // User Pages
 import UserDashboard from './pages/user-page/UserDashboard';
@@ -25,7 +25,7 @@ import UserProfile from './pages/user-page/UserProfile';
 import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
 import ReceiptPage from './pages/user-page/ReceiptPage';
-import DevTools from './pages/user-page/DevTools'; // ✅ Added DevTools
+import DevTools from './pages/user-page/DevTools';
 
 // Reservation Page
 import ReservationPage from './pages/user-page/ReservationPage';
@@ -47,7 +47,7 @@ const WithOrigin = ({ children }) => {
   return React.cloneElement(children, { origin: location.pathname });
 };
 
-// ✅ Shortcut key hook
+// Global shortcut key hook
 const GlobalKeyboardShortcuts = () => {
   const navigate = useNavigate();
 
@@ -69,7 +69,7 @@ const GlobalKeyboardShortcuts = () => {
 export default function App() {
   return (
     <Router>
-      <GlobalKeyboardShortcuts /> {/* ✅ Global listener for shortcut key */}
+      <GlobalKeyboardShortcuts />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -96,7 +96,7 @@ export default function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
 
-        {/* ✅ DevTools Route */}
+        {/* DevTools Route */}
         <Route path="/devtools" element={<DevTools />} />
 
         {/* Reservation + Transactions */}
@@ -178,7 +178,7 @@ export default function App() {
           <Route path="sales" element={<AdminSales />} />
           <Route path="inventory" element={<AdminInventory />} />
           <Route path="products" element={<AdminProducts />} />
-          <Route path="vehicle-fitment" element={<Vehicles />} />
+          {/* Removed vehicle-fitment route */}
           <Route path="staffs" element={<AdminStaffs />} />
           <Route path="reservations" element={<AdminReservations />} />
           <Route path="customers" element={<AdminCustomers />} />
