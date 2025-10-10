@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "../../firebase"; 
+import { db } from "../../firebase";
 import "../../styles/user-styles/Filter.css";
 
 const Filter = ({ onChange }) => {
@@ -10,9 +10,9 @@ const Filter = ({ onChange }) => {
   const [searchTerms, setSearchTerms] = useState({});
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Fetch unique filter values from Firestore
+  // ✅ Fetch unique filter values from Firestore (products_tires)
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
+    const unsubscribe = onSnapshot(collection(db, "products_tires"), (snapshot) => {
       const products = snapshot.docs.map((doc) => doc.data());
 
       const uniqueValues = {
@@ -26,19 +26,31 @@ const Filter = ({ onChange }) => {
       products.forEach((product) => {
         if (product.brand) uniqueValues.brand.add(product.brand.trim());
         if (product.model) uniqueValues.model.add(product.model.trim());
-        if (product.size) uniqueValues.size.add(product.size.trim());
+
+        // ✅ Construct readable size format (e.g., 155/65R13)
+        if (product.tireWidth && product.aspectRatio && product.rimDiameter) {
+          const size = `${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`;
+          uniqueValues.size.add(size);
+        } else if (product.rimDiameter) {
+          uniqueValues.size.add(`R${product.rimDiameter}`);
+        }
+
         if (product.type) uniqueValues.type.add(product.type.trim());
+
+        // ✅ Price range categorization
         if (product.price) {
           const price = parseInt(product.price);
           if (!isNaN(price)) {
             if (price <= 1000) uniqueValues.price.add("₱0 - ₱1,000");
             else if (price <= 2000) uniqueValues.price.add("₱1,001 - ₱2,000");
             else if (price <= 3000) uniqueValues.price.add("₱2,001 - ₱3,000");
-            else uniqueValues.price.add("₱3,000+");
+            else if (price <= 5000) uniqueValues.price.add("₱3,001 - ₱5,000");
+            else uniqueValues.price.add("₱5,000+");
           }
         }
       });
 
+      // ✅ Prepare filter options
       setFiltersData([
         { name: "brand", label: "Brand", options: Array.from(uniqueValues.brand), multiSelect: true },
         { name: "model", label: "Model", options: Array.from(uniqueValues.model), multiSelect: true },
@@ -51,7 +63,7 @@ const Filter = ({ onChange }) => {
     return () => unsubscribe();
   }, []);
 
-  // Send filters to parent
+  // ✅ Send selected filters to parent component
   useEffect(() => {
     const filtersToSend = Object.fromEntries(
       Object.entries(selectedFilters).map(([key, valueSet]) => [key, Array.from(valueSet)])
@@ -92,11 +104,15 @@ const Filter = ({ onChange }) => {
 
   return (
     <>
+      {/* ✅ Mobile toggle button */}
       <button className="filter-toggle-btn" onClick={() => setIsMobileOpen(true)}>
         Filters
       </button>
 
-      <div className={`filter-overlay ${isMobileOpen ? "visible" : ""}`} onClick={() => setIsMobileOpen(false)} />
+      <div
+        className={`filter-overlay ${isMobileOpen ? "visible" : ""}`}
+        onClick={() => setIsMobileOpen(false)}
+      />
 
       <div className={`filters ${isMobileOpen ? "open" : ""}`}>
         <div className="filters-header">
@@ -108,7 +124,7 @@ const Filter = ({ onChange }) => {
           )}
         </div>
 
-
+        {/* ✅ Dynamic filter sections */}
         {filtersData.map(({ name, label, options, multiSelect }) => {
           const isExpanded = expanded.includes(name);
           const selectedSet = selectedFilters[name] || new Set();
@@ -135,7 +151,11 @@ const Filter = ({ onChange }) => {
               </div>
 
               {isExpanded && (
-                <div className="filter-content" role="group" aria-label={`${label} filter options`}>
+                <div
+                  className="filter-content"
+                  role="group"
+                  aria-label={`${label} filter options`}
+                >
                   {options.length > 5 && (
                     <input
                       type="text"
