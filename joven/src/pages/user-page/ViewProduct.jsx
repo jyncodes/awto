@@ -1,5 +1,4 @@
-// src/pages/user-page/ViewProduct.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   doc,
@@ -27,8 +26,8 @@ const ViewProduct = () => {
 
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
+  const arViewerRef = useRef(null);
 
-  // ✅ Determine collection name based on ID prefix
   const getCollectionName = (productId) => {
     if (!productId) return null;
     if (productId.startsWith("TI-")) return "products_tires";
@@ -36,7 +35,6 @@ const ViewProduct = () => {
     return null;
   };
 
-  // ✅ Fetch product data
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -72,7 +70,6 @@ const ViewProduct = () => {
     fetchProduct();
   }, [id]);
 
-  // ✅ Add to cart
   const handleAddToCart = async () => {
     const user = auth.currentUser;
     if (!user) return alert("You must be logged in to add to selections.");
@@ -113,13 +110,49 @@ const ViewProduct = () => {
     }
   };
 
-  // ✅ Reservation navigation
   const handleReserveClick = () => {
     if (product?.id) {
       navigate(`/reservation/${product.id}`, {
         state: { vehicleLabel, fitmentSizes },
       });
     }
+  };
+
+  // ✅ Improved AR compatibility handling
+  const handleARClick = () => {
+    const modelUrl = `${SUPABASE_BASE_URL}/${id}.glb`;
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    // Try WebXR/Model Viewer AR first
+    if (arViewerRef.current && typeof arViewerRef.current.activateAR === "function") {
+      arViewerRef.current.activateAR();
+      return;
+    }
+
+    // ✅ Android fallback → Google Scene Viewer
+    if (isAndroid) {
+      const sceneViewerUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(
+        modelUrl
+      )}&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(
+        modelUrl
+      )};end;`;
+      window.location.href = sceneViewerUrl;
+      return;
+    }
+
+    // ✅ iOS fallback → Quick Look
+    if (isIOS) {
+      const usdzUrl = modelUrl.replace(".glb", ".usdz");
+      const anchor = document.createElement("a");
+      anchor.setAttribute("rel", "ar");
+      anchor.setAttribute("href", usdzUrl);
+      anchor.click();
+      return;
+    }
+
+    // ❌ If all failed
+    alert("❌ AR is not supported on this device.");
   };
 
   if (!product)
@@ -141,10 +174,13 @@ const ViewProduct = () => {
 
       <div className="product-container">
         <div className="product-images">
-          {/* ✅ If GLB exists, display ARViewer directly */}
           {hasGLB && modelUrl ? (
             <div className="ar-viewer-container">
-              <ARViewer src={modelUrl} alt={displayName} />
+              <ARViewer
+                src={modelUrl}
+                alt={displayName}
+                viewerRef={arViewerRef}
+              />
             </div>
           ) : (
             <img
@@ -154,7 +190,6 @@ const ViewProduct = () => {
             />
           )}
 
-          {/* ✅ Thumbnails */}
           {product.images && (
             <div className="thumbnail-row">
               {product.images.map((img, i) => (
@@ -170,7 +205,6 @@ const ViewProduct = () => {
           )}
         </div>
 
-        {/* ✅ Product info */}
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">
@@ -190,14 +224,9 @@ const ViewProduct = () => {
 
           <div className="button-row">
             {hasGLB && (
-              <a
-                rel="ar"
-                href={modelUrl}
-                className="ar-button"
-                title="Open in AR"
-              >
+              <button className="ar-button" onClick={handleARClick}>
                 Visualize it in your vehicle
-              </a>
+              </button>
             )}
 
             <button className="reserve-button" onClick={handleReserveClick}>
