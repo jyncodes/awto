@@ -53,7 +53,7 @@ const GlobalKeyboardShortcuts = () => {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.key === 'D' && e.shiftKey) || e.key === 'd') {
+      if ((e.key === '*' && e.shiftKey) || e.key === '*') {
         e.preventDefault();
         navigate('/devtools');
       }
