@@ -54,15 +54,41 @@ const Manual = () => {
     brand && model && vehicleData[brand][model]
       ? Object.keys(vehicleData[brand][model])
       : [];
+
+  // ✅ Revised sizeOptions for Tire format
   const sizeOptions =
     brand && model && type && vehicleData[brand][model][type]
-      ? vehicleData[brand][model][type].map((f) => f.size).filter(Boolean)
+      ? vehicleData[brand][model][type]
+          .map((f) => {
+            if (type === "Tire") {
+              // Build format like 175/65R14
+              const { tireWidth, aspectRatio, rimDiameter } = f;
+              if (tireWidth && aspectRatio && rimDiameter) {
+                return `${tireWidth}/${aspectRatio}R${rimDiameter}`;
+              }
+              return null;
+            } else {
+              // Wheel type uses standard size if available
+              return f.size || null;
+            }
+          })
+          .filter(Boolean)
       : [];
 
   // --- Get selected fitment for preview ---
   const selectedFitment =
     brand && model && type && size
-      ? vehicleData[brand][model][type]?.find((f) => f.size === size)
+      ? vehicleData[brand][model][type]?.find((f) => {
+          if (type === "Tire") {
+            const formatted =
+              f.tireWidth && f.aspectRatio && f.rimDiameter
+                ? `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`
+                : "";
+            return formatted === size;
+          } else {
+            return f.size === size;
+          }
+        })
       : null;
 
   // --- Handle "Shop Now" navigation ---
@@ -85,9 +111,9 @@ const Manual = () => {
         vehicleLabel: `${brand} ${model} - ${type} ${size}`,
         fitment: {
           type: type.toLowerCase(),
-          size: selectedFitment.size || "",
-          rimDiameter: selectedFitment.wheelDiameter || "",
-          width: selectedFitment.wheelWidth || "",
+          size: selectedFitment.size || size || "",
+          rimDiameter: selectedFitment.rimDiameter || selectedFitment.wheelDiameter || "",
+          width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
           boltPattern: selectedFitment.boltPattern || "",
           offset: selectedFitment.offset || "",
           centerBore: selectedFitment.centerBore || "",
@@ -106,10 +132,7 @@ const Manual = () => {
         <form onSubmit={handleShopNow}>
           <div className="fitment-row">
             {/* Brand Dropdown */}
-            <select
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-            >
+            <select value={brand} onChange={(e) => setBrand(e.target.value)}>
               <option value="">Select Brand</option>
               {brandOptions.map((b) => (
                 <option key={b} value={b}>
@@ -169,11 +192,7 @@ const Manual = () => {
               Shop Now
             </button>
 
-            <button
-              type="button"
-              className="clear-btn"
-              onClick={handleClear}
-            >
+            <button type="button" className="clear-btn" onClick={handleClear}>
               Clear
             </button>
           </div>
@@ -190,21 +209,37 @@ const Manual = () => {
 
           <h4>Fitment Details</h4>
           <ul>
-            {selectedFitment.size && <li>Size: {selectedFitment.size}</li>}
-            {selectedFitment.wheelDiameter && (
-              <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>
-            )}
-            {selectedFitment.wheelWidth && (
-              <li>Wheel Width: {selectedFitment.wheelWidth}</li>
-            )}
-            {selectedFitment.boltPattern && (
-              <li>Bolt Pattern: {selectedFitment.boltPattern}</li>
-            )}
-            {selectedFitment.offset && (
-              <li>Offset: {selectedFitment.offset}</li>
-            )}
-            {selectedFitment.centerBore && (
-              <li>Center Bore: {selectedFitment.centerBore}</li>
+            {type === "Tire" ? (
+              <>
+                {selectedFitment.tireWidth && (
+                  <li>Tire Width: {selectedFitment.tireWidth}</li>
+                )}
+                {selectedFitment.aspectRatio && (
+                  <li>Aspect Ratio: {selectedFitment.aspectRatio}</li>
+                )}
+                {selectedFitment.rimDiameter && (
+                  <li>Rim Diameter: {selectedFitment.rimDiameter}</li>
+                )}
+              </>
+            ) : (
+              <>
+                {selectedFitment.size && <li>Size: {selectedFitment.size}</li>}
+                {selectedFitment.wheelDiameter && (
+                  <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>
+                )}
+                {selectedFitment.wheelWidth && (
+                  <li>Wheel Width: {selectedFitment.wheelWidth}</li>
+                )}
+                {selectedFitment.boltPattern && (
+                  <li>Bolt Pattern: {selectedFitment.boltPattern}</li>
+                )}
+                {selectedFitment.offset && (
+                  <li>Offset: {selectedFitment.offset}</li>
+                )}
+                {selectedFitment.centerBore && (
+                  <li>Center Bore: {selectedFitment.centerBore}</li>
+                )}
+              </>
             )}
           </ul>
         </div>
