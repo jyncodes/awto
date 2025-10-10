@@ -6,11 +6,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true, // allow access from network (other devices)
-    port: 5173, // keep your dev port
-    strictPort: false, 
+    port: 5173,
+    strictPort: false,
     allowedHosts: [
-      'superofficiously-untraditional-shan.ngrok-free.dev', // your ngrok URL
-      'localhost', // optional for local dev
+      'stauroscopically-nonenunciatory-remi.ngrok-free.dev', // 👈 your current ngrok URL
+      'superofficiously-untraditional-shan.ngrok-free.dev',  // (keep old one if still used)
+      'localhost',
     ],
   },
 });
