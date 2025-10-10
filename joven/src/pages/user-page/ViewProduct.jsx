@@ -1,5 +1,5 @@
 // src/pages/user-page/ViewProduct.jsx
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   doc,
@@ -14,6 +14,7 @@ import {
 import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
+import ARViewer from "../../components/user-components/ARViewer";
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -26,9 +27,8 @@ const ViewProduct = () => {
 
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
-  const modelRef = useRef(null); // ✅ reference for model-viewer
 
-  // ✅ Identify collection name based on ID prefix
+  // ✅ Determine collection name based on ID prefix
   const getCollectionName = (productId) => {
     if (!productId) return null;
     if (productId.startsWith("TI-")) return "products_tires";
@@ -113,19 +113,17 @@ const ViewProduct = () => {
     }
   };
 
+  // ✅ Reservation navigation
   const handleReserveClick = () => {
     if (product?.id) {
       navigate(`/reservation/${product.id}`, {
-        state: {
-          product, // full product data
-          vehicleLabel,
-          fitmentSizes,
-        },
+        state: { vehicleLabel, fitmentSizes },
       });
     }
   };
 
-  if (!product) return <div className="view-product">Loading product details...</div>;
+  if (!product)
+    return <div className="view-product">Loading product details...</div>;
 
   const displayName =
     product.size && product.model
@@ -143,21 +141,12 @@ const ViewProduct = () => {
 
       <div className="product-container">
         <div className="product-images">
-          {/* ✅ Hidden model viewer used for AR trigger */}
-          {hasGLB && modelUrl && (
-            <model-viewer
-              ref={modelRef}
-              src={modelUrl}
-              ar
-              ar-modes="scene-viewer quick-look webxr"
-              camera-controls
-              autoplay
-              style={{ width: "100%", height: "500px" }}
-            ></model-viewer>
-          )}
-
-          {/* ✅ Fallback image if not mags */}
-          {!hasGLB && (
+          {/* ✅ If GLB exists, display ARViewer directly */}
+          {hasGLB && modelUrl ? (
+            <div className="ar-viewer-container">
+              <ARViewer src={modelUrl} alt={displayName} />
+            </div>
+          ) : (
             <img
               src={mainImage || "https://placehold.co/300x300?text=No+Image"}
               alt="Main"
@@ -165,6 +154,7 @@ const ViewProduct = () => {
             />
           )}
 
+          {/* ✅ Thumbnails */}
           {product.images && (
             <div className="thumbnail-row">
               {product.images.map((img, i) => (
@@ -180,7 +170,7 @@ const ViewProduct = () => {
           )}
         </div>
 
-        {/* ✅ Product info section */}
+        {/* ✅ Product info */}
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">
@@ -200,9 +190,14 @@ const ViewProduct = () => {
 
           <div className="button-row">
             {hasGLB && (
-              <button className="ar-button" onClick={handleARClick}>
+              <a
+                rel="ar"
+                href={modelUrl}
+                className="ar-button"
+                title="Open in AR"
+              >
                 Visualize it in your vehicle
-              </button>
+              </a>
             )}
 
             <button className="reserve-button" onClick={handleReserveClick}>
