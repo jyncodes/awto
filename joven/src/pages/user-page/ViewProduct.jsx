@@ -1,5 +1,5 @@
 // src/pages/user-page/ViewProduct.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   doc,
@@ -14,7 +14,6 @@ import {
 import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
-import ModelViewer from "../../components/user-components/ModelViewer";
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -27,7 +26,9 @@ const ViewProduct = () => {
 
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
+  const modelRef = useRef(null); // ✅ reference for model-viewer
 
+  // ✅ Identify collection name based on ID prefix
   const getCollectionName = (productId) => {
     if (!productId) return null;
     if (productId.startsWith("TI-")) return "products_tires";
@@ -35,6 +36,7 @@ const ViewProduct = () => {
     return null;
   };
 
+  // ✅ Fetch product data
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -70,6 +72,7 @@ const ViewProduct = () => {
     fetchProduct();
   }, [id]);
 
+  // ✅ Add to cart
   const handleAddToCart = async () => {
     const user = auth.currentUser;
     if (!user) return alert("You must be logged in to add to selections.");
@@ -110,6 +113,7 @@ const ViewProduct = () => {
     }
   };
 
+  // ✅ Reservation navigation
   const handleReserveClick = () => {
     if (product?.id) {
       navigate(`/reservation/${product.id}`, {
@@ -118,14 +122,22 @@ const ViewProduct = () => {
     }
   };
 
-  if (!product) return <div className="view-product">Loading product details...</div>;
+  // ✅ Direct AR launch
+  const handleARClick = () => {
+    if (modelRef.current) {
+      modelRef.current.activateAR();
+    }
+  };
+
+  if (!product)
+    return <div className="view-product">Loading product details...</div>;
 
   const displayName =
     product.size && product.model
       ? `${product.size} ${product.model}`
       : product.name || "No Name";
 
-  const hasGLB = id.startsWith("MA-"); // only mags will have GLB
+  const hasGLB = id.startsWith("MA-");
   const modelUrl = hasGLB ? `${SUPABASE_BASE_URL}/${id}.glb` : null;
 
   return (
@@ -136,6 +148,20 @@ const ViewProduct = () => {
 
       <div className="product-container">
         <div className="product-images">
+          {/* ✅ Hidden model viewer used for AR trigger */}
+          {hasGLB && modelUrl && (
+            <model-viewer
+              ref={modelRef}
+              src={modelUrl}
+              ar
+              ar-modes="scene-viewer quick-look webxr"
+              camera-controls
+              autoplay
+              style={{ width: "100%", height: "500px" }}
+            ></model-viewer>
+          )}
+
+          {/* ✅ Fallback image if not mags */}
           {!hasGLB && (
             <img
               src={mainImage || "https://placehold.co/300x300?text=No+Image"}
@@ -144,6 +170,7 @@ const ViewProduct = () => {
             />
           )}
 
+          {/* ✅ Thumbnails */}
           {product.images && (
             <div className="thumbnail-row">
               {product.images.map((img, i) => (
@@ -157,14 +184,9 @@ const ViewProduct = () => {
               ))}
             </div>
           )}
-
-          {hasGLB && modelUrl && (
-            <div className="model-viewer-wrapper">
-              <ModelViewer modelUrl={modelUrl} />
-            </div>
-          )}
         </div>
 
+        {/* ✅ Product info section */}
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">
@@ -183,9 +205,16 @@ const ViewProduct = () => {
           </details>
 
           <div className="button-row">
+            {hasGLB && (
+              <button className="ar-button" onClick={handleARClick}>
+                Visualize it in your vehicle
+              </button>
+            )}
+
             <button className="reserve-button" onClick={handleReserveClick}>
               Reserve Now
             </button>
+
             <button
               className="icon-button"
               onClick={handleAddToCart}

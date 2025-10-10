@@ -1,6 +1,7 @@
+// src/pages/user-page/DevTools.jsx
 import React, { useState, useEffect } from "react";
 import "../../styles/DevTools.css";
-import CarData from "../../components/CarData.jsx"; // ✅ Import CarData
+import CarData from "../../components/dev-components/CarData.jsx"; // ✅ Import CarData
 
 export default function DevTools() {
   const [visibleSection, setVisibleSection] = useState("info");
@@ -48,6 +49,15 @@ export default function DevTools() {
 
       {/* Content Area */}
       <div className="devtools-content">
+        {/* Back to Home Button */}
+        <button
+          className="action-btn"
+          style={{ marginBottom: "1rem" }}
+          onClick={() => (window.location.href = "/")}
+        >
+          ← Back to Home
+        </button>
+
         {visibleSection === "info" && (
           <div>
             <h2>System Debug Info</h2>

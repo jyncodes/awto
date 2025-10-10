@@ -1,3 +1,4 @@
+// src/components/dev-components/CarData.jsx
 import React, { useState, useEffect } from "react";
 import {
   collection,
@@ -11,8 +12,8 @@ import {
   onSnapshot,
   getDocs,
 } from "firebase/firestore";
-import { db } from "../firebase";
-import "../styles/CarData.css";
+import { db } from "../../firebase";
+import "../../styles/CarData.css"; // ✅ Make sure this points to your CSS file
 
 const CarData = () => {
   const [vehicleData, setVehicleData] = useState({});
@@ -63,9 +64,11 @@ const CarData = () => {
     return () => unsubscribe();
   }, []);
 
-  // === Add Fitment (Separate Tire/Wheel Arrays) ===
+  // === Add Fitment ===
   const handleAddFitment = () => {
-    const isEmpty = Object.values(fitmentFields).every((v) => v.trim() === "");
+    const isEmpty = Object.values(fitmentFields).every(
+      (v) => v.trim() === ""
+    );
     if (isEmpty) return alert("⚠️ Please fill at least one fitment field.");
 
     let newFitment;
@@ -75,34 +78,26 @@ const CarData = () => {
         aspectRatio: fitmentFields.aspectRatio.trim(),
         rimDiameter: fitmentFields.rimDiameter.trim(),
       };
-
       const isDuplicate = form.tireFitments.some(
         (f) => JSON.stringify(f) === JSON.stringify(newFitment)
       );
       if (isDuplicate)
         return alert("⚠️ Duplicate tire fitment detected. Not added again.");
 
-      setForm({
-        ...form,
-        tireFitments: [...form.tireFitments, newFitment],
-      });
+      setForm({ ...form, tireFitments: [...form.tireFitments, newFitment] });
     } else if (form.type === "Wheel") {
       newFitment = {
         wheelDiameter: fitmentFields.wheelDiameter.trim(),
         wheelWidth: fitmentFields.wheelWidth.trim(),
         boltPattern: fitmentFields.boltPattern.trim(),
       };
-
       const isDuplicate = form.wheelFitments.some(
         (f) => JSON.stringify(f) === JSON.stringify(newFitment)
       );
       if (isDuplicate)
         return alert("⚠️ Duplicate wheel fitment detected. Not added again.");
 
-      setForm({
-        ...form,
-        wheelFitments: [...form.wheelFitments, newFitment],
-      });
+      setForm({ ...form, wheelFitments: [...form.wheelFitments, newFitment] });
     }
 
     setFitmentFields({
@@ -154,20 +149,20 @@ const CarData = () => {
         const existingWheels = existingData.wheelFitments || [];
 
         const tireAdd = form.tireFitments.filter(
-          (f) => !existingTires.some((ef) => JSON.stringify(ef) === JSON.stringify(f))
+          (f) =>
+            !existingTires.some((ef) => JSON.stringify(ef) === JSON.stringify(f))
         );
         const wheelAdd = form.wheelFitments.filter(
-          (f) => !existingWheels.some((ef) => JSON.stringify(ef) === JSON.stringify(f))
+          (f) =>
+            !existingWheels.some((ef) => JSON.stringify(ef) === JSON.stringify(f))
         );
 
         if (tireAdd.length === 0 && wheelAdd.length === 0)
           return alert("⚠️ All fitments already exist — no new entries added.");
 
         const updateData = { timestamp: serverTimestamp() };
-        if (tireAdd.length > 0)
-          updateData.tireFitments = arrayUnion(...tireAdd);
-        if (wheelAdd.length > 0)
-          updateData.wheelFitments = arrayUnion(...wheelAdd);
+        if (tireAdd.length > 0) updateData.tireFitments = arrayUnion(...tireAdd);
+        if (wheelAdd.length > 0) updateData.wheelFitments = arrayUnion(...wheelAdd);
 
         await updateDoc(docRef, updateData);
         alert("✅ Existing vehicle updated successfully!");
