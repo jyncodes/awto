@@ -17,17 +17,18 @@ const Manual = () => {
   const [type, setType] = useState(""); // Tire or Wheel
   const [size, setSize] = useState("");
 
-  // --- Fetch Data from Firestore ---
+  // === Fetch vehicle fitments (based on Vehicles.jsx structure) ===
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "vehicleFitment"));
+        const snapshot = await getDocs(collection(db, "vehicleFitment"));
         const data = {};
-        querySnapshot.forEach((doc) => {
-          const { brand, model, type, fitments } = doc.data();
+        snapshot.forEach((docSnap) => {
+          const { brand, model, tireFitments = [], wheelFitments = [] } =
+            docSnap.data();
+          if (!brand || !model) return;
           if (!data[brand]) data[brand] = {};
-          if (!data[brand][model]) data[brand][model] = {};
-          data[brand][model][type] = fitments || [];
+          data[brand][model] = { tireFitments, wheelFitments };
         });
         setVehicleData(data);
       } catch (error) {
@@ -39,7 +40,7 @@ const Manual = () => {
     fetchData();
   }, []);
 
-  // --- Reset selections ---
+  // === Reset selections ===
   const handleClear = () => {
     setBrand("");
     setModel("");
@@ -47,51 +48,45 @@ const Manual = () => {
     setSize("");
   };
 
-  // --- Dropdown Options ---
+  // === Dropdown Options ===
   const brandOptions = Object.keys(vehicleData);
-  const modelOptions = brand ? Object.keys(vehicleData[brand]) : [];
-  const typeOptions =
-    brand && model && vehicleData[brand][model]
-      ? Object.keys(vehicleData[brand][model])
-      : [];
+  const modelOptions = brand ? Object.keys(vehicleData[brand] || {}) : [];
+  const typeOptions = ["Tire", "Wheel"];
 
-  // ✅ Revised sizeOptions for Tire format
+  // === Size Options based on selected type ===
   const sizeOptions =
-    brand && model && type && vehicleData[brand][model][type]
-      ? vehicleData[brand][model][type]
-          .map((f) => {
-            if (type === "Tire") {
-              // Build format like 175/65R14
-              const { tireWidth, aspectRatio, rimDiameter } = f;
-              if (tireWidth && aspectRatio && rimDiameter) {
-                return `${tireWidth}/${aspectRatio}R${rimDiameter}`;
+    brand && model && type && vehicleData[brand][model]
+      ? (type === "Tire"
+          ? vehicleData[brand][model].tireFitments.map((f) => {
+              if (f.tireWidth && f.aspectRatio && f.rimDiameter) {
+                return `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`;
               }
               return null;
-            } else {
-              // Wheel type uses standard size if available
-              return f.size || null;
-            }
-          })
-          .filter(Boolean)
+            })
+          : vehicleData[brand][model].wheelFitments.map((f) => {
+              if (f.wheelDiameter && f.wheelWidth && f.boltPattern) {
+                return `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}`;
+              }
+              return null;
+            })
+        ).filter(Boolean)
       : [];
 
-  // --- Get selected fitment for preview ---
+  // === Get selected fitment details ===
   const selectedFitment =
     brand && model && type && size
-      ? vehicleData[brand][model][type]?.find((f) => {
-          if (type === "Tire") {
-            const formatted =
-              f.tireWidth && f.aspectRatio && f.rimDiameter
-                ? `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`
-                : "";
-            return formatted === size;
-          } else {
-            return f.size === size;
-          }
-        })
+      ? (type === "Tire"
+          ? vehicleData[brand][model].tireFitments.find((f) => {
+              const formatted = `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`;
+              return formatted === size;
+            })
+          : vehicleData[brand][model].wheelFitments.find((f) => {
+              const formatted = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}`;
+              return formatted === size;
+            }))
       : null;
 
-  // --- Handle "Shop Now" navigation ---
+  // === Handle "Shop Now" navigation ===
   const handleShopNow = (e) => {
     e.preventDefault();
 
@@ -111,7 +106,7 @@ const Manual = () => {
         vehicleLabel: `${brand} ${model} - ${type} ${size}`,
         fitment: {
           type: type.toLowerCase(),
-          size: selectedFitment.size || size || "",
+          size: size,
           rimDiameter: selectedFitment.rimDiameter || selectedFitment.wheelDiameter || "",
           width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
           boltPattern: selectedFitment.boltPattern || "",
@@ -223,7 +218,6 @@ const Manual = () => {
               </>
             ) : (
               <>
-                {selectedFitment.size && <li>Size: {selectedFitment.size}</li>}
                 {selectedFitment.wheelDiameter && (
                   <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>
                 )}
