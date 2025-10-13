@@ -1,0 +1,83 @@
+.supplier-page {
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 12px;
+}
+
+.supplier-page h1 {
+  color: #2c3e50;
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #7f8c8d;
+  margin-bottom: 1.5rem;
+}
+
+.supplier-form {
+  background: #f9f9f9;
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.supplier-form input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.btn-submit {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  margin-top: 1rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-submit:hover {
+  background-color: #2980b9;
+}
+
+.supplier-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.supplier-table th,
+.supplier-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.btn-edit,
+.btn-delete {
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-right: 5px;
+  cursor: pointer;
+}
+
+.btn-edit {
+  background-color: #f39c12;
+  color: #fff;
+}
+
+.btn-delete {
+  background-color: #e74c3c;
+  color: #fff;
+}
