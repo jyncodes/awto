@@ -30,20 +30,19 @@ const ReservationPage = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(!passedProduct);
 
-  const [serviceType, setServiceType] = useState("Installation");
   const [vehicleBrand, setVehicleBrand] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
   const [vehicleYear, setVehicleYear] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
-  const [preferredDate, setPreferredDate] = useState(new Date());
-  const [preferredTime, setPreferredTime] = useState("");
+  const [preferredDate, setPreferredDate] = useState(null);
+  const [fullyBookedDates, setFullyBookedDates] = useState([]);
   const [note, setNote] = useState("");
-  const [reservedTimes, setReservedTimes] = useState([]);
 
-  const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00"];
   const downpayment = 500;
+  const MAX_BOOKINGS_PER_DATE = 3;
+  const BREVO_SERVER_URL = import.meta.env.VITE_BREVO_SERVER_URL || "http://localhost:5000";
 
-  // 🔹 Generate auto-increment reservation ID
+  // ✅ Generate auto-increment reservation ID
   const generateReservationId = async () => {
     const counterRef = doc(db, "counters", "reservations");
     return await runTransaction(db, async (transaction) => {
@@ -56,23 +55,48 @@ const ReservationPage = () => {
     });
   };
 
-  // 🔹 Send confirmation email (optional)
-  const sendReservationEmail = async (email, name, appointmentTime) => {
+  // ✅ Send confirmation email
+  const sendReservationEmail = async (email, name, appointmentDate, reservationId, productName) => {
+    console.log("📨 Preparing to send reservation email...");
+    console.log("📧 To:", email);
+    console.log("👤 Name:", name);
+    console.log("🪪 Reservation ID:", reservationId);
+    console.log("📅 Appointment Date:", appointmentDate);
+    console.log("🛞 Product:", productName);
+
+    const payload = {
+      to: email,
+      name,
+      subject: `Reservation Confirmed - ${reservationId}`,
+      htmlContent: `
+        <h3>Hello ${name},</h3>
+        <p>Your reservation has been successfully submitted.</p>
+        <ul>
+          <li><strong>Reservation ID:</strong> ${reservationId}</li>
+          <li><strong>Product:</strong> ${productName}</li>
+          <li><strong>Appointment Date:</strong> ${appointmentDate}</li>
+        </ul>
+        <p>Thank you for choosing Awto!</p>
+      `,
+    };
+
     try {
-      await axios.post("http://localhost:5000/send-email", {
-        to: email,
-        name,
-        subject: "Reservation Confirmed",
-        htmlContent: `
-          <p>Hello ${name},</p>
-          <p>Your reservation has been confirmed.</p>
-          <p><strong>Appointment Time:</strong> ${appointmentTime}</p>
-          <p>Thank you,<br/>Awto Team</p>
-        `,
-      });
-      console.log("✅ Email sent!");
+      console.log("📤 Sending payload to Brevo server:", payload);
+      const response = await axios.post(`${BREVO_SERVER_URL}/send-email`, payload);
+      console.log("✅ Email sent successfully!");
+      console.log("📨 Server response:", response.data);
     } catch (error) {
-      console.error("❌ Email failed:", error);
+      console.error("❌ Failed to send confirmation email.");
+      if (error.response) {
+        console.error("📡 Brevo server responded with:", error.response.data);
+        console.error("📊 Status code:", error.response.status);
+      } else if (error.request) {
+        console.error("🌐 No response received from Brevo server.");
+        console.error("📝 Request details:", error.request);
+      } else {
+        console.error("⚠️ Error:", error.message);
+      }
+      // Do not throw — so the reservation will still proceed even if email fails
     }
   };
 
@@ -85,7 +109,10 @@ const ReservationPage = () => {
   // 🔹 Fetch product if not passed via navigation
   useEffect(() => {
     const fetchProduct = async () => {
-      if (passedProduct) return;
+      if (passedProduct) {
+        setLoading(false);
+        return;
+      }
       try {
         const tiresRef = doc(db, "products_tires", productId);
         const magsRef = doc(db, "products_mags", productId);
@@ -101,80 +128,117 @@ const ReservationPage = () => {
     fetchProduct();
   }, [productId, passedProduct]);
 
-  // 🔹 Load reserved slots to disable times
+  // 🔹 Load fully booked dates
   useEffect(() => {
-    const fetchReservedSlots = async () => {
-      if (!productId || !preferredDate) return;
-      const start = new Date(preferredDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(preferredDate);
-      end.setHours(23, 59, 59, 999);
-
-      const q = query(
-        collection(db, "reservations"),
-        where("productId", "==", productId),
-        where("isCancelled", "==", false)
-      );
-
+    const fetchFullyBooked = async () => {
       try {
+        const q = query(
+          collection(db, "reservations"),
+          where("productId", "==", productId),
+          where("isCancelled", "==", false)
+        );
         const snapshot = await getDocs(q);
-        const takenTimes = snapshot.docs
-          .map((doc) => {
-            const ts = doc.data().preferredDateTime;
-            const dt = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
-            return dt;
-          })
-          .filter((dt) => dt >= start && dt <= end)
-          .map((dt) => dt.toTimeString().slice(0, 5));
 
-        setReservedTimes(takenTimes);
+        const dateCounts = {};
+        snapshot.forEach((docSnap) => {
+          const ts = docSnap.data().preferredDate;
+          const dt = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+          const key = dt.toDateString();
+          dateCounts[key] = (dateCounts[key] || 0) + 1;
+        });
+
+        const fullyBooked = Object.keys(dateCounts).filter(
+          (d) => dateCounts[d] >= MAX_BOOKINGS_PER_DATE
+        );
+        setFullyBookedDates(fullyBooked);
       } catch (error) {
-        console.error("Error fetching reserved times:", error);
+        console.error("Error fetching fully booked dates:", error);
       }
     };
-    fetchReservedSlots();
-  }, [preferredDate, productId]);
+    fetchFullyBooked();
+  }, [productId]);
 
-  // 🔹 Handle form submit
+  // 🧱 Helper: Build product details
+  const buildProductDetails = (prod) => {
+    if (!prod) return { productName: "Unknown Product", size: "", type: "" };
+    const type = prod.type || (prod.productId?.startsWith("MA-") ? "Mags" : "Tire") || "";
+    if (type.toLowerCase().includes("tire")) {
+      const w = prod.tireWidth || prod.width || "";
+      const ar = prod.aspectRatio || prod.aspect || "";
+      const rim = prod.rimDiameter || prod.rim || "";
+      const sizeParts = [];
+      if (w) sizeParts.push(w);
+      if (ar) sizeParts.push(ar);
+      const size = sizeParts.length
+        ? `${sizeParts.join("/")}R${rim || ""}`.replace(/R$/, "")
+        : prod.size || "";
+      const productName = `${prod.brand || ""} ${prod.model || ""} ${size}`.trim();
+      return { productName: productName || prod.name || prod.productId || "Tire", size, type: "Tire" };
+    }
+    if (type.toLowerCase().includes("mag") || type.toLowerCase().includes("wheel")) {
+      const w = prod.wheelWidth || prod.wheel_width || prod.wheelwidth || "";
+      const dia = prod.wheelDiameter || prod.rimDiameter || prod.rim || prod.wheel_diameter || "";
+      const size = w && dia ? `${w}x${dia}` : prod.size || "";
+      const productName = `${prod.brand || ""} ${prod.model || ""} ${size}`.trim();
+      return { productName: productName || prod.name || prod.productId || "Mags", size, type: "Mags" };
+    }
+    const fallbackName = `${prod.brand || ""} ${prod.model || ""} ${prod.size || ""}`.trim();
+    return { productName: fallbackName || prod.name || prod.productId || "Product", size: prod.size || "", type: type || "" };
+  };
+
+  // ✅ Handle reservation submission
   const handleSubmit = async () => {
     if (!user) return alert("You must be logged in to reserve.");
-    if (!vehicleBrand || !vehicleModel || !vehicleYear || !plateNumber || !preferredTime)
+    if (
+      !vehicleBrand.trim() ||
+      !vehicleModel.trim() ||
+      !vehicleYear.trim() ||
+      !plateNumber.trim() ||
+      !preferredDate
+    )
       return alert("Please fill out all required fields.");
+    if (!product) return alert("Product information is not available.");
 
-    if (!product || !product.brand || !product.size)
-      return alert("Product information is incomplete.");
+    const today = new Date();
+    const minAllowedDate = new Date();
+    minAllowedDate.setDate(today.getDate() + 1);
+    minAllowedDate.setHours(0, 0, 0, 0);
 
-    if (reservedTimes.includes(preferredTime))
-      return alert("Selected time is already reserved.");
+    const chosenDate = new Date(preferredDate);
+    chosenDate.setHours(0, 0, 0, 0);
+
+    if (chosenDate < minAllowedDate) {
+      return alert("You can only book at least 24 hours in advance.");
+    }
+
+    const chosenKey = chosenDate.toDateString();
+    if (fullyBookedDates.includes(chosenKey)) {
+      return alert("This date is fully booked. Please choose another date.");
+    }
 
     try {
       const reservationId = await generateReservationId();
-      const date = new Date(preferredDate);
-      const [hour, minute] = preferredTime.split(":");
-      date.setHours(parseInt(hour), parseInt(minute), 0, 0);
-
-      const productName = `${product.brand} ${product.model || ""} ${product.size}`.trim();
+      const { productName, size, type } = buildProductDetails(product);
 
       const reservationData = {
         id: reservationId,
         userId: user.uid,
         userEmail: user.email,
         userName: user.displayName || "Customer",
-        productId: product.id,
+        productId: product.id || product.productId || productId,
         productName,
-        brand: product.brand,
+        brand: product.brand || "Unknown",
         model: product.model || "",
-        size: product.size,
-        type: product.type || "",
+        size: size || "",
+        type: type || product.type || "",
         price: Number(product.price || 0),
         downpayment,
-        serviceType,
-        vehicleBrand,
-        vehicleModel,
-        vehicleYear,
-        plateNumber,
-        preferredDateTime: Timestamp.fromDate(date),
-        note,
+        vehicleBrand: vehicleBrand.trim(),
+        vehicleModel: vehicleModel.trim(),
+        vehicleYear: vehicleYear.trim(),
+        plateNumber: plateNumber.trim(),
+        preferredDate: Timestamp.fromDate(chosenDate),
+        note: note.trim(),
         paymentMethod: "PayMongo",
         status: "Pending Payment",
         isCancelled: false,
@@ -184,13 +248,17 @@ const ReservationPage = () => {
 
       await setDoc(doc(db, "reservations", reservationId), reservationData);
 
+      // ✉️ Send confirmation email (non-blocking)
+      const appointmentDate = chosenDate.toLocaleDateString();
+      sendReservationEmail(
+        user.email,
+        user.displayName || "Customer",
+        appointmentDate,
+        reservationId,
+        productName
+      );
+
       alert("✅ Reservation submitted successfully!");
-      const appointmentTime = date.toLocaleString();
-
-      // Optional email confirmation
-      await sendReservationEmail(user.email, user.displayName || "Customer", appointmentTime);
-
-      // 🔹 Redirect to invoice page with data
       navigate(`/invoice/${reservationId}`, { state: { reservation: reservationData } });
     } catch (err) {
       console.error("Reservation submission error:", err);
@@ -198,22 +266,25 @@ const ReservationPage = () => {
     }
   };
 
+  const tileDisabled = ({ date }) => {
+    const now = new Date();
+    const key = date.toDateString();
+    if (date <= now) return true;
+    if (fullyBookedDates.includes(key)) return true;
+    return false;
+  };
+
   if (loading) return <div className="reservation-page">Loading...</div>;
   if (!product) return <div className="reservation-page">Product not found.</div>;
+
+  const { productName: headerName } = buildProductDetails(product);
 
   return (
     <div className="reservation-page">
       <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
-      <h2>Reserve: {product.brand} {product.model} {product.size}</h2>
+      <h2>Reserve: {headerName}</h2>
 
       <div className="reservation-form">
-        <label>Service Type</label>
-        <select value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
-          <option>Installation</option>
-          <option>Wheel Alignment</option>
-          <option>Balancing</option>
-        </select>
-
         <label>Vehicle Info</label>
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
           <input value={vehicleBrand} onChange={(e) => setVehicleBrand(e.target.value)} placeholder="Brand (e.g. Toyota)" />
@@ -225,35 +296,22 @@ const ReservationPage = () => {
         <input value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="e.g. ABC 1234" />
 
         <label>Preferred Date</label>
-        <Calendar onChange={setPreferredDate} value={preferredDate} minDate={new Date()} />
-
-        <label>Preferred Time</label>
-        <select value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)}>
-          <option value="">Select a time</option>
-          {timeSlots.map((slot) => {
-            const [hour, minute] = slot.split(":").map(Number);
-            const now = new Date();
-            const selected = new Date(preferredDate);
-            selected.setHours(hour, minute, 0, 0);
-
-            const isToday = preferredDate.toDateString() === now.toDateString();
-            const isPast = isToday && selected.getTime() <= now.getTime();
-            const isReserved = reservedTimes.includes(slot);
-            const isDisabled = isPast || isReserved;
-
-            return (
-              <option key={slot} value={slot} disabled={isDisabled}>
-                {slot} {isReserved ? "(Reserved)" : ""}
-              </option>
-            );
-          })}
-        </select>
+        <Calendar
+          onChange={setPreferredDate}
+          value={preferredDate}
+          minDate={new Date()}
+          tileDisabled={tileDisabled}
+        />
 
         <label>Additional Notes</label>
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Request or instruction..." />
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Request or instruction..."
+        />
 
         <div className="price-summary">
-          <p><strong>Price:</strong> ₱{product.price}</p>
+          <p><strong>Price:</strong> ₱{Number(product.price || 0)}</p>
           <p><strong>Downpayment:</strong> ₱{downpayment}</p>
         </div>
 
