@@ -1,3 +1,4 @@
+// src/pages/user-page/UserProfile.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth, db, storage } from "../../firebase";
@@ -10,11 +11,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   onAuthStateChanged,
   updatePassword,
@@ -33,6 +30,7 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
   const [reservations, setReservations] = useState([]);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -60,7 +58,6 @@ const UserProfile = () => {
       userReservations.push({ id: doc.id, ...doc.data() });
     });
 
-    // Sort by preferred date (latest first)
     userReservations.sort((a, b) => {
       const dateA = a.preferredDateTime?.toDate?.() || 0;
       const dateB = b.preferredDateTime?.toDate?.() || 0;
@@ -95,6 +92,7 @@ const UserProfile = () => {
   const handleTabSwitch = (tab) => {
     setActiveTab(tab);
     navigate(`/profile?tab=${tab}`);
+    setSidebarVisible(false); // close sidebar on mobile after selecting tab
   };
 
   const handleInputChange = (e) => {
@@ -165,7 +163,15 @@ const UserProfile = () => {
 
   return (
     <div className="user-profile-page">
-      <aside className="profile-sidebar">
+      {/* Mobile sidebar toggle */}
+      <button
+        className="sidebar-toggle"
+        onClick={() => setSidebarVisible(!sidebarVisible)}
+      >
+        ☰
+      </button>
+
+      <aside className={`profile-sidebar ${sidebarVisible ? "show" : ""}`}>
         <button className="back-home" onClick={() => navigate("/")}>
           ← Back to Home
         </button>
@@ -211,9 +217,22 @@ const UserProfile = () => {
                     <p><strong>Date:</strong> {formatTimestamp(res.preferredDateTime)}</p>
                     <p><strong>Status:</strong> {res.status}</p>
                     <p><strong>Payment:</strong> {res.paymentStatus || "unpaid"}</p>
-                    <button className="receipt-button" onClick={() => navigate(`/receipt/${res.id}`)}>
-                      View Receipt
-                    </button>
+
+                    {res.paymentStatus === "paid" ? (
+                      <button
+                        className="receipt-button"
+                        onClick={() => navigate(`/receipt/${res.id}`)}
+                      >
+                        View Receipt
+                      </button>
+                    ) : (
+                      <button
+                        className="pay-button"
+                        onClick={() => navigate(`/payment/${res.id}`)}
+                      >
+                        Proceed to Payment
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

@@ -1,3 +1,4 @@
+// src/pages/user-page/PaymentPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -14,6 +15,7 @@ const PaymentPage = () => {
   const [paying, setPaying] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // ✅ Check authentication
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -22,10 +24,10 @@ const PaymentPage = () => {
         navigate("/login");
       }
     });
-
     return () => unsubscribe();
   }, [navigate]);
 
+  // ✅ Fetch reservation details
   useEffect(() => {
     const fetchReservation = async () => {
       try {
@@ -35,7 +37,6 @@ const PaymentPage = () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
 
-          // Only allow owner of the reservation to access
           if (data.userId !== auth.currentUser?.uid) {
             alert("❌ You do not have permission to view this reservation.");
             navigate("/my-selections");
@@ -61,21 +62,49 @@ const PaymentPage = () => {
     }
   }, [reservationId, navigate, currentUser]);
 
+  // ✅ Handle PayMongo redirect
   const handlePayNow = async () => {
-    if (!reservationId) return;
-
+    if (!reservationId || !reservation) return;
     setPaying(true);
+
     try {
-      const reservationRef = doc(db, "reservations", reservationId);
-      await updateDoc(reservationRef, {
-        paymentStatus: "paid",
+      // 👉 Create Checkout Session on your backend
+      const response = await fetch("http://localhost:5000/create-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: reservation.downpayment,
+          description: `Downpayment for Reservation ${reservationId}`,
+          email: currentUser.email,
+        }),
       });
 
-      alert("✅ Payment successful via PayMongo (mock)");
-      navigate(`/profile?tab=reservations`);
+      const data = await response.json();
+
+      if (data.success && data.checkoutUrl) {
+        // ✅ Redirect user to PayMongo Checkout
+        window.open(data.checkoutUrl, "_blank");
+
+        const confirmed = window.confirm(
+          "✅ Payment successful via PayMongo (mock). Click OK to return to your reservations."
+        );
+
+        if (confirmed) {
+          const reservationRef = doc(db, "reservations", reservationId);
+          await updateDoc(reservationRef, {
+            paymentStatus: "paid",
+          });
+
+          alert("✅ Payment successful via PayMongo");
+          navigate(`/profile?tab=reservations`);
+        }
+      } else {
+        console.error("❌ PayMongo error:", data);
+        alert("❌ Failed to create payment session.");
+      }
     } catch (error) {
-      console.error("❌ Failed to update payment status:", error);
-      alert("❌ Payment failed. You may not have permission.");
+      console.error("❌ Failed to process payment:", error);
+      alert("❌ Payment failed. Please try again.");
     } finally {
       setPaying(false);
     }
@@ -96,7 +125,10 @@ const PaymentPage = () => {
       <div className="payment-card">
         <p><strong>Product:</strong> {reservation.productName}</p>
         <p><strong>Brand:</strong> {reservation.brand}</p>
-        <p><strong>Vehicle:</strong> {`${reservation.vehicleBrand} ${reservation.vehicleModel} ${reservation.vehicleYear}`}</p>
+        <p>
+          <strong>Vehicle:</strong>{" "}
+          {`${reservation.vehicleBrand} ${reservation.vehicleModel} ${reservation.vehicleYear}`}
+        </p>
         <p><strong>Plate Number:</strong> {reservation.plateNumber}</p>
         <p><strong>Date & Time:</strong> {formattedDateTime}</p>
         <p><strong>Service Type:</strong> {reservation.serviceType}</p>
