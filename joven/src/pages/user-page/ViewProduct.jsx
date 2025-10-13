@@ -110,10 +110,11 @@ const ViewProduct = () => {
     }
   };
 
+  // ✅ Pass full product to reservation page
   const handleReserveClick = () => {
     if (product?.id) {
       navigate(`/reservation/${product.id}`, {
-        state: { vehicleLabel, fitmentSizes },
+        state: { vehicleLabel, fitmentSizes, product },
       });
     }
   };
