@@ -17,12 +17,13 @@ const AdminDashboard = () => {
     }
   };
 
+  // ✅ Added Supplier section here
   const navItems = [
     { path: '', label: 'Dashboard' },
     { path: 'sales', label: 'Sales' },
     { path: 'inventory', label: 'Inventory' },
     { path: 'products', label: 'Products' },
-    // Removed Vehicle Fitment
+    { path: 'suppliers', label: 'Suppliers' }, // <-- Added this line
     { path: 'staffs', label: 'Staffs' },
     { path: 'customers', label: 'Customers' },
     { path: 'reservations', label: 'Reservations' },
