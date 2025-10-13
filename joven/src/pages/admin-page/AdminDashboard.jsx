@@ -17,13 +17,12 @@ const AdminDashboard = () => {
     }
   };
 
-  // ✅ Added Supplier section here
   const navItems = [
     { path: '', label: 'Dashboard' },
     { path: 'sales', label: 'Sales' },
     { path: 'inventory', label: 'Inventory' },
     { path: 'products', label: 'Products' },
-    { path: 'suppliers', label: 'Suppliers' }, // <-- Added this line
+    { path: 'suppliers', label: 'Suppliers' },
     { path: 'staffs', label: 'Staffs' },
     { path: 'customers', label: 'Customers' },
     { path: 'reservations', label: 'Reservations' },
@@ -32,50 +31,36 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      {/* Sidebar */}
-      <aside className="admin-sidebar" aria-label="Sidebar Navigation">
-        <div className="admin-sidebar-header">
-          <h2 className="admin-logo">Joven Tire Admin</h2>
+      {/* Top Navigation */}
+      <header className="admin-navbar">
+        <div className="admin-logo-text">
+          <h1>Joven Tire Admin</h1>
+          <span>Control Panel</span>
         </div>
 
-        <nav className="admin-nav">
-          <ul className="admin-nav-list">
-            {navItems.map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={
-                    item.path === ''
-                      ? '/admin-dashboard'
-                      : `/admin-dashboard/${item.path}`
-                  }
-                  end={item.path === ''}
-                  className={({ isActive }) =>
-                    isActive ? 'admin-nav-link active' : 'admin-nav-link'
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+        <nav className="admin-nav-links">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path === '' ? '/admin-dashboard' : `/admin-dashboard/${item.path}`}
+              end={item.path === ''}
+              className={({ isActive }) =>
+                isActive ? 'admin-nav-item active' : 'admin-nav-item'
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
 
-        <div className="admin-logout-container">
-          <button
-            onClick={handleLogout}
-            className="admin-logout-button"
-            aria-label="Logout"
-          >
-            Logout
-          </button>
-        </div>
-      </aside>
+        <button className="logout-btn" onClick={handleLogout}>
+          Logout
+        </button>
+      </header>
 
-      {/* Main Content Area */}
+      {/* Content */}
       <main className="admin-main-content">
-        <div className="admin-page-wrapper">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );
