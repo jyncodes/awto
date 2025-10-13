@@ -1,47 +1,78 @@
+/* ============================
+   🌟 Global Styles
+============================ */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
 .user-profile-page {
   display: flex;
-  height: 100vh;
-  font-family: 'Segoe UI', sans-serif;
-  background-color: #f5f5f5;
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f4f4f4;
+  color: #1e293b;
+  padding-top: 70px; /* navbar spacing consistency */
 }
 
+/* ============================
+   🧭 Sidebar Navigation
+============================ */
 .profile-sidebar {
   width: 240px;
-  background-color: #0a3d62;
-  color: white;
-  padding: 2rem 1rem;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
+  background-color: #ffffff;
+  color: #1e293b;
+  padding: 1.5rem 1rem;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  border-right: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.profile-sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+.sidebar-toggle {
+  display: none;
+  background-color: #1e293b;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
 }
 
 .back-home {
   display: block;
   width: 100%;
-  background-color: #ffffff;
-  color: #0a3d62;
-  font-size: 1.2rem;
+  background-color: #1e293b;
+  color: #ffffff;
+  font-size: 0.95rem;
   font-weight: 600;
-  padding: 0.8rem 1rem;
-  margin-bottom: 2rem;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1.5rem;
   border: none;
   border-radius: 8px;
   text-align: center;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
 }
 
 .back-home:hover {
-  background-color: #f1f1f1;
-  transform: translateY(-1px);
+  background-color: #334155;
+  transform: translateY(-2px);
 }
 
 .profile-sidebar h2 {
-  margin-bottom: 2rem;
-  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
@@ -52,35 +83,46 @@
 }
 
 .profile-sidebar li {
-  margin: 0.75rem 0;
+  margin: 0.5rem 0;
   cursor: pointer;
-  padding: 0.6rem 0.75rem;
-  border-radius: 6px;
-  transition: background 0.2s;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  color: #1e293b;
 }
 
 .profile-sidebar li:hover,
 .profile-sidebar li.active {
-  background-color: #1e6ab1;
+  background-color: #f39c12;
+  color: #ffffff;
+  transform: translateX(3px);
 }
 
+/* ============================
+   📄 Main Content
+============================ */
 .profile-content {
   flex: 1;
-  padding: 2rem 3rem;
+  padding: 2rem 2.5rem;
   overflow-y: auto;
 }
 
 .profile-content h2 {
-  margin-bottom: 1.5rem;
-  color: #333;
+  margin-bottom: 1.25rem;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 1.4rem;
 }
 
-/* ===== Profile Photo ===== */
+/* ============================
+   👤 Profile Photo Section
+============================ */
 .profile-photo-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .profile-photo-section img {
@@ -88,140 +130,246 @@
   height: 120px;
   object-fit: cover;
   border-radius: 50%;
-  margin-bottom: 1rem;
-  border: 3px solid #ccc;
+  margin-bottom: 0.8rem;
+  border: 3px solid #e2e8f0;
   background-color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease;
+}
+
+.profile-photo-section img:hover {
+  transform: scale(1.05);
 }
 
 .profile-photo-section input[type="file"] {
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
 }
 
-/* ===== Editable Form (Settings) ===== */
+/* ============================
+   📝 Profile Details (View)
+============================ */
+.profile-details-view {
+  max-width: 550px;
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.profile-details-view p {
+  font-size: 0.95rem;
+  margin: 0.4rem 0;
+  color: #334155;
+}
+
+/* ============================
+   ✍️ Editable Form (Settings)
+============================ */
 .profile-form {
   display: grid;
-  gap: 1rem;
-  max-width: 500px;
+  gap: 0.9rem;
+  max-width: 480px;
   width: 100%;
 }
 
 .profile-form input {
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 1rem;
-  background-color: #fff;
+  padding: 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  background-color: #f9fafb;
+  transition: all 0.3s ease;
+}
+
+.profile-form input:focus {
+  outline: none;
+  border-color: #f39c12;
+  box-shadow: 0 0 5px rgba(243, 156, 18, 0.3);
 }
 
 .profile-form input:read-only {
-  background-color: #f0f0f0;
-  color: #777;
+  background-color: #f4f4f4;
+  color: #6b7280;
 }
 
 .profile-form button {
-  background-color: #0a3d62;
+  background-color: #1e293b;
   color: white;
-  padding: 0.75rem;
+  padding: 0.8rem;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .profile-form button:hover {
-  background-color: #125b8c;
+  background-color: #f39c12;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
 }
 
-/* ===== View-Only Text Section (Profile Tab) ===== */
-.profile-details-view {
-  max-width: 600px;
-  background-color: #fff;
-  padding: 1.5rem;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-.profile-details-view p {
-  font-size: 1rem;
-  margin: 0.5rem 0;
-  color: #444;
-}
-
-/* ===== Password Update Section ===== */
+/* ============================
+   🔐 Password Update
+============================ */
 .password-update {
   margin-top: 2rem;
-  max-width: 500px;
+  max-width: 480px;
   display: grid;
-  gap: 1rem;
+  gap: 0.9rem;
 }
 
 .password-update h3 {
-  font-size: 1.1rem;
-  color: #0a3d62;
-  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .password-update input {
-  padding: 0.75rem;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-  background-color: #fff;
+  padding: 0.8rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.9rem;
+  background-color: #f9fafb;
 }
 
 .password-update button {
-  background-color: #0a3d62;
+  background-color: #1e293b;
   color: white;
-  padding: 0.75rem;
+  padding: 0.8rem;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .password-update button:hover {
-  background-color: #125b8c;
+  background-color: #f39c12;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
 }
 
-/* ===== Reservations Tab ===== */
+/* ============================
+   📅 Reservations Tab
+============================ */
 .orders-list {
   display: grid;
-  gap: 1.25rem;
-  max-width: 800px;
+  gap: 1rem;
+  max-width: 750px;
   margin-top: 1.5rem;
 }
 
 .order-card {
   background-color: #ffffff;
-  padding: 1.5rem;
+  padding: 1.3rem;
   border-radius: 12px;
-  border: 1px solid #ddd;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
 }
 
 .order-card p {
-  margin: 0.5rem 0;
-  font-size: 0.95rem;
-  color: #333;
-}
-
-.receipt-button {
-  margin-top: 1rem;
-  background-color: #0a3d62;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
+  margin: 0.4rem 0;
   font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+  color: #334155;
 }
 
-.receipt-button:hover {
-  background-color: #125b8c;
+/* ============================
+   🧾 Buttons (Receipt / Payment)
+============================ */
+.receipt-button,
+.payment-button {
+  margin-top: 1rem;
+  background-color: #1e293b;
+  color: white;
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 160px;
+  text-align: center;
 }
-  
+
+.receipt-button:hover,
+.payment-button:hover {
+  background-color: #f39c12;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
+}
+
+/* ============================
+   📱 Responsive
+============================ */
+@media (max-width: 900px) {
+  .user-profile-page {
+    flex-direction: column;
+  }
+
+  .profile-sidebar {
+    width: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 0.8rem 1rem;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    transform: translateX(-100%);
+  }
+
+  .sidebar-toggle {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .profile-sidebar.show {
+    transform: translateX(0);
+  }
+
+  .profile-sidebar ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .profile-content {
+    padding: 1rem 1.5rem;
+  }
+
+  .receipt-button,
+  .payment-button {
+    width: 100%;
+  }
+
+  .profile-content h2 {
+    font-size: 1.25rem;
+  }
+
+  .profile-form input,
+  .password-update input {
+    font-size: 0.85rem;
+  }
+
+  .profile-form button,
+  .password-update button {
+    font-size: 0.9rem;
+  }
+
+  .profile-sidebar li {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.8rem;
+  }
+}

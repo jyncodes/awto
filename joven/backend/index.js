@@ -53,12 +53,23 @@ app.post("/create-payment", async (req, res) => {
       {
         data: {
           attributes: {
-            amount: Math.round(amount * 100), // Convert to centavos
+            amount: Math.round(amount * 100), // Convert PHP to centavos
             currency: "PHP",
             description: description || "Reservation Payment",
             cancel_url: "http://localhost:5173/payment-failed",
             success_url: "http://localhost:5173/payment-success",
             payment_method_types: ["card", "gcash", "paymaya"],
+
+            // ✅ Required by PayMongo
+            line_items: [
+              {
+                name: description || "Downpayment",
+                amount: Math.round(amount * 100),
+                currency: "PHP",
+                quantity: 1,
+              },
+            ],
+
             billing: {
               name: email,
               email: email,
@@ -80,9 +91,10 @@ app.post("/create-payment", async (req, res) => {
     res.status(200).send({ success: true, checkoutUrl });
   } catch (error) {
     console.error("❌ PayMongo error:", error.response?.data || error.message);
-    res
-      .status(500)
-      .send({ success: false, error: error.response?.data || error.message });
+    res.status(500).send({
+      success: false,
+      error: error.response?.data || error.message,
+    });
   }
 });
 
