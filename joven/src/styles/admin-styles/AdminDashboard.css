@@ -1,89 +1,211 @@
-/* Admin Dashboard Layout */
+/* ===========================
+   🧭 ADMIN DASHBOARD LAYOUT
+   (Matching Staff Layout Colors)
+=========================== */
 .admin-dashboard {
-  min-height: 100vh;
-  background-color: #ffffff;
-  font-family: "Poppins", sans-serif;
   display: flex;
-  height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f4f4;
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
+  background-color: #f4f4f4; /* match staff dashboard bg */
+  color: #1e293b;
 }
 
-/* Sidebar */
+/* ===========================
+   🧭 SIDEBAR
+=========================== */
 .admin-sidebar {
-  width: 250px;
-  background-color: #1e293b; /* slate-800 */
-  color: white;
+  width: 240px;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   padding: 1.5rem 1rem;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  border-right: 1px solid #e2e8f0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 1000;
 }
 
-.admin-logo {
-  font-size: 1.5rem;
-  font-weight: bold;
+/* ===========================
+   🖼️ LOGO SECTION
+=========================== */
+.admin-sidebar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  color: #60a5fa; /* blue-400 */
+  margin-bottom: 1.5rem;
 }
 
-/* Navigation */
+.admin-logo-img {
+  width: 90px;
+  height: auto;
+  margin-bottom: 0.5rem;
+  object-fit: contain;
+}
+
+.admin-logo-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ===========================
+   📋 NAVIGATION LINKS
+=========================== */
 .admin-nav {
-  margin-top: 2rem;
-}
-
-.admin-logo-text span {
-  font-size: 0.75rem;
-  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  margin-top: 1rem;
 }
 
 .admin-nav-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  color: #cbd5e1; /* slate-300 */
+  border-radius: 8px;
+  color: #1e293b;
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: background 0.3s, color 0.3s;
+  transition: all 0.3s ease;
 }
 
-.admin-nav-link:hover {
-  background-color: #334155; /* slate-700 */
-  color: white;
+.admin-nav-link:hover,
+.admin-nav-link.active {
+  background-color: #f39c12; /* yellow accent */
+  color: #ffffff;
+  transform: translateX(3px);
 }
 
 .admin-nav-link.active {
-  background-color: #3b82f6; /* blue-500 */
-  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(243, 156, 18, 0.25);
 }
 
-/* Logout */
+/* ===========================
+   🚪 LOGOUT BUTTON
+=========================== */
 .admin-logout-container {
-  margin-top: auto;
-  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
 }
 
 .admin-logout-button {
-  background-color: #ef4444; /* red-500 */
-  color: white;
+  background-color: #1e293b; /* dark base */
+  color: #ffffff;
   border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 0.5rem;
+  padding: 0.65rem 1.2rem;
+  border-radius: 8px;
   font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: background 0.3s;
+  width: 100%;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .admin-logout-button:hover {
-  background-color: #dc2626; /* red-600 */
+  background-color: #f39c12;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
 }
 
-/* Main Content Area */
+/* ===========================
+   🧾 MAIN CONTENT AREA
+=========================== */
 .admin-main-content {
   flex: 1;
-  padding: 2rem;
+  padding: 2rem 2.5rem;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
+.admin-main-content h1,
+.admin-main-content h2 {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.admin-main-content .content-card {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+/* ===========================
+   📱 RESPONSIVE DESIGN
+=========================== */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    width: 200px;
+    padding: 1rem;
+  }
+
+  .admin-logo-img {
+    width: 70px;
+  }
+
+  .admin-logo-text {
+    font-size: 0.9rem;
+  }
+
+  .admin-nav-link {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .admin-main-content {
+    padding: 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-dashboard {
+    flex-direction: column;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    border-right: none;
+    height: auto;
+  }
+
+  .admin-sidebar-header {
+    display: none; /* hide big logo in mobile */
+  }
+
+  .admin-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: center;
+    margin-bottom: 0;
+  }
+
+  .admin-logout-container {
+    padding-top: 0;
+    border-top: none;
+    margin-left: auto;
+  }
+
+  .admin-logout-button {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}

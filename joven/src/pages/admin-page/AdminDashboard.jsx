@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase';
-import jovenLogo from '../../assets/jovenlogo.png'; // ✅ Import logo
+import jovenLogo from '../../assets/jovenlogo.png';
 import '../../styles/admin-styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -18,7 +18,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // ✅ Added Supplier section here
   const navItems = [
     { path: '', label: 'Dashboard' },
     { path: 'sales', label: 'Sales' },
@@ -36,17 +35,22 @@ const AdminDashboard = () => {
       {/* Sidebar */}
       <aside className="admin-sidebar" aria-label="Sidebar Navigation">
         <div className="admin-sidebar-header">
-          <h2 className="admin-logo">Joven Tire Admin</h2>
+          <img src={jovenLogo} alt="Joven Logo" className="admin-logo-img" />
+          <h2 className="admin-logo-text">Joven Tire Admin</h2>
         </div>
 
-        <nav className="admin-nav-links">
+        <nav className="admin-nav">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
-              to={item.path === '' ? '/admin-dashboard' : `/admin-dashboard/${item.path}`}
+              to={
+                item.path === ''
+                  ? '/admin-dashboard'
+                  : `/admin-dashboard/${item.path}`
+              }
               end={item.path === ''}
               className={({ isActive }) =>
-                isActive ? 'admin-nav-item active' : 'admin-nav-item'
+                isActive ? 'admin-nav-link active' : 'admin-nav-link'
               }
             >
               {item.label}
@@ -54,12 +58,14 @@ const AdminDashboard = () => {
           ))}
         </nav>
 
-        <button className="logout-btn" onClick={handleLogout}>
-          Logout
-        </button>
-      </header>
+        <div className="admin-logout-container">
+          <button className="admin-logout-button" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
+      </aside>
 
-      {/* Content */}
+      {/* Main Content */}
       <main className="admin-main-content">
         <Outlet />
       </main>
