@@ -18,7 +18,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // ✅ Navigation items
+  // ✅ Added Supplier section here
   const navItems = [
     { path: '', label: 'Dashboard' },
     { path: 'sales', label: 'Sales' },
@@ -35,49 +35,33 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       {/* Sidebar */}
       <aside className="admin-sidebar" aria-label="Sidebar Navigation">
-        <div className="admin-logo-container">
-          <img src={jovenLogo} alt="Joven Logo" className="admin-logo-img" />
-          <h2 className="admin-logo-text">Joven Tire Admin</h2>
+        <div className="admin-sidebar-header">
+          <h2 className="admin-logo">Joven Tire Admin</h2>
         </div>
 
-        <nav className="admin-nav">
-          <ul className="admin-nav-list">
-            {navItems.map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={
-                    item.path === ''
-                      ? '/admin-dashboard'
-                      : `/admin-dashboard/${item.path}`
-                  }
-                  end={item.path === ''}
-                  className={({ isActive }) =>
-                    isActive ? 'admin-nav-link active' : 'admin-nav-link'
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+        <nav className="admin-nav-links">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path === '' ? '/admin-dashboard' : `/admin-dashboard/${item.path}`}
+              end={item.path === ''}
+              className={({ isActive }) =>
+                isActive ? 'admin-nav-item active' : 'admin-nav-item'
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
 
-        <div className="admin-logout-container">
-          <button
-            onClick={handleLogout}
-            className="admin-logout-button"
-            aria-label="Logout"
-          >
-            Logout
-          </button>
-        </div>
-      </aside>
+        <button className="logout-btn" onClick={handleLogout}>
+          Logout
+        </button>
+      </header>
 
-      {/* Main Content Area */}
+      {/* Content */}
       <main className="admin-main-content">
-        <div className="admin-page-wrapper">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );
