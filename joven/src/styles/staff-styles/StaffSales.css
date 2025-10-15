@@ -1,42 +1,46 @@
-/* src/styles/staff-styles/StaffSales.css */
+/* ================================
+   Staff Sales Page Styling
+   File: src/styles/staff-styles/StaffSales.css
+   ================================ */
 
 /* =============== GLOBAL CONTAINER & HEADER =============== */
 .sales-container {
   padding: 2rem;
-  font-family: 'Inter', sans-serif; /* Using Inter as per default instruction */
+  font-family: 'Inter', sans-serif;
   box-sizing: border-box;
   width: 100%;
+  background-color: #f8fafc; /* Matches StaffInventory background */
 }
 
 .sales-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .sales-header h1 {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #1a202c; /* Equivalent to text-gray-800 */
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
 }
 
-.add-transaction-btn { /* Changed from .sales-header button */
-  background-color: #2b6cb0; /* Admin button color */
+.add-transaction-btn {
+  background-color: #2563eb; /* Primary Blue */
   color: white;
   padding: 0.6rem 1.2rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .add-transaction-btn:hover {
-  background-color: #2c5282; /* Admin button hover color */
+  background-color: #1e40af;
 }
 
-/* =============== MESSAGE BOXES (Success/Error) =============== */
+/* =============== MESSAGE BOXES =============== */
 .message-box {
   padding: 1rem;
   border-radius: 0.5rem;
@@ -46,19 +50,19 @@
 }
 
 .message-box.success {
-  background-color: #d1fae5; /* Green-100 */
-  color: #065f46; /* Green-800 */
-  border: 1px solid #34d399; /* Green-400 */
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #34d399;
 }
 
 .message-box.error {
-  background-color: #fee2e2; /* Red-100 */
-  color: #991b1b; /* Red-800 */
-  border: 1px solid #ef4444; /* Red-500 */
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
 }
 
-/* ===================== SALES MODAL & FORM ===================== */
-.sales-modal-overlay { /* Changed from .sales-modal */
+/* ===================== SALES MODAL ===================== */
+.sales-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -71,59 +75,68 @@
   z-index: 1000;
 }
 
-.sales-form-card { /* Changed from .sales-form.large */
+.sales-form-card {
   width: 90%;
   max-width: 920px;
   padding: 2rem;
   background-color: #ffffff;
-  border-radius: 14px;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.sales-form-card h2 { /* Changed from .sales-form h2 */
+.sales-form-card h2 {
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  text-align: left; /* Admin h2 is left-aligned by default */
+  text-align: left;
+  color: #1f2937;
 }
 
 /* ===================== INPUTS ===================== */
-.form-input { /* Consolidated from .sales-form input[type="text"], .sales-form input[type="number"] */
-  padding: 0.6rem 0.75rem;
-  border: 1px solid #aaa;
-  border-radius: 8px;
+.form-input {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
   font-size: 0.95rem;
   width: 100%;
-  box-sizing: border-box; /* Ensures padding doesn't increase total width */
+  background-color: #fff;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* ===================== SEARCH SECTION ===================== */
 .search-section {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
-.search-section .form-input.search-input { /* Specific style for search input */
+.search-section .form-input.search-input {
   flex: 1;
-  margin-bottom: 0; /* Remove default margin-bottom from form-input */
 }
 
 .search-section button {
-  background-color: #2b6cb0;
+  background-color: #2563eb;
   color: #fff;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .search-section button:hover {
-  background-color: #2c5282;
+  background-color: #1e40af;
 }
 
 /* ===================== SEARCH RESULTS ===================== */
@@ -134,41 +147,42 @@
   margin-top: 1rem;
   max-height: 280px;
   overflow-y: auto;
-  padding: 0.5rem;
-  background-color: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
 }
 
 .product-result-card {
   padding: 0.75rem;
-  border: 1px solid #aaa;
-  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
   background-color: #fff;
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .product-result-card:hover {
-  background-color: #ebf8ff;
+  background-color: #eff6ff;
   transform: scale(1.01);
 }
 
 .product-result-card.selected {
-  background-color: #bee3f8;
-  border: 2px solid #3182ce;
+  background-color: #dbeafe;
+  border: 2px solid #3b82f6;
 }
 
 .product-result-card strong {
-  display: block; /* Ensures strong takes full width */
-  margin-bottom: 0.25rem; /* Small space below strong */
+  display: block;
+  margin-bottom: 0.25rem;
 }
 
-.no-products-found { /* Added class for consistency */
-  grid-column: 1 / -1; /* Spans full width of the grid */
+.no-products-found {
+  grid-column: 1 / -1;
   text-align: center;
-  color: #718096;
+  color: #6b7280;
   padding: 1rem;
+  font-style: italic;
 }
 
 /* ===================== FORM BUTTONS ===================== */
@@ -179,102 +193,90 @@
   margin-top: 1rem;
 }
 
-.submit-btn, /* Changed from .form-buttons button:first-child */
+.submit-btn,
 .cancel-btn {
   padding: 0.6rem 1.2rem;
   font-size: 0.95rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .submit-btn {
-  background-color: #2b6cb0; /* Admin submit button color */
+  background-color: #2563eb;
   color: #fff;
 }
 
 .submit-btn:hover {
-  background-color: #2c5282; /* Admin submit button hover color */
+  background-color: #1e40af;
 }
 
 .cancel-btn {
-  background-color: #e2e8f0; /* Admin cancel button color */
-  color: #333; /* Admin cancel button text color */
+  background-color: #e2e8f0;
+  color: #333;
 }
 
 .cancel-btn:hover {
-  background-color: #cbd5e0; /* Admin cancel button hover color */
+  background-color: #cbd5e0;
 }
 
 /* ===================== SALES LOG TABLE ===================== */
-.sales-table-container { /* Added container for consistent styling with admin */
-  background-color: #fff;
+.sales-table-container {
+  background-color: #ffffff;
   padding: 1.5rem;
-  border-radius: 10px; /* Admin's border-radius for table card */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); /* Admin's box-shadow */
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
-  margin-top: 2rem; /* Space from the form/header */
+  margin-top: 2rem;
 }
 
 .sales-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem; /* From admin sales.css */
-  font-size: 0.95rem; /* From admin sales.css */
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
 }
 
 .sales-table thead {
-  background-color: #f7fafc; /* Admin's background color */
+  background-color: #f9fafb;
 }
 
 .sales-table th,
 .sales-table td {
-  border: 1px solid #ddd; /* Admin's border */
-  padding: 0.75rem; /* Admin's padding */
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.85rem;
   text-align: left;
-  white-space: nowrap; /* Ensures text doesn't wrap */
+  white-space: nowrap;
 }
 
 .sales-table th {
-  font-weight: 600; /* Admin's font-weight */
-  color: #444; /* Admin's color */
-  text-transform: uppercase; /* Match Admin's */
-  letter-spacing: 0.05em; /* Match Admin's */
-}
-
-.sales-table tbody tr {
-  background-color: #fff;
-}
-
-.sales-table tbody tr:nth-child(even) {
-  background-color: #ffffff; /* Consistent with Admin table zebra striping */
-}
-
-.sales-table tbody tr:nth-child(odd) {
-  background-color: #f9f9f9; /* Consistent with Admin table zebra striping */
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .sales-table tbody tr:hover {
-  background-color: #f0f4f8; /* Light hover effect */
+  background-color: #f1f5f9;
 }
 
 .sales-table td {
-  color: #4a5568; /* Consistent text color */
+  color: #4b5563;
 }
 
 .text-center-cell {
   text-align: center;
 }
 
-.no-sales-data { /* Changed from text-gray-500-no-sales */
-  color: #888;
+.no-sales-data {
+  color: #6b7280;
   font-style: italic;
   padding: 1rem;
 }
 
-/* Responsive adjustments */
+/* ===================== RESPONSIVE ===================== */
 @media (max-width: 768px) {
   .sales-container {
     padding: 1rem;
@@ -300,11 +302,17 @@
     gap: 0.5rem;
   }
 
-  .search-btn {
+  .search-section button {
     width: 100%;
   }
 
   .search-results-grid {
     grid-template-columns: 1fr;
+  }
+
+  .sales-table th,
+  .sales-table td {
+    font-size: 0.8rem;
+    padding: 0.6rem;
   }
 }

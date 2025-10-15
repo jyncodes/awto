@@ -1,103 +1,176 @@
-/* src/styles/admin-styles/Customers.css */
+/* ============================
+ 🌟 Customers Page (Revised like UserProfile.css)
+============================ */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 .customers-container {
-  padding: 1.5rem;
+  padding: 2rem 1.5rem;
   background-color: #f9fafb;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
+  color: #1e293b;
+  min-height: 100vh;
 }
 
+/* ============================
+ 🏷️ Header
+============================ */
 .customers-header {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .customers-header h1 {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #1f2937;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .customers-search {
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
   border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   font-size: 1rem;
+  background-color: #ffffff;
+  outline: none;
+  transition: all 0.2s ease;
 }
 
+.customers-search:focus {
+  border-color: #f39c12;
+  box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.2);
+}
+
+/* ============================
+ 📊 Table Wrapper
+============================ */
 .customers-table-wrapper {
   overflow-x: auto;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
 }
 
+/* ============================
+ 📋 Table
+============================ */
 .customers-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-size: 0.95rem;
 }
 
 .customers-table th,
 .customers-table td {
-  padding: 0.75rem;
+  padding: 0.85rem 1rem;
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
 }
 
 .customers-table th {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: #f8fafc;
+  color: #1e293b;
   font-weight: 600;
+  font-size: 0.9rem;
 }
 
+.customers-table tr:hover td {
+  background-color: #fef9f2;
+  transition: background-color 0.2s ease;
+}
+
+.customers-table td {
+  color: #374151;
+}
+
+/* ============================
+ 🧑 Avatar
+============================ */
 .avatar {
-  background-color: #3b82f6;
-  color: white;
+  background-color: #f39c12;
+  color: #ffffff;
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 9999px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
+  font-weight: 600;
   font-size: 1rem;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(243, 156, 18, 0.2);
 }
 
+/* ============================
+ 🟢 Status Badges
+============================ */
 .status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
 }
 
 .status-badge.active {
   background-color: #d1fae5;
-  color: #065f46;
+  color: #047857;
 }
 
 .status-badge.inactive {
   background-color: #fee2e2;
-  color: #991b1b;
+  color: #b91c1c;
 }
 
+/* ============================
+ 🗑️ Delete Button
+============================ */
 .delete-btn {
   background-color: #ef4444;
   color: white;
   border: none;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.5rem;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .delete-btn:hover {
   background-color: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(239, 68, 68, 0.3);
 }
 
+/* ============================
+ 📱 Responsive
+============================ */
 @media (min-width: 640px) {
   .customers-header {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .customers-header h1 {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .customers-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .customers-search {
+    font-size: 0.9rem;
+  }
+
+  .customers-table th,
+  .customers-table td {
+    padding: 0.65rem;
+    font-size: 0.85rem;
   }
 }

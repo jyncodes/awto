@@ -1,16 +1,201 @@
-/* =============== STAFF DASHBOARD PAGE =============== */
-.staff-dashboard {
-  padding: 2rem;
+/* ============================
+   🌟 Staff Dashboard Layout (Revised to Match Admin)
+============================ */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+.staff-dashboard-layout {
+  display: flex;
+  height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f4f4f4;
+  color: #1e293b;
 }
 
-.staff-dashboard h1 {
-  font-size: 2rem;
+/* ============================
+   🧭 Sidebar
+============================ */
+.staff-sidebar {
+  width: 240px;
+  background-color: #ffffff;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 1.5rem 1rem;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  border-right: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.staff-sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+/* ============================
+   🖼️ Logo
+============================ */
+.staff-logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.staff-logo-img {
+  width: 90px;
+  height: auto;
+  margin-bottom: 0.5rem;
+  object-fit: contain;
+}
+
+.staff-logo-text {
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #2563eb; /* Blue-600 */
-  margin-bottom: 1rem;
+  text-align: center;
+  color: #1e293b;
 }
 
-.staff-dashboard p {
+/* ============================
+   📋 Navigation
+============================ */
+.staff-nav {
+  margin-top: 1rem;
+  flex: 1;
+}
+
+.staff-nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.staff-nav-link {
+  display: block;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  color: #1e293b;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.staff-nav-link:hover,
+.staff-nav-link.active {
+  background-color: #f39c12;
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+/* ============================
+   🚪 Logout
+============================ */
+.staff-logout-container {
+  margin-top: auto;
+  text-align: center;
+}
+
+.staff-logout-button {
+  background-color: #1e293b;
+  color: white;
+  border: none;
+  padding: 0.65rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.staff-logout-button:hover {
+  background-color: #f39c12;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
+}
+
+/* ============================
+   🧭 Main Content Area
+============================ */
+.staff-main-content {
+  flex: 1;
+  padding: 2rem 2.5rem;
+  overflow-y: auto;
+}
+
+.staff-main-content h1,
+.staff-main-content h2 {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+.staff-main-content h1 {
+  font-size: 2rem;
+  color: #2563eb; /* Blue-600 */
+}
+
+.staff-main-content p {
   font-size: 1rem;
   color: #4b5563; /* Gray-700 */
+}
+
+/* ============================
+   📱 Responsive
+============================ */
+@media (max-width: 900px) {
+  .staff-dashboard-layout {
+    flex-direction: column;
+  }
+
+  .staff-sidebar {
+    width: 100%;
+    flex-direction: column;
+    padding: 0.8rem 1rem;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    transform: translateX(-100%);
+  }
+
+  .sidebar-toggle {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .staff-sidebar.show {
+    transform: translateX(0);
+  }
+
+  .staff-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .staff-main-content {
+    padding: 1rem 1.5rem;
+  }
+
+  .staff-logout-button {
+    font-size: 0.85rem;
+  }
+
+  .staff-nav-link {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .staff-logo-img {
+    width: 70px;
+  }
+
+  .staff-logo-text {
+    font-size: 1rem;
+  }
 }

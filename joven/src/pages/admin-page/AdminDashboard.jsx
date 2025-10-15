@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase';
+import jovenLogo from '../../assets/jovenlogo.png'; // ✅ Import logo
 import '../../styles/admin-styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -17,13 +18,13 @@ const AdminDashboard = () => {
     }
   };
 
-  // ✅ Added Supplier section here
+  // ✅ Navigation items
   const navItems = [
     { path: '', label: 'Dashboard' },
     { path: 'sales', label: 'Sales' },
     { path: 'inventory', label: 'Inventory' },
     { path: 'products', label: 'Products' },
-    { path: 'suppliers', label: 'Suppliers' }, // <-- Added this line
+    { path: 'suppliers', label: 'Suppliers' },
     { path: 'staffs', label: 'Staffs' },
     { path: 'customers', label: 'Customers' },
     { path: 'reservations', label: 'Reservations' },
@@ -34,8 +35,9 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       {/* Sidebar */}
       <aside className="admin-sidebar" aria-label="Sidebar Navigation">
-        <div className="admin-sidebar-header">
-          <h2 className="admin-logo">Joven Tire Admin</h2>
+        <div className="admin-logo-container">
+          <img src={jovenLogo} alt="Joven Logo" className="admin-logo-img" />
+          <h2 className="admin-logo-text">Joven Tire Admin</h2>
         </div>
 
         <nav className="admin-nav">

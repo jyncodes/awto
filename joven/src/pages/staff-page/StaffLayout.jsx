@@ -1,12 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../firebase';
-import { FiBox, FiHome, FiLogOut } from 'react-icons/fi';
+import { auth, db } from '../../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { FiBox, FiHome, FiLogOut, FiCalendar } from 'react-icons/fi';
+import jovenlogo from '../../assets/jovenlogo.png';
 import '../../styles/staff-styles/StaffLayout.css';
 
 const StaffLayout = ({ children }) => {
   const navigate = useNavigate();
+  const [staffName, setStaffName] = useState('');
+
+  useEffect(() => {
+    const fetchStaff = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setStaffName(docSnap.data().name || 'Staff');
+          } else {
+            setStaffName(user.displayName || 'Staff');
+          }
+        } catch (error) {
+          console.error('Error fetching staff data:', error);
+        }
+      }
+    };
+    fetchStaff();
+  }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -18,7 +41,14 @@ const StaffLayout = ({ children }) => {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="logo-section">
-          <h1 className="logo">AWTO Staff</h1>
+          <img
+            src={jovenlogo} 
+            alt="Awto Logo"
+            className="logo-img"
+          />
+          <p className="staff-greeting">
+            Hello, <span>{staffName}!</span>
+          </p>
         </div>
 
         <nav className="staff-sidebar-nav">
@@ -35,7 +65,7 @@ const StaffLayout = ({ children }) => {
             <span>Sales</span>
           </NavLink>
           <NavLink to="/staff-reservation" className="nav-link">
-            <FiBox className="icon" />
+            <FiCalendar className="icon" />
             <span>Reservation</span>
           </NavLink>
         </nav>

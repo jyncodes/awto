@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import {
+  collection,
+  onSnapshot,
+  getDocs,
+  query,
+  where,
+} from 'firebase/firestore';
 import '../../styles/admin-styles/Customers.css';
 
 const AdminCustomers = () => {
@@ -8,13 +14,31 @@ const AdminCustomers = () => {
   const [customers, setCustomers] = useState([]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const list = snapshot.docs
-        .map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
-        .filter((user) => user.role === 'User'); // ✅ Only include users with role "User"
+    const unsub = onSnapshot(collection(db, 'users'), async (snapshot) => {
+      const userDocs = snapshot.docs.filter(
+        (docSnap) => docSnap.data().role === 'User'
+      );
+
+      const list = await Promise.all(
+        userDocs.map(async (docSnap) => {
+          const userData = docSnap.data();
+
+          // 📝 Count total reservations for this user
+          const reservationsQuery = query(
+            collection(db, 'reservations'),
+            where('userId', '==', docSnap.id)
+          );
+          const reservationsSnap = await getDocs(reservationsQuery);
+          const totalReservations = reservationsSnap.size;
+
+          return {
+            id: docSnap.id,
+            ...userData,
+            totalReservations,
+          };
+        })
+      );
+
       setCustomers(list);
     });
 
@@ -45,30 +69,34 @@ const AdminCustomers = () => {
               <th>Avatar</th>
               <th>Name</th>
               <th>Email</th>
-              <th>Status</th>
+              <th>Date Joined</th>
+              <th>Total Reservations</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan="5" className="text-center">No customers found.</td>
+                <td colSpan="6" className="text-center">
+                  No customers found.
+                </td>
               </tr>
             ) : (
               filtered.map((customer) => (
                 <tr key={customer.id}>
                   <td>
                     <div className="avatar">
-                      {customer.name?.charAt(0).toUpperCase()}
+                      {customer.name?.charAt(0).toUpperCase() || '?'}
                     </div>
                   </td>
                   <td>{customer.name || '—'}</td>
                   <td>{customer.email || '—'}</td>
                   <td>
-                    <span className={`status-badge ${customer.status?.toLowerCase() || 'inactive'}`}>
-                      {customer.status || 'Inactive'}
-                    </span>
+                    {customer.createdAt
+                      ? new Date(customer.createdAt.seconds * 1000).toLocaleString()
+                      : '—'}
                   </td>
+                  <td>{customer.totalReservations || 0}</td>
                   <td>
                     <button className="delete-btn">🗑 Delete</button>
                   </td>

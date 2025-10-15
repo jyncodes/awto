@@ -1,152 +1,166 @@
-/* src/styles/staff-styles/StaffInventory.css */
+/* ================================
+   Staff Inventory Page Styling
+   File: src/styles/staff-styles/StaffInventory.css
+   ================================ */
 
 .staff-inventory-page-container {
-  padding: 2rem; /* Consistent padding around the content */
-  background-color: #f3f4f6; /* Light background */
-  min-height: 100vh; /* Ensures it takes full height */
-  font-family: 'Inter', sans-serif; /* Consistent font */
-  box-sizing: border-box; /* Include padding in element's total width/height */
+  padding: 2rem;
+  background-color: #f8fafc; /* Slightly brighter background */
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  box-sizing: border-box;
 }
 
+/* ================================
+   Page Title
+   ================================ */
 .staff-inventory-page-title {
-  font-size: 2.25rem; /* Large title */
+  font-size: 2rem;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 2rem; /* Space below the title */
+  margin-bottom: 1.75rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem; /* Space between icon and text */
+  gap: 0.75rem;
 }
 
+/* ================================
+   Controls (Search + Sort)
+   ================================ */
 .staff-inventory-controls {
   display: flex;
-  flex-wrap: wrap; /* Allow wrapping for responsiveness */
-  gap: 1rem; /* Space between control elements */
-  margin-bottom: 1.5rem; /* Space below controls */
-  align-items: center; /* Align search bar and select vertically */
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
 }
 
 .staff-search-bar,
 .staff-sort-select {
-  padding: 0.75rem 1rem; /* Generous padding */
-  border: 1px solid #d1d5db; /* Light gray border */
-  border-radius: 0.5rem; /* Rounded corners */
+  padding: 0.65rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
   font-size: 1rem;
   color: #374151;
-  background-color: #ffffff; /* White background */
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
 .staff-search-bar:focus,
 .staff-sort-select:focus {
   outline: none;
-  border-color: #3b82f6; /* Blue border on focus */
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); /* Light blue glow on focus */
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
 .staff-search-bar {
-  flex-grow: 1; /* Allows search bar to take up available space */
-  min-width: 200px; /* Minimum width before wrapping */
+  flex-grow: 1;
+  min-width: 220px;
 }
 
 .staff-sort-select {
   cursor: pointer;
-  -webkit-appearance: none; /* Remove default arrow on WebKit browsers */
-  -moz-appearance: none; /* Remove default arrow on Firefox */
-  appearance: none; /* Remove default arrow */
+  appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 1em;
-  padding-right: 2.5rem; /* Make space for custom arrow */
+  padding-right: 2.5rem;
 }
 
+/* ================================
+   Inventory Card & Table
+   ================================ */
 .staff-inventory-card {
   background-color: #ffffff;
   border-radius: 0.75rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.025);
-  overflow-x: auto; /* Ensures table is scrollable on small screens */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  overflow-x: auto;
 }
 
 .staff-inventory-table {
   width: 100%;
-  border-collapse: collapse; /* Removes spacing between table cells */
+  border-collapse: collapse;
 }
 
 .staff-inventory-table th,
 .staff-inventory-table td {
-  padding: 1rem 1.25rem; /* Padding for cells */
+  padding: 1rem 1.25rem;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb; /* Subtle row dividers */
-  white-space: nowrap; /* Prevent text wrapping in table headers/cells */
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
 }
 
 .staff-inventory-table th {
-  background-color: #f9fafb; /* Light header background */
+  background-color: #f9fafb;
   font-weight: 600;
-  color: #4b5563; /* Darker text for headers */
+  color: #374151;
   text-transform: uppercase;
-  font-size: 0.875rem; /* Smaller font for headers */
-  letter-spacing: 0.05em; /* Spacing between letters */
-  position: sticky; /* Sticky header for horizontal scrolling */
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  position: sticky;
   top: 0;
-  z-index: 1; /* Ensure header stays above content when scrolling */
+  z-index: 1;
 }
 
 .staff-inventory-table tbody tr:last-child td {
-  border-bottom: none; /* No border on the last row */
+  border-bottom: none;
 }
 
 .staff-inventory-table tbody tr:hover {
-  background-color: #f0f4f8; /* Light hover effect for rows */
+  background-color: #f1f5f9;
 }
 
+/* ================================
+   Stock Status Badges
+   ================================ */
 .status-out-of-stock {
-  color: #dc2626; /* Red for out of stock */
+  color: #dc2626;
   font-weight: 600;
 }
 
 .status-in-stock {
-  color: #10b981; /* Green for in stock */
+  color: #16a34a;
   font-weight: 600;
 }
 
+/* ================================
+   No Products Message
+   ================================ */
 .text-center-cell {
   text-align: center;
 }
 
 .text-gray-500-no-products {
   color: #6b7280;
-  padding: 2rem; /* More padding for the no products message */
+  padding: 2rem;
   font-style: italic;
 }
 
-/* Responsive adjustments for smaller screens */
+/* ================================
+   Responsive
+   ================================ */
 @media (max-width: 768px) {
   .staff-inventory-page-container {
     padding: 1rem;
   }
 
   .staff-inventory-page-title {
-    font-size: 1.75rem;
-    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    margin-bottom: 1.25rem;
   }
 
   .staff-inventory-controls {
     flex-direction: column;
-    align-items: stretch; /* Stretch items to full width */
+    align-items: stretch;
   }
 
-  .staff-search-bar {
-    width: 100%; /* Full width on small screens */
-  }
-
+  .staff-search-bar,
   .staff-sort-select {
-    width: 100%; /* Full width on small screens */
+    width: 100%;
   }
 
-  /* Adjust table font size for readability on small screens */
   .staff-inventory-table th,
   .staff-inventory-table td {
     font-size: 0.75rem;

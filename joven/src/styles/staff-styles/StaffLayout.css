@@ -1,30 +1,71 @@
-/* =============== STAFF LAYOUT SHARED =============== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 .staff-dashboard-container {
   display: flex;
   height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f4f4f4;
+  color: #1e293b;
 }
 
+/* ============================
+   🧭 Sidebar
+============================ */
 .sidebar {
   width: 240px;
-  background-color: #1e293b;
-  color: white;
+  background-color: #ffffff;
+  color: #1e293b;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 1.5rem 1rem;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  border-right: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  transition: transform 0.3s ease;
+  z-index: 1000;
 }
 
+/* ============================
+   🖼️ Logo Section
+============================ */
 .logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
   text-align: center;
-  margin-bottom: 2rem;
 }
 
-.logo {
-  font-size: 1.5rem;
+.logo-img {
+  width: 90px;
+  height: auto;
+  margin-bottom: 0.5rem;
+  object-fit: contain;
+}
+
+.staff-greeting {
+  font-size: 0.95rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.staff-greeting span {
   font-weight: 600;
-  color: #3b82f6;
+  color: #f39c12;
+}
+
+/* ============================
+   📋 Navigation
+============================ */
+.staff-sidebar-nav {
+  margin-top: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .staff-sidebar-nav .nav-link {
@@ -33,50 +74,60 @@
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  color: #cbd5e1;
+  color: #1e293b;
   text-decoration: none;
-  transition: background 0.2s ease;
-  width: 100%;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .staff-sidebar-nav .nav-link:hover,
 .staff-sidebar-nav .nav-link.active {
-  background-color: #3b82f6;
-  color: white;
-}
-
-
-.logout-button {
-  margin-top: auto;
-  padding: 0.75rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background-color: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s ease;
-}
-
-.logout-button:hover {
-  background-color: #dc2626;
+  background-color: #f39c12;
+  color: #ffffff;
+  transform: translateX(3px);
 }
 
 .icon {
   font-size: 1.2rem;
 }
 
+/* ============================
+   🚪 Logout Button
+============================ */
+.logout-button {
+  background-color: #1e293b;
+  color: white;
+  border: none;
+  padding: 0.65rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.logout-button:hover {
+  background-color: #f39c12;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
+}
+
+/* ============================
+   🧭 Main Content Area
+============================ */
 .staff-main-content {
-  flex-grow: 1;
-  padding: 2rem;
-  background-color: #f8fafc;
+  flex: 1;
+  padding: 2rem 2.5rem;
   overflow-y: auto;
   display: flex;
-  justify-content: center; /* Center content horizontally */
-  align-items: flex-start; /* Align content to the top */
+  justify-content: center;
+  align-items: flex-start;
   width: 100%;
   box-sizing: border-box;
 }
@@ -87,20 +138,60 @@
   box-sizing: border-box;
 }
 
-@media (max-width: 768px) {
+.staff-main-content h1,
+.staff-main-content h2 {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+/* ============================
+   📱 Responsive
+============================ */
+@media (max-width: 900px) {
   .staff-dashboard-container {
     flex-direction: column;
   }
 
   .sidebar {
     width: 100%;
+    flex-direction: column;
+    padding: 0.8rem 1rem;
     height: auto;
-    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.show {
+    transform: translateX(0);
+  }
+
+  .staff-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
     flex-wrap: wrap;
-    justify-content: space-around;
   }
 
   .staff-main-content {
-    padding: 1rem;
+    padding: 1rem 1.5rem;
+  }
+
+  .logout-button {
+    font-size: 0.85rem;
+  }
+
+  .staff-sidebar-nav .nav-link {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .logo-img {
+    width: 70px;
+  }
+
+  .staff-greeting {
+    font-size: 0.9rem;
   }
 }
