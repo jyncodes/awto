@@ -1,52 +1,54 @@
-// src/pages/admin-dashboard/Inventory.jsx
-import React, { useEffect, useState } from 'react';
-import { db } from '../../firebase';
+import React, { useEffect, useState } from "react";
+import { db } from "../../firebase";
 import {
   collection,
   onSnapshot,
   doc,
   updateDoc,
   serverTimestamp,
-} from 'firebase/firestore';
-import '../../styles/admin-styles/Inventory.css';
-import Restock from '../../components/admin-components/Restock';
+} from "firebase/firestore";
+import "../../styles/admin-styles/Inventory.css";
+import Restock from "../../components/admin-components/Restock";
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState('id-asc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOption, setSortOption] = useState("id-asc");
 
   const [isRestockOpen, setIsRestockOpen] = useState(false);
   const [restockList, setRestockList] = useState([]);
-  const [restockSearch, setRestockSearch] = useState('');
+  const [restockSearch, setRestockSearch] = useState("");
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   // =========================
-  // FETCH PRODUCTS (Tires + Mags)
+  // FETCH PRODUCTS
   // =========================
   useEffect(() => {
-    const unsubTires = onSnapshot(collection(db, 'products_tires'), (snapshot) => {
+    const unsubTires = onSnapshot(collection(db, "products_tires"), (snapshot) => {
       const tireList = snapshot.docs.map((doc) => ({
         id: doc.id,
-        type: 'Tire',
+        type: "Tire",
         ...doc.data(),
       }));
 
       setProducts((prev) => {
-        const magsOnly = prev.filter((p) => p.type === 'Mags');
+        const magsOnly = prev.filter((p) => p.type === "Mags");
         return [...tireList, ...magsOnly];
       });
     });
 
-    const unsubMags = onSnapshot(collection(db, 'products_mags'), (snapshot) => {
+    const unsubMags = onSnapshot(collection(db, "products_mags"), (snapshot) => {
       const magsList = snapshot.docs.map((doc) => ({
         id: doc.id,
-        type: 'Mags',
+        type: "Mags",
         ...doc.data(),
       }));
 
       setProducts((prev) => {
-        const tiresOnly = prev.filter((p) => p.type === 'Tire');
+        const tiresOnly = prev.filter((p) => p.type === "Tire");
         return [...tiresOnly, ...magsList];
       });
     });
@@ -63,27 +65,33 @@ const Inventory = () => {
   useEffect(() => {
     let filtered = [...products];
 
-    if (searchTerm.trim() !== '') {
+    if (searchTerm.trim() !== "") {
       const lower = searchTerm.toLowerCase();
       filtered = filtered.filter((p) =>
-        `${p.productId} ${p.brand} ${p.model}`.toLowerCase().includes(lower)
+        `${p.productId || ""} ${p.brand || ""} ${p.model || ""}`
+          .toLowerCase()
+          .includes(lower)
       );
     }
 
     switch (sortOption) {
-      case 'id-asc':
-        filtered.sort((a, b) => (a.productId || '').localeCompare(b.productId || ''));
+      case "id-asc":
+        filtered.sort((a, b) =>
+          (a.productId || "").localeCompare(b.productId || "")
+        );
         break;
-      case 'id-desc':
-        filtered.sort((a, b) => (b.productId || '').localeCompare(a.productId || ''));
+      case "id-desc":
+        filtered.sort((a, b) =>
+          (b.productId || "").localeCompare(a.productId || "")
+        );
         break;
-      case 'stock-asc':
+      case "stock-asc":
         filtered.sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
         break;
-      case 'stock-desc':
+      case "stock-desc":
         filtered.sort((a, b) => Number(b.stock || 0) - Number(a.stock || 0));
         break;
-      case 'modified-latest':
+      case "modified-latest":
         filtered.sort((a, b) => {
           const aTime = a.updatedAt?.toMillis?.() || 0;
           const bTime = b.updatedAt?.toMillis?.() || 0;
@@ -98,11 +106,11 @@ const Inventory = () => {
   }, [products, searchTerm, sortOption]);
 
   // =========================
-  // RESTOCK MODAL
+  // RESTOCK
   // =========================
   const openRestockModal = () => {
     setRestockList([]);
-    setRestockSearch('');
+    setRestockSearch("");
     setIsRestockOpen(true);
   };
 
@@ -114,7 +122,9 @@ const Inventory = () => {
     const term = restockSearch.toLowerCase();
     const result = products
       .filter((p) =>
-        `${p.productId} ${p.brand} ${p.model}`.toLowerCase().includes(term)
+        `${p.productId || ""} ${p.brand || ""} ${p.model || ""}`
+          .toLowerCase()
+          .includes(term)
       )
       .map((p) => ({ ...p, qty: 0 }));
     setRestockList(result);
@@ -132,7 +142,7 @@ const Inventory = () => {
       for (const item of restockList) {
         if (item.qty > 0) {
           const collectionName =
-            item.type === 'Tire' ? 'products_tires' : 'products_mags';
+            item.type === "Tire" ? "products_tires" : "products_mags";
           const ref = doc(db, collectionName, item.id);
           const original = products.find((p) => p.id === item.id);
           const newStock = Number(original.stock || 0) + Number(item.qty);
@@ -143,17 +153,65 @@ const Inventory = () => {
           });
         }
       }
+      alert("✅ Restock saved successfully!");
       setIsRestockOpen(false);
     } catch (err) {
-      console.error('Restock failed:', err);
-      alert('Failed to save restocks.');
+      console.error("Restock failed:", err);
+      alert("❌ Failed to save restocks.");
     }
   };
 
+  // =========================
+  // EDIT PRODUCT
+  // =========================
+  const openEditModal = (product) => {
+    setEditData({ ...product });
+    setIsEditOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditOpen(false);
+    setEditData(null);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const saveEditChanges = async () => {
+    try {
+      const collectionName =
+        editData.type === "Tire" ? "products_tires" : "products_mags";
+      const ref = doc(db, collectionName, editData.id);
+
+      await updateDoc(ref, {
+        brand: editData.brand,
+        model: editData.model,
+        price: Number(editData.price),
+        stock: Number(editData.stock),
+        updatedAt: serverTimestamp(),
+      });
+
+      alert("✅ Product updated successfully!");
+      closeEditModal();
+    } catch (err) {
+      console.error("Edit failed:", err);
+      alert("❌ Failed to update product.");
+    }
+  };
+
+  // =========================
+  // RENDER UI
+  // =========================
   return (
     <div className="inventory-page-container">
       <h1 className="inventory-page-title">Inventory</h1>
+      <p className="inventory-page-subtitle">
+        Manage your current product stock, updates, and restocks.
+      </p>
 
+      {/* Controls */}
       <div className="inventory-controls">
         <input
           type="text"
@@ -178,6 +236,7 @@ const Inventory = () => {
         </button>
       </div>
 
+      {/* Table */}
       <div className="inventory-card">
         <table className="inventory-table">
           <thead>
@@ -188,42 +247,55 @@ const Inventory = () => {
               <th>Status</th>
               <th>Stock</th>
               <th>Price</th>
-              <th>Total</th>
+              <th>Total Value</th>
               <th>Last Modified</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredProducts.length > 0 ? (
               filteredProducts.map((product) => {
-                let productName = `${product.brand} ${product.model}`;
-                if (product.type === 'Tire') {
-                  productName += ` ${product.tireWidth || ''}/${product.aspectRatio || ''}R${product.rimDiameter || ''}`;
-                } else {
-                  productName += ` ${product.wheelDiameter || ''}x${product.wheelWidth || ''}`;
-                }
-
-                const total = Number(product.stock || 0) * Number(product.price || 0);
-                const status = Number(product.stock) <= 4 ? 'Out of Stock' : 'In Stock';
-                const date = product.updatedAt?.toDate?.().toLocaleString() || '—';
+                const productName =
+                  product.type === "Tire"
+                    ? `${product.brand} ${product.model} ${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`
+                    : `${product.brand} ${product.model} ${product.wheelDiameter}x${product.wheelWidth}`;
+                const total =
+                  Number(product.stock || 0) * Number(product.price || 0);
+                const status =
+                  Number(product.stock) <= 5 ? "Out of Stock" : "In Stock";
+                const date =
+                  product.updatedAt?.toDate?.().toLocaleString() || "—";
 
                 return (
                   <tr key={product.id}>
                     <td>{product.productId || product.id}</td>
                     <td>{productName}</td>
                     <td>{product.type}</td>
-                    <td className={status === 'Out of Stock' ? 'text-red' : 'text-green'}>
+                    <td
+                      className={
+                        status === "Out of Stock" ? "text-red" : "text-green"
+                      }
+                    >
                       {status}
                     </td>
                     <td>{product.stock || 0}</td>
                     <td>₱{Number(product.price || 0).toFixed(2)}</td>
                     <td>₱{total.toFixed(2)}</td>
                     <td>{date}</td>
+                    <td>
+                      <button
+                        className="btn-edit"
+                        onClick={() => openEditModal(product)}
+                      >
+                        Edit
+                      </button>
+                    </td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan="8" className="text-center text-gray-500">
+                <td colSpan="9" className="text-center text-gray-500">
                   No products found.
                 </td>
               </tr>
@@ -232,6 +304,7 @@ const Inventory = () => {
         </table>
       </div>
 
+      {/* Restock Modal */}
       {isRestockOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -244,6 +317,54 @@ const Inventory = () => {
               onClose={closeRestockModal}
               onSave={saveRestocks}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {isEditOpen && editData && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Edit Product</h2>
+            <div className="edit-form">
+              <label>Brand</label>
+              <input
+                type="text"
+                name="brand"
+                value={editData.brand}
+                onChange={handleEditChange}
+              />
+              <label>Model</label>
+              <input
+                type="text"
+                name="model"
+                value={editData.model}
+                onChange={handleEditChange}
+              />
+              <label>Price (₱)</label>
+              <input
+                type="number"
+                name="price"
+                value={editData.price}
+                onChange={handleEditChange}
+              />
+              <label>Stock</label>
+              <input
+                type="number"
+                name="stock"
+                value={editData.stock}
+                onChange={handleEditChange}
+              />
+
+              <div className="modal-actions">
+                <button className="btn-submit" onClick={saveEditChanges}>
+                  Save Changes
+                </button>
+                <button className="btn-delete" onClick={closeEditModal}>
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
