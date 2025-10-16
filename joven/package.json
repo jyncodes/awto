@@ -13,6 +13,7 @@
     "@google/model-viewer": "^4.1.0",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.3.0",
+    "@react-three/xr": "^6.6.27",
     "@supabase/supabase-js": "^2.74.0",
     "chart.js": "^4.5.0",
     "firebase": "^11.10.0",
