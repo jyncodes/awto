@@ -1,84 +1,89 @@
-/* =============== CONTAINER FOR INVENTORY PAGE ONLY =============== */
+/* ================= GLOBAL CONTAINER ================= */
 .inventory-page-container {
   padding: 2rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  box-sizing: border-box;
   width: 100%;
+  box-sizing: border-box;
+  font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #2c3e50;
+  background-color: #ffffff;
 }
 
-/* =============== HEADER & CONTROLS =============== */
+/* ================= HEADER ================= */
 .inventory-page-title {
   font-size: 1.8rem;
-  font-weight: bold;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+  color: #1e293b;
+}
+
+.inventory-page-subtitle {
+  font-size: 1rem;
+  color: #64748b;
   margin-bottom: 1.5rem;
 }
 
+/* ================= CONTROLS ================= */
 .inventory-controls {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
   flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }
 
 .search-bar {
   flex: 1;
   min-width: 200px;
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.search-bar:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
 }
 
 .sort-select {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
+  padding: 0.6rem 1rem;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sort-select:hover {
+  border-color: #007bff;
 }
 
 .restock-btn {
-  padding: 0.5rem 1.2rem;
   background-color: #007bff;
-  color: white;
+  color: #fff;
   border: none;
+  padding: 0.6rem 1.4rem;
   border-radius: 8px;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .restock-btn:hover {
   background-color: #0056b3;
+  transform: translateY(-2px);
 }
 
-/* =============== CONTENT WRAPPER FOR TABLE + RESTOCK =============== */
-.inventory-content-wrapper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
-  align-items: flex-start;
-  margin-top: 1.5rem;
-}
-
-.inventory-left {
-  flex: 3;
-  min-width: 600px;
-}
-
-.inventory-right {
-  flex: 1.5;
-  min-width: 300px;
-  background-color: #f9f9f9;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
-}
-
-/* =============== TABLE STYLES =============== */
+/* ================= INVENTORY TABLE ================= */
 .inventory-card {
   background-color: #fff;
   padding: 1.5rem;
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   overflow-x: auto;
 }
@@ -89,36 +94,34 @@
 }
 
 .inventory-table thead {
-  background-color: #f5f5f5;
+  background-color: #f1f5f9;
 }
 
 .inventory-table th,
 .inventory-table td {
-  padding: 0.75rem 1rem;
+  padding: 0.9rem 1rem;
   text-align: left;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .inventory-table th {
   font-weight: 600;
-  color: #444;
+  color: #334155;
 }
 
-.inventory-table tbody tr:nth-child(even) {
-  background-color: #ffffff;
-}
-
-.inventory-table tbody tr:nth-child(odd) {
-  background-color: #f9f9f9;
+.inventory-table tbody tr:hover {
+  background-color: #f8fafc;
+  transition: background-color 0.2s ease;
 }
 
 .text-red {
-  color: #e53935;
+  color: #e11d48;
   font-weight: 600;
 }
 
 .text-green {
-  color: #28a745;
+  color: #16a34a;
   font-weight: 600;
 }
 
@@ -127,23 +130,39 @@
 }
 
 .text-gray-500 {
-  color: #888;
+  color: #94a3b8;
 }
 
-/* =============== RESTOCK MODAL STYLES =============== */
+/* ================= EDIT BUTTON ================= */
+.btn-edit {
+  background-color: #10b981;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-edit:hover {
+  background-color: #059669;
+  transform: scale(1.05);
+}
+
+/* ================= MODAL OVERLAY ================= */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
-  z-index: 1000;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
+/* ================= MODAL CONTENT ================= */
 .modal-content {
   background-color: #fff;
   padding: 2rem;
@@ -153,99 +172,98 @@
   max-height: 80vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.3s ease;
 }
 
-.restock-modal .restock-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1.2rem;
-}
-
-.restock-modal .search-bar {
-  width: 100%;
-  margin-bottom: 0.8rem;
-}
-
-.restock-search-btn {
-  background-color: #007bff;
-  color: #fff;
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  cursor: pointer;
-}
-
-.restock-search-btn:hover {
-  background-color: #0056b3;
-}
-
-.restock-list {
-  max-height: 300px;
-  overflow-y: auto;
-  margin-bottom: 1.5rem;
-}
-
-.restock-item {
+/* ================= EDIT FORM ================= */
+.edit-form {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  font-size: 1rem;
+  flex-direction: column;
+  gap: 0.8rem;
 }
 
-.stock-input {
-  width: 70px;
-  padding: 0.3rem 0.5rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  text-align: center;
+.edit-form label {
+  font-weight: 600;
+  color: #374151;
+  margin-top: 0.5rem;
 }
 
-.restock-actions {
+.edit-form input {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.edit-form input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+/* ================= MODAL BUTTONS ================= */
+.modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 1rem;
 }
 
-.submit-btn {
-  background-color: #28a745;
-  color: white;
+.btn-submit {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
   padding: 0.6rem 1.2rem;
-  border: none;
   border-radius: 8px;
-  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.submit-btn:hover {
-  background-color: #218838;
+.btn-submit:hover {
+  background-color: #0056b3;
 }
 
-.cancel-btn {
-  background-color: #ccc;
-  color: #333;
+.btn-delete {
+  background-color: #e11d48;
+  color: #fff;
+  border: none;
   padding: 0.6rem 1.2rem;
-  border: none;
   border-radius: 8px;
-  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.cancel-btn:hover {
-  background-color: #aaa;
+.btn-delete:hover {
+  background-color: #9f1239;
 }
 
-.modal-close-btn {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  font-size: 1.5rem;
-  background: none;
-  border: none;
-  cursor: pointer;
+/* ================= ANIMATIONS ================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+  .inventory-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inventory-page-title {
+    font-size: 1.5rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 1.5rem;
+  }
 }
