@@ -16,11 +16,11 @@ import ServicesPage from "./pages/user-page/ServicesPage"; // ✅ Added import
 
 // Admin Pages
 import AdminDashboard from './pages/admin-page/AdminDashboard';
-import AdminSales from './pages/admin-page/Sales';
-import AdminInventory from './pages/admin-page/Inventory';
+import AdminSales from './pages/admin-page/AdminSales';
+import AdminInventory from './pages/admin-page/AdminInventory';
 import AdminProducts from './pages/admin-page/Products';
 import AdminStaffs from './pages/admin-page/Staffs';
-import AdminReservations from './pages/admin-page/Reservations';
+import AdminReservations from './pages/admin-page/AdminReservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
@@ -107,6 +107,18 @@ export default function App() {
         <Route path="/devtools" element={<DevTools />} />
 
         {/* ================= USER ROUTES ================= */}
+        {/* ServicesPage Route */}
+        <Route
+          path="/services"
+          element={
+            <RequireVerifiedEmail>
+              <ProtectedRoute allowedRole="User">
+                <ServicesPage />
+              </ProtectedRoute>
+            </RequireVerifiedEmail>
+          }
+        />
+
         <Route
           path="/reservation/:productId"
           element={
