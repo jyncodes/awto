@@ -1,3 +1,4 @@
+// 📄 src/pages/shared/Sales.jsx
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import {
@@ -8,9 +9,9 @@ import {
   Timestamp,
   onSnapshot,
 } from 'firebase/firestore';
-import '../../styles/admin-styles/Sales.css';
+import '../../styles/shared/Sales.css';
 
-const Sales = () => {
+const Sales = ({ role }) => {
   const [products, setProducts] = useState([]);
   const [salesLog, setSalesLog] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -22,22 +23,43 @@ const Sales = () => {
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
-    const unsubProducts = onSnapshot(collection(db, 'products'), snapshot => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setProducts(items);
-      setFilteredProducts(items);
+    // ✅ Listen to both tires and mags collections safely
+    const tiresRef = collection(db, 'products_tires');
+    const magsRef = collection(db, 'products_mags');
+    const salesRef = collection(db, 'sales');
+
+    const unsubTires = onSnapshot(tiresRef, snapshot => {
+      const tires = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(prev => {
+        const magsOnly = prev.filter(p => p.type === 'mags');
+        const updated = [...tires.map(t => ({ ...t, type: 'tires' })), ...magsOnly];
+        setFilteredProducts(updated);
+        return updated;
+      });
     });
 
-    const unsubSales = onSnapshot(collection(db, 'sales'), snapshot => {
+    const unsubMags = onSnapshot(magsRef, snapshot => {
+      const mags = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(prev => {
+        const tiresOnly = prev.filter(p => p.type === 'tires');
+        const updated = [...tiresOnly, ...mags.map(m => ({ ...m, type: 'mags' }))];
+        setFilteredProducts(updated);
+        return updated;
+      });
+    });
+
+    const unsubSales = onSnapshot(salesRef, snapshot => {
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const sorted = logs.sort((a, b) =>
-        (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
+      const sorted = logs.sort(
+        (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
       );
       setSalesLog(sorted);
     });
 
+    // 🧹 Proper cleanup
     return () => {
-      unsubProducts();
+      unsubTires();
+      unsubMags();
       unsubSales();
     };
   }, []);
@@ -68,11 +90,12 @@ const Sales = () => {
       createdAt: Timestamp.now(),
       type: 'in-store',
       status: 'completed',
+      createdBy: role,
     };
 
     try {
       await addDoc(collection(db, 'sales'), saleData);
-      await updateDoc(doc(db, 'products', selectedProduct.id), {
+      await updateDoc(doc(db, selectedProduct.type === 'tires' ? 'products_tires' : 'products_mags', selectedProduct.id), {
         stock: selectedProduct.stock - quantity,
       });
 
@@ -120,9 +143,7 @@ const Sales = () => {
               {filteredProducts.map((p) => (
                 <div
                   key={p.id}
-                  className={`product-result-card ${
-                    selectedProduct?.id === p.id ? 'selected' : ''
-                  }`}
+                  className={`product-result-card ${selectedProduct?.id === p.id ? 'selected' : ''}`}
                   onClick={() => setSelectedProduct(p)}
                 >
                   <strong>{p.brand} {p.model} {p.size}</strong>
@@ -156,12 +177,13 @@ const Sales = () => {
             <th>Qty</th>
             <th>Unit Price</th>
             <th>Total</th>
+            <th>Recorded By</th>
           </tr>
         </thead>
         <tbody>
           {salesLog.length === 0 ? (
             <tr>
-              <td colSpan="6" style={{ textAlign: 'center' }}>No sales yet.</td>
+              <td colSpan="7" style={{ textAlign: 'center' }}>No sales yet.</td>
             </tr>
           ) : (
             salesLog.map((log) => (
@@ -172,6 +194,7 @@ const Sales = () => {
                 <td>{log.quantity || 0}</td>
                 <td>₱{Number(log.unitPrice || 0).toFixed(2)}</td>
                 <td>₱{Number(log.totalAmount || 0).toFixed(2)}</td>
+                <td>{log.createdBy || '—'}</td>
               </tr>
             ))
           )}

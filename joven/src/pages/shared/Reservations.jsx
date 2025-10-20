@@ -1,4 +1,4 @@
-// src/pages/admin-page/Reservations.jsx
+// 📄 src/pages/shared/Reservations.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import {
@@ -13,13 +13,14 @@ import {
   addDoc,
   Timestamp,
 } from "firebase/firestore";
-import "../../styles/admin-styles/Reservations.css";
+import "../../styles/shared/Reservations.css";
 
-const Reservations = () => {
+const Reservations = ({ role }) => {
   const [reservations, setReservations] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selected, setSelected] = useState([]);
-  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
+
+  const normalizedRole = (role || "").toLowerCase();
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "reservations"), (snapshot) => {
@@ -59,10 +60,10 @@ const Reservations = () => {
   };
 
   const handleDelete = async (id) => {
+    if (normalizedRole !== "admin") return;
     if (window.confirm("Are you sure you want to delete this reservation?")) {
       try {
         await deleteDoc(doc(db, "reservations", id));
-
         const resSnap = await getDocs(collection(db, "reservations"));
         if (resSnap.empty) {
           await resetReservationCounter();
@@ -74,6 +75,7 @@ const Reservations = () => {
   };
 
   const handleBulkDelete = async () => {
+    if (normalizedRole !== "admin") return;
     if (selected.length === 0) return alert("No reservations selected.");
     if (!window.confirm(`Delete ${selected.length} selected reservation(s)?`)) return;
 
@@ -96,6 +98,7 @@ const Reservations = () => {
   };
 
   const resetReservationCounter = async () => {
+    if (normalizedRole !== "admin") return;
     try {
       await setDoc(doc(db, "counters", "reservations"), { lastId: 0 });
       alert("Reservation counter reset to 0.");
@@ -105,12 +108,14 @@ const Reservations = () => {
   };
 
   const toggleSelection = (id) => {
+    if (normalizedRole !== "admin") return;
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
   const toggleSelectAll = () => {
+    if (normalizedRole !== "admin") return;
     if (selected.length === filtered.length) {
       setSelected([]);
     } else {
@@ -118,27 +123,11 @@ const Reservations = () => {
     }
   };
 
-  /**
-   * 🔎 Enhanced Filtering:
-   * Excludes reservations in the past (including earlier hours today).
-   */
+  // 🔎 Filter logic (removed showUpcomingOnly)
   const filtered = reservations.filter((r) => {
-    const matchesSearch = `${r.customerName} ${r.plateNumber}`.toLowerCase().includes(searchTerm.toLowerCase());
-
-    if (!showUpcomingOnly) return matchesSearch;
-
-    let scheduled = null;
-    if (r.preferredDateTime instanceof Timestamp) {
-      scheduled = r.preferredDateTime.toDate();
-    } else if (typeof r.preferredDateTime === "string") {
-      scheduled = new Date(r.preferredDateTime);
-    }
-
-    if (!scheduled || isNaN(scheduled.getTime())) return false;
-
-    const now = new Date();
-
-    return scheduled.getTime() > now.getTime() && matchesSearch;
+    return `${r.customerName || ""} ${r.plateNumber || ""}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
   });
 
   return (
@@ -155,22 +144,13 @@ const Reservations = () => {
             className="reservation-search"
           />
 
-          <label style={{ fontSize: "0.9rem", marginLeft: "1rem" }}>
-            <input
-              type="checkbox"
-              checked={showUpcomingOnly}
-              onChange={() => setShowUpcomingOnly(!showUpcomingOnly)}
-            />{" "}
-            Show upcoming only
-          </label>
-
-          {filtered.length > 0 && (
+          {normalizedRole === "admin" && filtered.length > 0 && (
             <button className="bulk-delete-btn" onClick={handleBulkDelete}>
               🗑 Delete Selected ({selected.length})
             </button>
           )}
 
-          {reservations.length === 0 && (
+          {normalizedRole === "admin" && reservations.length === 0 && (
             <button className="reset-btn" onClick={resetReservationCounter}>
               🔄 Reset Reservation Counter
             </button>
@@ -182,13 +162,17 @@ const Reservations = () => {
         <table className="reservation-table">
           <thead>
             <tr>
-              <th>
-                <input
-                  type="checkbox"
-                  checked={selected.length === filtered.length && filtered.length > 0}
-                  onChange={toggleSelectAll}
-                />
-              </th>
+              {normalizedRole === "admin" && (
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={
+                      selected.length === filtered.length && filtered.length > 0
+                    }
+                    onChange={toggleSelectAll}
+                  />
+                </th>
+              )}
               <th>Reservation ID</th>
               <th>Posted</th>
               <th>Approved</th>
@@ -198,29 +182,43 @@ const Reservations = () => {
               <th>Vehicle Info</th>
               <th>Notes</th>
               <th>Status</th>
-              <th>Actions</th>
+              {normalizedRole === "admin" && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.map((res) => {
-              const scheduledDate = res.preferredDateTime instanceof Timestamp
-                ? res.preferredDateTime.toDate()
-                : new Date(res.preferredDateTime);
+              const scheduledDate =
+                res.preferredDateTime instanceof Timestamp
+                  ? res.preferredDateTime.toDate()
+                  : new Date(res.preferredDateTime);
 
               const isPast = scheduledDate < new Date();
 
               return (
-                <tr key={res.id} className={`reservation-row ${isPast ? "past-reservation" : ""}`}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(res.id)}
-                      onChange={() => toggleSelection(res.id)}
-                    />
-                  </td>
+                <tr
+                  key={res.id}
+                  className={`reservation-row ${isPast ? "past-reservation" : ""}`}
+                >
+                  {normalizedRole === "admin" && (
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(res.id)}
+                        onChange={() => toggleSelection(res.id)}
+                      />
+                    </td>
+                  )}
                   <td>{res.id}</td>
-                  <td>{res.createdAt?.toDate().toLocaleString() || "—"}</td>
-                  <td>{res.approvedAt?.toDate().toLocaleString() || "—"}</td>
+                  <td>
+                    {res.createdAt?.toDate
+                      ? res.createdAt.toDate().toLocaleString()
+                      : "—"}
+                  </td>
+                  <td>
+                    {res.approvedAt?.toDate
+                      ? res.approvedAt.toDate().toLocaleString()
+                      : "—"}
+                  </td>
                   <td>{scheduledDate.toLocaleString() || "—"}</td>
                   <td>{res.customerName || "—"}</td>
                   <td>{res.serviceType || res.service || "—"}</td>
@@ -243,20 +241,25 @@ const Reservations = () => {
                       <option value="Completed">Completed</option>
                     </select>
                   </td>
-                  <td>
-                    <button
-                      className="delete-btn"
-                      onClick={() => handleDelete(res.id)}
-                    >
-                      🗑 Delete
-                    </button>
-                  </td>
+                  {normalizedRole === "admin" && (
+                    <td>
+                      <button
+                        className="delete-btn"
+                        onClick={() => handleDelete(res.id)}
+                      >
+                        🗑 Delete
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan="11" className="text-center">
+                <td
+                  colSpan={normalizedRole === "admin" ? "11" : "10"}
+                  className="text-center"
+                >
                   No reservations found.
                 </td>
               </tr>

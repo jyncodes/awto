@@ -13,7 +13,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "../../firebase";
-import "../../styles/CarData.css"; // ✅ Make sure this points to your CSS file
+import "../../styles/CarData.css";
 
 const CarData = () => {
   const [vehicleData, setVehicleData] = useState({});
@@ -66,9 +66,7 @@ const CarData = () => {
 
   // === Add Fitment ===
   const handleAddFitment = () => {
-    const isEmpty = Object.values(fitmentFields).every(
-      (v) => v.trim() === ""
-    );
+    const isEmpty = Object.values(fitmentFields).every((v) => v.trim() === "");
     if (isEmpty) return alert("⚠️ Please fill at least one fitment field.");
 
     let newFitment;
@@ -161,8 +159,19 @@ const CarData = () => {
           return alert("⚠️ All fitments already exist — no new entries added.");
 
         const updateData = { timestamp: serverTimestamp() };
-        if (tireAdd.length > 0) updateData.tireFitments = arrayUnion(...tireAdd);
-        if (wheelAdd.length > 0) updateData.wheelFitments = arrayUnion(...wheelAdd);
+
+        // ✅ Initialize arrays if missing
+        if ((!existingData.tireFitments || existingData.tireFitments.length === 0) && form.tireFitments.length > 0) {
+          updateData.tireFitments = form.tireFitments;
+        } else if (tireAdd.length > 0) {
+          updateData.tireFitments = arrayUnion(...tireAdd);
+        }
+
+        if ((!existingData.wheelFitments || existingData.wheelFitments.length === 0) && form.wheelFitments.length > 0) {
+          updateData.wheelFitments = form.wheelFitments;
+        } else if (wheelAdd.length > 0) {
+          updateData.wheelFitments = arrayUnion(...wheelAdd);
+        }
 
         await updateDoc(docRef, updateData);
         alert("✅ Existing vehicle updated successfully!");
@@ -177,6 +186,7 @@ const CarData = () => {
         alert("✅ New vehicle added successfully!");
       }
 
+      // Reset form
       setForm({
         brand: "",
         model: "",

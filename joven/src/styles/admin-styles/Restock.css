@@ -1,0 +1,208 @@
+/* ===========================
+   RESTOCK MODAL STYLES (FIXED CROPPING ISSUE)
+=========================== */
+
+/* Fullscreen overlay to center modal */
+.restock-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 1rem; /* prevents crop on small screens */
+  overflow-y: auto;
+}
+
+/* Main modal box */
+.restock-modal {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh; /* taller height */
+  overflow-y: auto;
+  border-radius: 12px;
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
+  font-family: "Poppins", sans-serif;
+  position: relative;
+}
+
+/* Modal title */
+.restock-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+/* Search Section */
+.restock-search-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.restock-search-bar {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  font-size: 0.95rem;
+}
+
+.restock-search-bar:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.restock-search-btn {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 0.95rem;
+}
+
+.restock-search-btn:hover {
+  background-color: #1e40af;
+}
+
+/* Product List */
+.restock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.no-result {
+  color: #64748b;
+  text-align: center;
+  font-size: 0.95rem;
+  padding: 1rem 0;
+}
+
+.restock-item {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.restock-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.restock-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.restock-type {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.restock-input-container {
+  margin-top: 0.5rem;
+}
+
+.stock-input {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.stock-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  outline: none;
+}
+
+/* Low Stock Alert */
+.low-stock-alert {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  padding: 0.4rem 0.6rem;
+  margin-top: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.low-stock-alert strong {
+  color: #991b1b;
+}
+
+.supplier-contact {
+  color: #334155;
+  font-style: italic;
+}
+
+/* Actions */
+.restock-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  position: sticky;
+  bottom: 0;
+  background-color: #ffffff;
+  padding-top: 0.75rem;
+  padding-bottom: 0.25rem;
+}
+
+.submit-btn,
+.cancel-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.submit-btn {
+  background-color: #16a34a;
+  color: #ffffff;
+}
+
+.submit-btn:hover {
+  background-color: #15803d;
+}
+
+.cancel-btn {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.cancel-btn:hover {
+  background-color: #cbd5e1;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .restock-modal {
+    max-width: 95%;
+    padding: 1rem;
+  }
+
+  .restock-title {
+    font-size: 1.25rem;
+  }
+}

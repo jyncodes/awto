@@ -15,15 +15,15 @@ import Verify from './pages/Verify';
 
 // Admin Pages
 import AdminDashboard from './pages/admin-page/AdminDashboard';
-import AdminSales from './pages/admin-page/Sales';
-import AdminInventory from './pages/admin-page/Inventory';
+import AdminSales from './pages/admin-page/AdminSales';
+import AdminInventory from './pages/admin-page/AdminInventory';
 import AdminProducts from './pages/admin-page/Products';
 import AdminStaffs from './pages/admin-page/Staffs';
-import AdminReservations from './pages/admin-page/Reservations';
+import AdminReservations from './pages/admin-page/AdminReservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
-import AdminSuppliers from './pages/admin-page/Supplier'; // ✅ Added import
+import AdminSuppliers from './pages/admin-page/Supplier';
 
 // User Pages
 import UserDashboard from './pages/user-page/UserDashboard';
@@ -32,8 +32,6 @@ import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
 import ReceiptPage from './pages/user-page/ReceiptPage';
 import DevTools from './pages/user-page/DevTools';
-
-// Reservation Page
 import ReservationPage from './pages/user-page/ReservationPage';
 
 // Staff Pages
@@ -101,11 +99,9 @@ export default function App() {
         />
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
-
-        {/* ✅ DevTools Route */}
         <Route path="/devtools" element={<DevTools />} />
 
-        {/* ================= USER FLOW (RESERVATION + TRANSACTIONS) ================= */}
+        {/* ================= USER ROUTES ================= */}
         <Route
           path="/reservation/:productId"
           element={
@@ -146,8 +142,6 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
-
-        {/* ================= USER ROUTES ================= */}
         <Route
           path="/profile"
           element={
@@ -184,7 +178,7 @@ export default function App() {
           <Route path="sales" element={<AdminSales />} />
           <Route path="inventory" element={<AdminInventory />} />
           <Route path="products" element={<AdminProducts />} />
-          <Route path="suppliers" element={<AdminSuppliers />} /> {/* ✅ Added route */}
+          <Route path="suppliers" element={<AdminSuppliers />} />
           <Route path="staffs" element={<AdminStaffs />} />
           <Route path="reservations" element={<AdminReservations />} />
           <Route path="customers" element={<AdminCustomers />} />

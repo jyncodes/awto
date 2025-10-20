@@ -1,3 +1,4 @@
+// 📄 src/pages/shared/Inventory.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import {
@@ -5,52 +6,52 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  getDocs,
   serverTimestamp,
 } from "firebase/firestore";
-import "../../styles/admin-styles/Inventory.css";
+import "../../styles/shared/Inventory.css";
 import Restock from "../../components/admin-components/Restock";
 
-const Inventory = () => {
+const Inventory = ({ role }) => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("id-asc");
 
+  // Restock
   const [isRestockOpen, setIsRestockOpen] = useState(false);
   const [restockList, setRestockList] = useState([]);
   const [restockSearch, setRestockSearch] = useState("");
 
+  // Edit
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editData, setEditData] = useState(null);
 
+  // Supplier
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [supplierSuggestion, setSupplierSuggestion] = useState(null);
+  const [suppliers, setSuppliers] = useState([]);
+
   // =========================
-  // FETCH PRODUCTS
+  // FETCH PRODUCTS (TIRES + MAGS)
   // =========================
   useEffect(() => {
-    const unsubTires = onSnapshot(collection(db, "products_tires"), (snapshot) => {
-      const tireList = snapshot.docs.map((doc) => ({
+    const unsubTires = onSnapshot(collection(db, "products_tires"), (snap) => {
+      const tireList = snap.docs.map((doc) => ({
         id: doc.id,
         type: "Tire",
         ...doc.data(),
       }));
-
-      setProducts((prev) => {
-        const magsOnly = prev.filter((p) => p.type === "Mags");
-        return [...tireList, ...magsOnly];
-      });
+      setProducts((prev) => [...tireList, ...prev.filter((p) => p.type === "Mags")]);
     });
 
-    const unsubMags = onSnapshot(collection(db, "products_mags"), (snapshot) => {
-      const magsList = snapshot.docs.map((doc) => ({
+    const unsubMags = onSnapshot(collection(db, "products_mags"), (snap) => {
+      const magsList = snap.docs.map((doc) => ({
         id: doc.id,
         type: "Mags",
         ...doc.data(),
       }));
-
-      setProducts((prev) => {
-        const tiresOnly = prev.filter((p) => p.type === "Tire");
-        return [...tiresOnly, ...magsList];
-      });
+      setProducts((prev) => [...prev.filter((p) => p.type === "Tire"), ...magsList]);
     });
 
     return () => {
@@ -60,7 +61,22 @@ const Inventory = () => {
   }, []);
 
   // =========================
-  // FILTER + SORT
+  // FETCH SUPPLIERS
+  // =========================
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      const snap = await getDocs(collection(db, "suppliers"));
+      const list = snap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setSuppliers(list);
+    };
+    fetchSuppliers();
+  }, []);
+
+  // =========================
+  // FILTER + SORT PRODUCTS
   // =========================
   useEffect(() => {
     let filtered = [...products];
@@ -68,22 +84,16 @@ const Inventory = () => {
     if (searchTerm.trim() !== "") {
       const lower = searchTerm.toLowerCase();
       filtered = filtered.filter((p) =>
-        `${p.productId || ""} ${p.brand || ""} ${p.model || ""}`
-          .toLowerCase()
-          .includes(lower)
+        `${p.productId || ""} ${p.brand || ""} ${p.model || ""}`.toLowerCase().includes(lower)
       );
     }
 
     switch (sortOption) {
       case "id-asc":
-        filtered.sort((a, b) =>
-          (a.productId || "").localeCompare(b.productId || "")
-        );
+        filtered.sort((a, b) => (a.productId || "").localeCompare(b.productId || ""));
         break;
       case "id-desc":
-        filtered.sort((a, b) =>
-          (b.productId || "").localeCompare(a.productId || "")
-        );
+        filtered.sort((a, b) => (b.productId || "").localeCompare(a.productId || ""));
         break;
       case "stock-asc":
         filtered.sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
@@ -106,7 +116,7 @@ const Inventory = () => {
   }, [products, searchTerm, sortOption]);
 
   // =========================
-  // RESTOCK
+  // RESTOCK HANDLERS
   // =========================
   const openRestockModal = () => {
     setRestockList([]);
@@ -114,17 +124,13 @@ const Inventory = () => {
     setIsRestockOpen(true);
   };
 
-  const closeRestockModal = () => {
-    setIsRestockOpen(false);
-  };
+  const closeRestockModal = () => setIsRestockOpen(false);
 
   const handleSearchRestockProduct = () => {
     const term = restockSearch.toLowerCase();
     const result = products
       .filter((p) =>
-        `${p.productId || ""} ${p.brand || ""} ${p.model || ""}`
-          .toLowerCase()
-          .includes(term)
+        `${p.productId || ""} ${p.brand || ""} ${p.model || ""}`.toLowerCase().includes(term)
       )
       .map((p) => ({ ...p, qty: 0 }));
     setRestockList(result);
@@ -132,17 +138,14 @@ const Inventory = () => {
 
   const handleRestockInput = (e, id) => {
     const qty = parseInt(e.target.value || 0);
-    setRestockList((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, qty } : item))
-    );
+    setRestockList((prev) => prev.map((item) => (item.id === id ? { ...item, qty } : item)));
   };
 
   const saveRestocks = async () => {
     try {
       for (const item of restockList) {
         if (item.qty > 0) {
-          const collectionName =
-            item.type === "Tire" ? "products_tires" : "products_mags";
+          const collectionName = item.type === "Tire" ? "products_tires" : "products_mags";
           const ref = doc(db, collectionName, item.id);
           const original = products.find((p) => p.id === item.id);
           const newStock = Number(original.stock || 0) + Number(item.qty);
@@ -154,7 +157,7 @@ const Inventory = () => {
         }
       }
       alert("✅ Restock saved successfully!");
-      setIsRestockOpen(false);
+      closeRestockModal();
     } catch (err) {
       console.error("Restock failed:", err);
       alert("❌ Failed to save restocks.");
@@ -162,7 +165,25 @@ const Inventory = () => {
   };
 
   // =========================
-  // EDIT PRODUCT
+  // SUPPLIER SUGGESTION
+  // =========================
+  const handleSupplierSuggestion = (product) => {
+    const matched = suppliers.find(
+      (s) =>
+        s.productType?.toLowerCase() === product.type.toLowerCase() ||
+        s.brand?.toLowerCase() === product.brand?.toLowerCase()
+    );
+    setSupplierSuggestion({ product, supplier: matched || null });
+    setIsSupplierModalOpen(true);
+  };
+
+  const closeSupplierModal = () => {
+    setIsSupplierModalOpen(false);
+    setSupplierSuggestion(null);
+  };
+
+  // =========================
+  // EDIT HANDLERS
   // =========================
   const openEditModal = (product) => {
     setEditData({ ...product });
@@ -181,10 +202,8 @@ const Inventory = () => {
 
   const saveEditChanges = async () => {
     try {
-      const collectionName =
-        editData.type === "Tire" ? "products_tires" : "products_mags";
+      const collectionName = editData.type === "Tire" ? "products_tires" : "products_mags";
       const ref = doc(db, collectionName, editData.id);
-
       await updateDoc(ref, {
         brand: editData.brand,
         model: editData.model,
@@ -192,7 +211,6 @@ const Inventory = () => {
         stock: Number(editData.stock),
         updatedAt: serverTimestamp(),
       });
-
       alert("✅ Product updated successfully!");
       closeEditModal();
     } catch (err) {
@@ -207,9 +225,7 @@ const Inventory = () => {
   return (
     <div className="inventory-page-container">
       <h1 className="inventory-page-title">Inventory</h1>
-      <p className="inventory-page-subtitle">
-        Manage your current product stock, updates, and restocks.
-      </p>
+      <p className="inventory-page-subtitle">Manage your current product stock, updates, and restocks.</p>
 
       {/* Controls */}
       <div className="inventory-controls">
@@ -231,9 +247,12 @@ const Inventory = () => {
           <option value="stock-desc">Stock High to Low</option>
           <option value="modified-latest">Latest Modified</option>
         </select>
-        <button onClick={openRestockModal} className="restock-btn">
-          Restock
-        </button>
+
+        {(role === "admin" || role === "staff") && (
+          <button onClick={openRestockModal} className="restock-btn">
+            Restock
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -259,23 +278,16 @@ const Inventory = () => {
                   product.type === "Tire"
                     ? `${product.brand} ${product.model} ${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`
                     : `${product.brand} ${product.model} ${product.wheelDiameter}x${product.wheelWidth}`;
-                const total =
-                  Number(product.stock || 0) * Number(product.price || 0);
-                const status =
-                  Number(product.stock) <= 5 ? "Out of Stock" : "In Stock";
-                const date =
-                  product.updatedAt?.toDate?.().toLocaleString() || "—";
+                const total = Number(product.stock || 0) * Number(product.price || 0);
+                const status = Number(product.stock) <= 5 ? "Out of Stock" : "In Stock";
+                const date = product.updatedAt?.toDate?.().toLocaleString() || "—";
 
                 return (
                   <tr key={product.id}>
                     <td>{product.productId || product.id}</td>
                     <td>{productName}</td>
                     <td>{product.type}</td>
-                    <td
-                      className={
-                        status === "Out of Stock" ? "text-red" : "text-green"
-                      }
-                    >
+                    <td className={status === "Out of Stock" ? "text-red" : "text-green"}>
                       {status}
                     </td>
                     <td>{product.stock || 0}</td>
@@ -283,12 +295,19 @@ const Inventory = () => {
                     <td>₱{total.toFixed(2)}</td>
                     <td>{date}</td>
                     <td>
-                      <button
-                        className="btn-edit"
-                        onClick={() => openEditModal(product)}
-                      >
-                        Edit
-                      </button>
+                      {(role === "admin" || role === "staff") && (
+                        <button className="btn-edit" onClick={() => openEditModal(product)}>
+                          Edit
+                        </button>
+                      )}
+                      {status === "Out of Stock" && (
+                        <button
+                          className="btn-supplier"
+                          onClick={() => handleSupplierSuggestion(product)}
+                        >
+                          Contact Supplier
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -316,7 +335,43 @@ const Inventory = () => {
               onChangeQty={handleRestockInput}
               onClose={closeRestockModal}
               onSave={saveRestocks}
+              suppliers={suppliers}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Supplier Modal */}
+      {isSupplierModalOpen && supplierSuggestion && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Supplier Suggestion</h2>
+            <p>
+              Product:{" "}
+              <strong>
+                {supplierSuggestion.product.brand} {supplierSuggestion.product.model}
+              </strong>
+            </p>
+            {supplierSuggestion.supplier ? (
+              <>
+                <p>
+                  <strong>Supplier:</strong> {supplierSuggestion.supplier.name}
+                </p>
+                <p>
+                  <strong>Contact:</strong> {supplierSuggestion.supplier.contact}
+                </p>
+                <p>
+                  <strong>Type:</strong> {supplierSuggestion.supplier.productType}
+                </p>
+              </>
+            ) : (
+              <p className="text-red">No supplier found for this product.</p>
+            )}
+            <div className="modal-actions">
+              <button className="btn-delete" onClick={closeSupplierModal}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

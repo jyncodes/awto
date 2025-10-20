@@ -35,11 +35,13 @@ const INITIAL_FORM = {
   centerBore: "",
   price: "",
   description: "",
+  supplierId: "",
 };
 
 const Products = () => {
   const [tires, setTires] = useState([]);
   const [mags, setMags] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,9 +65,15 @@ const Products = () => {
     setMags(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
+  const fetchSuppliers = async () => {
+    const snapshot = await getDocs(collection(db, "suppliers"));
+    setSuppliers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+  };
+
   useEffect(() => {
     fetchTires();
     fetchMags();
+    fetchSuppliers();
   }, []);
 
   // ================================
@@ -241,28 +249,33 @@ const Products = () => {
                   <th>Width</th>
                   <th>Aspect</th>
                   <th>Rim</th>
+                  <th>Supplier</th>
                   <th>Price</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filterProducts(tires).map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.productId}</td>
-                    <td>{p.brand}</td>
-                    <td>{p.model}</td>
-                    <td>{p.tireWidth}</td>
-                    <td>{p.aspectRatio}</td>
-                    <td>{p.rimDiameter}</td>
-                    <td>{p.price}</td>
-                    <td>
-                      <button onClick={() => handleEdit(p, "Tire")}>Edit</button>
-                      <button onClick={() => handleDelete(p, "Tire")}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filterProducts(tires).map((p) => {
+                  const supplier = suppliers.find((s) => s.id === p.supplierId);
+                  return (
+                    <tr key={p.id}>
+                      <td>{p.productId}</td>
+                      <td>{p.brand}</td>
+                      <td>{p.model}</td>
+                      <td>{p.tireWidth}</td>
+                      <td>{p.aspectRatio}</td>
+                      <td>{p.rimDiameter}</td>
+                      <td>{supplier ? supplier.name : "—"}</td>
+                      <td>{p.price}</td>
+                      <td>
+                        <button onClick={() => handleEdit(p, "Tire")}>Edit</button>
+                        <button onClick={() => handleDelete(p, "Tire")}>
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -287,30 +300,35 @@ const Products = () => {
                   <th>Offset</th>
                   <th>Bolt Pattern</th>
                   <th>Center Bore</th>
+                  <th>Supplier</th>
                   <th>Price</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filterProducts(mags).map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.productId}</td>
-                    <td>{p.brand}</td>
-                    <td>{p.model}</td>
-                    <td>{p.wheelDiameter}</td>
-                    <td>{p.wheelWidth}</td>
-                    <td>{p.offset}</td>
-                    <td>{p.boltPattern}</td>
-                    <td>{p.centerBore}</td>
-                    <td>{p.price}</td>
-                    <td>
-                      <button onClick={() => handleEdit(p, "Mags")}>Edit</button>
-                      <button onClick={() => handleDelete(p, "Mags")}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filterProducts(mags).map((p) => {
+                  const supplier = suppliers.find((s) => s.id === p.supplierId);
+                  return (
+                    <tr key={p.id}>
+                      <td>{p.productId}</td>
+                      <td>{p.brand}</td>
+                      <td>{p.model}</td>
+                      <td>{p.wheelDiameter}</td>
+                      <td>{p.wheelWidth}</td>
+                      <td>{p.offset}</td>
+                      <td>{p.boltPattern}</td>
+                      <td>{p.centerBore}</td>
+                      <td>{supplier ? supplier.name : "—"}</td>
+                      <td>{p.price}</td>
+                      <td>
+                        <button onClick={() => handleEdit(p, "Mags")}>Edit</button>
+                        <button onClick={() => handleDelete(p, "Mags")}>
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -437,6 +455,22 @@ const Products = () => {
                   </div>
                 </>
               )}
+
+              <div className="form-group">
+                <label>Supplier</label>
+                <select
+                  name="supplierId"
+                  value={formData.supplierId}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select Supplier</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className="form-group">
                 <label>Price</label>
