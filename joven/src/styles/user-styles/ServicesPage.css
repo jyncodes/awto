@@ -1,0 +1,78 @@
+/* 🌐 Base Layout */
+.services-main {
+  background-color: #f9f9f9;
+  padding-top: 80px;
+  font-family: "Poppins", sans-serif;
+  color: #222;
+}
+
+/* 🏷️ Section Styling */
+.services-section {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 60px 20px 100px;
+  text-align: center;
+}
+
+/* 🔠 Title */
+.services-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #d6006e;
+  text-transform: uppercase;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.services-title::after {
+  content: "";
+  display: block;
+  width: 80px;
+  height: 4px;
+  background: #d6006e;
+  margin: 10px auto 0;
+  border-radius: 2px;
+}
+
+/* 📋 Service List */
+.services-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  line-height: 2;
+}
+
+.service-item {
+  font-size: 1.2rem;
+  padding: 10px 0;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.service-item:hover {
+  color: #d6006e;
+  padding-left: 10px;
+}
+
+/* ✨ Highlighted Item (from LandingPage click) */
+.highlight-text {
+  color: #d6006e;
+  font-weight: 700;
+  background-color: #ffe6f2;
+  border-radius: 5px;
+  padding-left: 10px;
+  transition: background 0.5s ease;
+}
+
+/* 📱 Responsive */
+@media (max-width: 768px) {
+  .services-title {
+    font-size: 2rem;
+  }
+
+  .service-item {
+    font-size: 1rem;
+  }
+}

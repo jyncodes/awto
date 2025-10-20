@@ -1,29 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   useLocation,
   useNavigate,
-} from 'react-router-dom';
+} from "react-router-dom";
 
 // Public Pages
-import LandingPage from './pages/LandingPage';
-import Register from './pages/Register';
-import ViewProduct from './pages/user-page/ViewProduct';
-import Verify from './pages/Verify';
+import LandingPage from "./pages/LandingPage";
+import Register from "./pages/Register";
+import ViewProduct from "./pages/user-page/ViewProduct";
+import Verify from "./pages/Verify";
+import ServicesPage from "./pages/user-page/ServicesPage"; // ✅ Added import
 
 // Admin Pages
 import AdminDashboard from './pages/admin-page/AdminDashboard';
-import AdminSales from './pages/admin-page/AdminSales';
-import AdminInventory from './pages/admin-page/AdminInventory';
+import AdminSales from './pages/admin-page/Sales';
+import AdminInventory from './pages/admin-page/Inventory';
 import AdminProducts from './pages/admin-page/Products';
 import AdminStaffs from './pages/admin-page/Staffs';
-import AdminReservations from './pages/admin-page/AdminReservations';
+import AdminReservations from './pages/admin-page/Reservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
-import AdminSuppliers from './pages/admin-page/Supplier';
+import AdminSuppliers from './pages/admin-page/Supplier'; // ✅ Added import
 
 // User Pages
 import UserDashboard from './pages/user-page/UserDashboard';
@@ -32,18 +33,20 @@ import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
 import ReceiptPage from './pages/user-page/ReceiptPage';
 import DevTools from './pages/user-page/DevTools';
+
+// Reservation Page
 import ReservationPage from './pages/user-page/ReservationPage';
 
 // Staff Pages
-import StaffDashboard from './pages/staff-page/StaffDashboard';
-import StaffInventory from './pages/staff-page/StaffInventory';
-import StaffSales from './pages/staff-page/StaffSales';
-import StaffReservation from './pages/staff-page/StaffReservation';
+import StaffDashboard from "./pages/staff-page/StaffDashboard";
+import StaffInventory from "./pages/staff-page/StaffInventory";
+import StaffSales from "./pages/staff-page/StaffSales";
+import StaffReservation from "./pages/staff-page/StaffReservation";
 
 // Auth Guards
-import ProtectedRoute from './routes/ProtectedRoute';
-import RedirectIfAuthenticated from './routes/RedirectIfAuthenticated';
-import RequireVerifiedEmail from './routes/RequireVerifiedEmail';
+import ProtectedRoute from "./routes/ProtectedRoute";
+import RedirectIfAuthenticated from "./routes/RedirectIfAuthenticated";
+import RequireVerifiedEmail from "./routes/RequireVerifiedEmail";
 
 // Utility wrapper to pass origin
 const WithOrigin = ({ children }) => {
@@ -57,14 +60,14 @@ const GlobalKeyboardShortcuts = () => {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.key === '*' && e.shiftKey) || e.key === '*') {
+      if ((e.key === "*" && e.shiftKey) || e.key === "*") {
         e.preventDefault();
-        navigate('/devtools');
+        navigate("/devtools");
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [navigate]);
 
   return null;
@@ -99,6 +102,8 @@ export default function App() {
         />
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
+
+        {/* ✅ DevTools Route */}
         <Route path="/devtools" element={<DevTools />} />
 
         {/* ================= USER ROUTES ================= */}
