@@ -6,11 +6,12 @@
   font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #2c3e50;
   background-color: #ffffff;
+  overflow-x: hidden;
 }
 
 /* ================= HEADER ================= */
 .inventory-page-title {
-  font-size: 1.8rem;
+  font-size: 1.9rem;
   font-weight: 700;
   margin-bottom: 0.3rem;
   color: #1e293b;
@@ -19,7 +20,7 @@
 .inventory-page-subtitle {
   font-size: 1rem;
   color: #64748b;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.8rem;
 }
 
 /* ================= CONTROLS ================= */
@@ -29,13 +30,13 @@
   gap: 1rem;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.8rem;
 }
 
 .search-bar {
   flex: 1;
-  min-width: 200px;
-  padding: 0.6rem 1rem;
+  min-width: 220px;
+  padding: 0.7rem 1rem;
   font-size: 0.95rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
@@ -49,7 +50,7 @@
 }
 
 .sort-select {
-  padding: 0.6rem 1rem;
+  padding: 0.7rem 1rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 0.95rem;
@@ -66,7 +67,7 @@
   background-color: #007bff;
   color: #fff;
   border: none;
-  padding: 0.6rem 1.4rem;
+  padding: 0.7rem 1.5rem;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.95rem;
@@ -84,13 +85,14 @@
   background-color: #fff;
   padding: 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   overflow-x: auto;
 }
 
 .inventory-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px;
 }
 
 .inventory-table thead {
@@ -99,10 +101,11 @@
 
 .inventory-table th,
 .inventory-table td {
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.2rem;
   text-align: left;
   font-size: 0.9rem;
   border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
 }
 
 .inventory-table th {
@@ -134,18 +137,26 @@
 }
 
 /* ================= ACTION BUTTONS ================= */
+.actions-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
 .btn-edit,
-.btn-supplier {
-  padding: 0.4rem 1rem;
+.btn-contact {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
   border: none;
   border-radius: 6px;
   font-size: 0.9rem;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s ease;
-  margin-right: 0.4rem;
+  text-align: center;
 }
 
+/* EDIT BUTTON */
 .btn-edit {
   background-color: #10b981;
   color: #fff;
@@ -156,12 +167,13 @@
   transform: scale(1.05);
 }
 
-.btn-supplier {
+/* CONTACT SUPPLIER BUTTON */
+.btn-contact {
   background-color: #f59e0b;
   color: #fff;
 }
 
-.btn-supplier:hover {
+.btn-contact:hover {
   background-color: #d97706;
   transform: scale(1.05);
 }
@@ -170,7 +182,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
   z-index: 9999;
   display: flex;
   justify-content: center;
@@ -181,31 +193,31 @@
 /* ================= MODAL CONTENT ================= */
 .modal-content {
   background-color: #fff;
-  padding: 2rem;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 80vh;
+  padding: 2rem 2.5rem;
+  border-radius: 14px;
+  width: 95%;
+  max-width: 700px;
+  max-height: 85vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s ease;
 }
 
 /* ================= EDIT FORM ================= */
 .edit-form {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
 }
 
 .edit-form label {
   font-weight: 600;
   color: #374151;
-  margin-top: 0.5rem;
 }
 
 .edit-form input {
-  padding: 0.5rem 0.8rem;
+  padding: 0.6rem 0.8rem;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-size: 0.95rem;
@@ -223,17 +235,19 @@
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .btn-submit {
   background-color: #007bff;
   color: #fff;
   border: none;
-  padding: 0.6rem 1.2rem;
+  padding: 0.7rem 1.4rem;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .btn-submit:hover {
@@ -244,7 +258,7 @@
   background-color: #e11d48;
   color: #fff;
   border: none;
-  padding: 0.6rem 1.2rem;
+  padding: 0.7rem 1.4rem;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
@@ -258,7 +272,7 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -267,30 +281,79 @@
 }
 
 /* ================= RESPONSIVE ================= */
+@media (max-width: 1024px) {
+  .inventory-page-container {
+    padding: 1.5rem;
+  }
+
+  .inventory-table {
+    min-width: 700px;
+  }
+
+  .inventory-page-title {
+    font-size: 1.6rem;
+  }
+
+  .restock-btn {
+    width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   .inventory-controls {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.8rem;
+  }
+
+  .inventory-card {
+    padding: 1rem;
   }
 
   .inventory-page-title {
     font-size: 1.5rem;
   }
 
+  .inventory-table {
+    min-width: 600px;
+  }
+
   .modal-content {
     width: 95%;
     padding: 1.5rem;
-  }
-
-  .inventory-table th,
-  .inventory-table td {
-    font-size: 0.8rem;
-    padding: 0.6rem;
+    max-height: 80vh;
   }
 
   .btn-edit,
-  .btn-supplier {
-    font-size: 0.8rem;
-    padding: 0.3rem 0.8rem;
+  .btn-contact {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .inventory-page-container {
+    padding: 1rem;
+  }
+
+  .inventory-table {
+    min-width: 500px;
+  }
+
+  .btn-edit,
+  .btn-contact {
+    display: block;
+    width: 100%;
+    margin: 0.3rem 0;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-submit,
+  .btn-delete {
+    width: 100%;
   }
 }
