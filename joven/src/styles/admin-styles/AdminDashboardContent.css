@@ -1,23 +1,24 @@
-/* ============================
- 🌟 Admin Dashboard Content (Revised like UserProfile.css)
-============================ */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+/* ===========================
+   📊 ADMIN DASHBOARD CONTENT
+   (Unified with Sidebar Theme)
+=========================== */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
 
 .dashboard-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 2rem 1.5rem;
-  background-color: #f9fafb;
+  background-color: #f4f4f4; /* match admin layout bg */
   min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   color: #1e293b;
   transition: all 0.3s ease;
 }
 
-/* ============================
- 🏷️ Header Section
-============================ */
+/* ===========================
+   🏷️ HEADER
+=========================== */
 .dashboard-header {
   width: 100%;
   text-align: center;
@@ -26,9 +27,8 @@
 
 .dashboard-title {
   font-size: 2rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #1e293b;
-  margin-bottom: 0.25rem;
 }
 
 .dashboard-subtitle {
@@ -36,114 +36,140 @@
   color: #6b7280;
 }
 
-/* ============================
- 🧮 Summary Cards Grid
-============================ */
-.summary-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.5rem;
-  justify-items: center;
-  max-width: 1100px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 0 0.5rem;
-}
-
-/* ============================
- 🪧 Individual Summary Card
-============================ */
-.card {
+/* ===========================
+   📈 CHART CARDS
+=========================== */
+.chart-card {
   background-color: #ffffff;
-  width: 100%;
   padding: 1.5rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  width: 100%;
+  max-width: 1100px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 2rem;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.card:hover {
-  transform: translateY(-4px);
+.chart-card:hover {
+  transform: translateY(-3px);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
 }
 
-/* ============================
- ✍️ Card Text Section
-============================ */
-.card-content {
+.chart-card h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+/* ===========================
+   📊 OVERVIEW SECTION (TABLES)
+=========================== */
+.overview-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1100px;
+}
+
+.overview-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  justify-content: space-between;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.card-label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #64748b;
+.overview-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
 }
 
-.card-value {
-  font-size: 1.7rem;
-  font-weight: 700;
+.overview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.overview-header h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
   color: #1e293b;
 }
 
-.card-subtext {
-  font-size: 0.8rem;
-  color: #94a3b8;
+/* ===========================
+   🧾 TABLE STYLES
+=========================== */
+.overview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
 }
 
-.positive-change {
+.overview-table th,
+.overview-table td {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.overview-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.overview-table tbody tr:hover {
+  background-color: #fef3c7; /* light yellow hover */
+}
+
+.overview-table td {
+  color: #1e293b;
+}
+
+.overview-table td[colspan] {
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+/* ===========================
+   🎨 STATUS COLORS
+=========================== */
+.status-completed {
   color: #10b981;
   font-weight: 600;
 }
 
-.negative-change {
+.status-pending {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.status-cancelled {
   color: #ef4444;
   font-weight: 600;
 }
 
-/* ============================
- 🧭 Card Icon Section
-============================ */
-.card-icon-wrapper {
-  font-size: 1.5rem;
-  border-radius: 50%;
-  padding: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 48px;
-  min-height: 48px;
-  background-color: rgba(0, 0, 0, 0.03);
-}
-
-.card-icon-text {
-  font-size: 1.8rem;
-}
-
-/* ============================
- 🌈 Background Variants
-============================ */
-.purple-bg { background-color: #f5f3ff; color: #5b21b6; }
-.green-bg  { background-color: #ecfdf5; color: #047857; }
-.yellow-bg { background-color: #fefce8; color: #92400e; }
-.blue-bg   { background-color: #eff6ff; color: #1d4ed8; }
-.pink-bg   { background-color: #fdf2f8; color: #be185d; }
-.red-bg    { background-color: #fee2e2; color: #b91c1c; }
-
-/* ============================
- 📱 Responsive Design
-============================ */
+/* ===========================
+   📱 RESPONSIVE DESIGN
+=========================== */
 @media (max-width: 1024px) {
   .dashboard-title {
     font-size: 1.75rem;
   }
 
-  .card {
+  .chart-card {
     padding: 1.25rem;
   }
 }
@@ -157,13 +183,14 @@
     font-size: 1.5rem;
   }
 
-  .card-value {
-    font-size: 1.5rem;
+  .chart-card h2,
+  .overview-header h2 {
+    font-size: 1.1rem;
   }
 
-  .card-icon-wrapper {
-    font-size: 1.4rem;
-    padding: 0.6rem;
+  .overview-table th,
+  .overview-table td {
+    padding: 0.5rem;
   }
 }
 
@@ -172,15 +199,20 @@
     font-size: 1.3rem;
   }
 
-  .card {
+  .chart-card,
+  .overview-card {
     padding: 1rem;
   }
 
-  .card-label {
-    font-size: 0.85rem;
+  .overview-section {
+    grid-template-columns: 1fr;
   }
 
-  .card-subtext {
-    font-size: 0.7rem;
+  .overview-table th {
+    font-size: 0.8rem;
+  }
+
+  .overview-table td {
+    font-size: 0.8rem;
   }
 }
