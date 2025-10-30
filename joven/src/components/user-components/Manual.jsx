@@ -1,49 +1,65 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
 import "../../styles/user-styles/Manual.css";
 
 const Manual = () => {
   const navigate = useNavigate();
 
-  // Firestore data
   const [vehicleData, setVehicleData] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Selection states
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
-  const [type, setType] = useState(""); // Tire or Wheel
+  const [year, setYear] = useState("");
+  const [type, setType] = useState("");
   const [size, setSize] = useState("");
 
-  // === Fetch vehicle fitments (based on Vehicles.jsx structure) ===
+  // === 🔄 Real-time Firestore fetch ===
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "vehicleFitment"));
-        const data = {};
+    const unsubscribe = onSnapshot(
+      collection(db, "vehicleFitment"),
+      (snapshot) => {
+        const dataMap = {};
+
         snapshot.forEach((docSnap) => {
-          const { brand, model, tireFitments = [], wheelFitments = [] } =
-            docSnap.data();
-          if (!brand || !model) return;
-          if (!data[brand]) data[brand] = {};
-          data[brand][model] = { tireFitments, wheelFitments };
+          const data = docSnap.data();
+          const {
+            brand,
+            model,
+            year,
+            tireFitments = [],
+            wheelFitments = [],
+          } = data;
+
+          if (!brand || !model || !year) return;
+
+          if (!dataMap[brand]) dataMap[brand] = {};
+          if (!dataMap[brand][model]) dataMap[brand][model] = {};
+          dataMap[brand][model][year] = {
+            tireFitments: Array.isArray(tireFitments) ? tireFitments : [],
+            wheelFitments: Array.isArray(wheelFitments) ? wheelFitments : [],
+          };
         });
-        setVehicleData(data);
-      } catch (error) {
-        console.error("❌ Error fetching vehicle fitments:", error);
-      } finally {
+
+        setVehicleData(dataMap);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("❌ Firestore Error:", err);
         setLoading(false);
       }
-    };
-    fetchData();
+    );
+
+    return () => unsubscribe();
   }, []);
 
-  // === Reset selections ===
+  // === Reset ===
   const handleClear = () => {
     setBrand("");
     setModel("");
+    setYear("");
     setType("");
     setSize("");
   };
@@ -51,46 +67,43 @@ const Manual = () => {
   // === Dropdown Options ===
   const brandOptions = Object.keys(vehicleData);
   const modelOptions = brand ? Object.keys(vehicleData[brand] || {}) : [];
+  const yearOptions =
+    brand && model ? Object.keys(vehicleData[brand][model] || {}) : [];
   const typeOptions = ["Tire", "Wheel"];
 
-  // === Size Options based on selected type ===
+  // === Size Options (handle all fitments properly) ===
   const sizeOptions =
-    brand && model && type && vehicleData[brand][model]
+    brand && model && year && type
       ? (type === "Tire"
-          ? vehicleData[brand][model].tireFitments.map((f) => {
-              if (f.tireWidth && f.aspectRatio && f.rimDiameter) {
-                return `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`;
-              }
-              return null;
+          ? vehicleData[brand][model][year]?.tireFitments.map((f, i) => {
+              const label = `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`;
+              return { id: `${label}-${i}`, label };
             })
-          : vehicleData[brand][model].wheelFitments.map((f) => {
-              if (f.wheelDiameter && f.wheelWidth && f.boltPattern) {
-                return `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}`;
-              }
-              return null;
-            })
-        ).filter(Boolean)
+          : vehicleData[brand][model][year]?.wheelFitments.map((f, i) => {
+              const label = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}`;
+              return { id: `${label}-${i}`, label };
+            })) || []
       : [];
 
-  // === Get selected fitment details ===
+  // === Selected Fitment ===
   const selectedFitment =
-    brand && model && type && size
+    brand && model && year && type && size
       ? (type === "Tire"
-          ? vehicleData[brand][model].tireFitments.find((f) => {
+          ? vehicleData[brand][model][year]?.tireFitments.find((f) => {
               const formatted = `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`;
               return formatted === size;
             })
-          : vehicleData[brand][model].wheelFitments.find((f) => {
+          : vehicleData[brand][model][year]?.wheelFitments.find((f) => {
               const formatted = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}`;
               return formatted === size;
             }))
       : null;
 
-  // === Handle "Shop Now" navigation ===
+  // === Shop Now Button ===
   const handleShopNow = (e) => {
     e.preventDefault();
 
-    if (!brand || !model || !type || !size) {
+    if (!brand || !model || !year || !type || !size) {
       alert("⚠️ Please select all fields before proceeding.");
       return;
     }
@@ -103,11 +116,12 @@ const Manual = () => {
     navigate("/user-dashboard", {
       state: {
         selectionType: "fitment",
-        vehicleLabel: `${brand} ${model} - ${type} ${size}`,
+        vehicleLabel: `${brand} ${model} (${year}) - ${type} ${size}`,
         fitment: {
           type: type.toLowerCase(),
-          size: size,
-          rimDiameter: selectedFitment.rimDiameter || selectedFitment.wheelDiameter || "",
+          size,
+          rimDiameter:
+            selectedFitment.rimDiameter || selectedFitment.wheelDiameter || "",
           width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
           boltPattern: selectedFitment.boltPattern || "",
           offset: selectedFitment.offset || "",
@@ -126,7 +140,7 @@ const Manual = () => {
       ) : (
         <form onSubmit={handleShopNow}>
           <div className="fitment-row">
-            {/* Brand Dropdown */}
+            {/* Brand */}
             <select value={brand} onChange={(e) => setBrand(e.target.value)}>
               <option value="">Select Brand</option>
               {brandOptions.map((b) => (
@@ -136,7 +150,7 @@ const Manual = () => {
               ))}
             </select>
 
-            {/* Model Dropdown */}
+            {/* Model */}
             <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
@@ -150,11 +164,25 @@ const Manual = () => {
               ))}
             </select>
 
-            {/* Type Dropdown */}
+            {/* Year */}
+            <select
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              disabled={!model}
+            >
+              <option value="">Select Year</option>
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+
+            {/* Type */}
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              disabled={!model}
+              disabled={!year}
             >
               <option value="">Select Type</option>
               {typeOptions.map((t) => (
@@ -164,7 +192,7 @@ const Manual = () => {
               ))}
             </select>
 
-            {/* Size Dropdown */}
+            {/* Size */}
             <select
               value={size}
               onChange={(e) => setSize(e.target.value)}
@@ -172,17 +200,16 @@ const Manual = () => {
             >
               <option value="">Select Size</option>
               {sizeOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+                <option key={s.id} value={s.label}>
+                  {s.label}
                 </option>
               ))}
             </select>
 
-            {/* Buttons */}
             <button
               type="submit"
               className="shop-now-btn"
-              disabled={!brand || !model || !type || !size}
+              disabled={!brand || !model || !year || !type || !size}
             >
               Shop Now
             </button>
@@ -194,12 +221,11 @@ const Manual = () => {
         </form>
       )}
 
-      {/* Fitment Preview */}
       {selectedFitment && (
         <div className="fitment-preview">
           <h3>Selected Vehicle</h3>
           <p>
-            {brand} {model} — {type} {size}
+            {brand} {model} ({year}) — {type} {size}
           </p>
 
           <h4>Fitment Details</h4>
