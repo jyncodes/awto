@@ -1,4 +1,4 @@
-// src/components/dev-components/CarData.jsx
+// ✅ src/components/dev-components/CarData.jsx
 import React, { useState, useEffect } from "react";
 import {
   collection,
@@ -25,6 +25,7 @@ const CarData = () => {
   const [form, setForm] = useState({
     brand: "",
     model: "",
+    year: "",
     type: "",
     tireFitments: [],
     wheelFitments: [],
@@ -39,18 +40,23 @@ const CarData = () => {
     boltPattern: "",
   });
 
-  // === Real-time Fetch from Firestore ===
+  // === 🔄 Real-time Fetch from Firestore ===
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "vehicleFitment"),
       (snapshot) => {
         const data = {};
         snapshot.forEach((docSnap) => {
-          const { brand, model, tireFitments = [], wheelFitments = [] } =
+          const { brand, model, year, tireFitments = [], wheelFitments = [] } =
             docSnap.data();
           if (!brand || !model) return;
           if (!data[brand]) data[brand] = {};
-          data[brand][model] = { tireFitments, wheelFitments, id: docSnap.id };
+          if (!data[brand][model]) data[brand][model] = {};
+          data[brand][model][year] = {
+            tireFitments,
+            wheelFitments,
+            id: docSnap.id,
+          };
         });
         setVehicleData(data);
         setLoading(false);
@@ -60,42 +66,31 @@ const CarData = () => {
         setLoading(false);
       }
     );
-
     return () => unsubscribe();
   }, []);
 
-  // === Add Fitment ===
+  // === ➕ Add Fitment ===
   const handleAddFitment = () => {
-    const isEmpty = Object.values(fitmentFields).every((v) => v.trim() === "");
-    if (isEmpty) return alert("⚠️ Please fill at least one fitment field.");
+    if (!form.type) return alert("⚠️ Please select Tire or Wheel first.");
 
-    let newFitment;
     if (form.type === "Tire") {
-      newFitment = {
-        tireWidth: fitmentFields.tireWidth.trim(),
-        aspectRatio: fitmentFields.aspectRatio.trim(),
-        rimDiameter: fitmentFields.rimDiameter.trim(),
-      };
-      const isDuplicate = form.tireFitments.some(
-        (f) => JSON.stringify(f) === JSON.stringify(newFitment)
-      );
-      if (isDuplicate)
-        return alert("⚠️ Duplicate tire fitment detected. Not added again.");
-
-      setForm({ ...form, tireFitments: [...form.tireFitments, newFitment] });
-    } else if (form.type === "Wheel") {
-      newFitment = {
-        wheelDiameter: fitmentFields.wheelDiameter.trim(),
-        wheelWidth: fitmentFields.wheelWidth.trim(),
-        boltPattern: fitmentFields.boltPattern.trim(),
-      };
-      const isDuplicate = form.wheelFitments.some(
-        (f) => JSON.stringify(f) === JSON.stringify(newFitment)
-      );
-      if (isDuplicate)
-        return alert("⚠️ Duplicate wheel fitment detected. Not added again.");
-
-      setForm({ ...form, wheelFitments: [...form.wheelFitments, newFitment] });
+      const { tireWidth, aspectRatio, rimDiameter } = fitmentFields;
+      if (!tireWidth || !aspectRatio || !rimDiameter)
+        return alert("⚠️ Please fill Tire Width, Aspect Ratio, and Rim Diameter.");
+      const newFitment = { tireWidth, aspectRatio, rimDiameter };
+      setForm((prev) => ({
+        ...prev,
+        tireFitments: [...prev.tireFitments, newFitment],
+      }));
+    } else {
+      const { wheelDiameter, wheelWidth, boltPattern } = fitmentFields;
+      if (!wheelDiameter || !wheelWidth || !boltPattern)
+        return alert("⚠️ Please fill Wheel Diameter, Wheel Width, and Bolt Pattern.");
+      const newFitment = { wheelDiameter, wheelWidth, boltPattern };
+      setForm((prev) => ({
+        ...prev,
+        wheelFitments: [...prev.wheelFitments, newFitment],
+      }));
     }
 
     setFitmentFields({
@@ -108,7 +103,7 @@ const CarData = () => {
     });
   };
 
-  // === Remove Fitment (before saving) ===
+  // === 🗑 Remove Fitment ===
   const handleRemoveFitment = (index, type) => {
     if (type === "Tire") {
       setForm({
@@ -123,84 +118,57 @@ const CarData = () => {
     }
   };
 
-  // === Upload or Update Vehicle Fitment ===
+  // === 🚀 Upload to Firestore ===
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!form.brand || !form.model || !form.type)
-      return alert("⚠️ Please fill Brand, Model, and Type.");
+
+    if (!form.brand || !form.model || !form.year)
+      return alert("⚠️ Please complete Brand, Model, and Year fields.");
+
+    if (form.tireFitments.length === 0 && form.wheelFitments.length === 0)
+      return alert("⚠️ Please add at least one fitment before saving.");
 
     try {
       const ref = collection(db, "vehicleFitment");
       const q = query(
         ref,
         where("brand", "==", form.brand),
-        where("model", "==", form.model)
+        where("model", "==", form.model),
+        where("year", "==", form.year)
       );
       const snap = await getDocs(q);
 
       if (!snap.empty) {
         const existingDoc = snap.docs[0];
-        const existingData = existingDoc.data();
         const docRef = doc(db, "vehicleFitment", existingDoc.id);
 
-        const existingTires = existingData.tireFitments || [];
-        const existingWheels = existingData.wheelFitments || [];
+        await updateDoc(docRef, {
+          tireFitments: arrayUnion(...form.tireFitments),
+          wheelFitments: arrayUnion(...form.wheelFitments),
+          timestamp: serverTimestamp(),
+        });
 
-        const tireAdd = form.tireFitments.filter(
-          (f) =>
-            !existingTires.some((ef) => JSON.stringify(ef) === JSON.stringify(f))
-        );
-        const wheelAdd = form.wheelFitments.filter(
-          (f) =>
-            !existingWheels.some((ef) => JSON.stringify(ef) === JSON.stringify(f))
-        );
-
-        if (tireAdd.length === 0 && wheelAdd.length === 0)
-          return alert("⚠️ All fitments already exist — no new entries added.");
-
-        const updateData = { timestamp: serverTimestamp() };
-
-        // ✅ Initialize arrays if missing
-        if ((!existingData.tireFitments || existingData.tireFitments.length === 0) && form.tireFitments.length > 0) {
-          updateData.tireFitments = form.tireFitments;
-        } else if (tireAdd.length > 0) {
-          updateData.tireFitments = arrayUnion(...tireAdd);
-        }
-
-        if ((!existingData.wheelFitments || existingData.wheelFitments.length === 0) && form.wheelFitments.length > 0) {
-          updateData.wheelFitments = form.wheelFitments;
-        } else if (wheelAdd.length > 0) {
-          updateData.wheelFitments = arrayUnion(...wheelAdd);
-        }
-
-        await updateDoc(docRef, updateData);
-        alert("✅ Existing vehicle updated successfully!");
+        alert("✅ Existing vehicle fitment updated successfully!");
       } else {
         await addDoc(ref, {
           brand: form.brand,
           model: form.model,
+          year: form.year,
           tireFitments: form.tireFitments,
           wheelFitments: form.wheelFitments,
           timestamp: serverTimestamp(),
         });
-        alert("✅ New vehicle added successfully!");
+
+        alert("✅ New vehicle fitment added successfully!");
       }
 
-      // Reset form
       setForm({
         brand: "",
         model: "",
+        year: "",
         type: "",
         tireFitments: [],
         wheelFitments: [],
-      });
-      setFitmentFields({
-        tireWidth: "",
-        aspectRatio: "",
-        rimDiameter: "",
-        wheelDiameter: "",
-        wheelWidth: "",
-        boltPattern: "",
       });
     } catch (err) {
       console.error("Upload failed:", err);
@@ -228,15 +196,16 @@ const CarData = () => {
     : [];
   const typeOptions = ["Tire", "Wheel"];
 
+  // ✅ Safe access with optional chaining
   const fitmentList =
-    selectedBrand &&
-    selectedModel &&
-    selectedType &&
-    vehicleData[selectedBrand] &&
-    vehicleData[selectedBrand][selectedModel]
-      ? vehicleData[selectedBrand][selectedModel][
-          selectedType === "Tire" ? "tireFitments" : "wheelFitments"
-        ] || []
+    vehicleData?.[selectedBrand]?.[selectedModel]
+      ? Object.values(vehicleData[selectedBrand][selectedModel])
+          .map((v) =>
+            selectedType === "Tire"
+              ? v?.tireFitments || []
+              : v?.wheelFitments || []
+          )
+          .flat()
       : [];
 
   return (
@@ -259,6 +228,12 @@ const CarData = () => {
               value={form.model}
               onChange={(e) => setForm({ ...form, model: e.target.value })}
             />
+            <input
+              type="text"
+              placeholder="Year"
+              value={form.year}
+              onChange={(e) => setForm({ ...form, year: e.target.value })}
+            />
             <select
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
@@ -269,7 +244,7 @@ const CarData = () => {
             </select>
           </div>
 
-          {/* Fitment Inputs */}
+          {/* Tire Inputs */}
           {form.type === "Tire" && (
             <div className="fitment-fields">
               <input
@@ -299,6 +274,7 @@ const CarData = () => {
             </div>
           )}
 
+          {/* Wheel Inputs */}
           {form.type === "Wheel" && (
             <div className="fitment-fields">
               <input
@@ -338,9 +314,52 @@ const CarData = () => {
           </div>
         </form>
 
+        {/* Preview before Upload */}
+        {(form.tireFitments.length > 0 || form.wheelFitments.length > 0) && (
+          <div className="preview-section">
+            <h3>🧾 Fitments to be uploaded:</h3>
+            <table className="fitment-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Type</th>
+                  <th>Details</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {form.tireFitments.map((f, i) => (
+                  <tr key={`tire-${i}`}>
+                    <td>{i + 1}</td>
+                    <td>Tire</td>
+                    <td>
+                      {f.tireWidth}/{f.aspectRatio}R{f.rimDiameter}
+                    </td>
+                    <td>
+                      <button onClick={() => handleRemoveFitment(i, "Tire")}>❌</button>
+                    </td>
+                  </tr>
+                ))}
+                {form.wheelFitments.map((f, i) => (
+                  <tr key={`wheel-${i}`}>
+                    <td>{i + 1}</td>
+                    <td>Wheel</td>
+                    <td>
+                      {f.wheelDiameter}x{f.wheelWidth} ({f.boltPattern})
+                    </td>
+                    <td>
+                      <button onClick={() => handleRemoveFitment(i, "Wheel")}>❌</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         <hr className="divider" />
 
-        {/* View Uploaded Fitments */}
+        {/* 🔍 View Uploaded Fitments */}
         <h2>View Uploaded Fitments</h2>
         {loading ? (
           <p>Loading data...</p>
