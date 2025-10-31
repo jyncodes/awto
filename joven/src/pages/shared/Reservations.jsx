@@ -39,6 +39,7 @@ const Reservations = ({ role }) => {
       const updateData = { status: newStatus };
       const reservation = reservations.find((r) => r.id === id);
 
+      // ✅ When Approved: Send notification
       if (newStatus === "Approved") {
         updateData.approvedAt = serverTimestamp();
 
@@ -51,6 +52,20 @@ const Reservations = ({ role }) => {
             isRead: false,
           });
         }
+      }
+
+      // ✅ When Completed: Auto-record to Sales collection
+      if (newStatus === "Completed") {
+        await addDoc(collection(db, "sales"), {
+          reservationId: id,
+          customerName: reservation?.customerName || "Unknown",
+          service: reservation?.serviceType || reservation?.service || "Service",
+          totalAmount: reservation?.estimatedCost || 0,
+          createdAt: Timestamp.now(),
+          type: "service",
+          status: "completed",
+          createdBy: role,
+        });
       }
 
       await updateDoc(reservationRef, updateData);
@@ -123,7 +138,6 @@ const Reservations = ({ role }) => {
     }
   };
 
-  // 🔎 Filter logic (removed showUpcomingOnly)
   const filtered = reservations.filter((r) => {
     return `${r.customerName || ""} ${r.plateNumber || ""}`
       .toLowerCase()

@@ -205,7 +205,7 @@ const Inventory = ({ role }) => {
           product.type === "Tire"
             ? `${product.brand} ${product.model} ${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`
             : `${product.brand} ${product.model} ${product.wheelDiameter}x${product.wheelWidth}`,
-        quantity: 10, // default order quantity, can adjust if needed
+        quantity: 10,
         status: "Pending",
         createdAt: serverTimestamp(),
       });
@@ -285,7 +285,8 @@ const Inventory = ({ role }) => {
           <option value="modified-latest">Latest Modified</option>
         </select>
 
-        {(role === "admin" || role === "staff") && (
+        {/* ✅ Restock button only for Admin */}
+        {role === "admin" && (
           <button onClick={openRestockModal} className="restock-btn">
             Restock
           </button>
@@ -342,7 +343,7 @@ const Inventory = ({ role }) => {
                           >
                             Edit
                           </button>
-                          {Number(product.stock) <= 5 && (
+                          {Number(product.stock) <= 5 && role === "admin" && (
                             <button
                               className="btn-contact"
                               onClick={() => handleContactSupplier(product)}
