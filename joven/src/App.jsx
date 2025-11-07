@@ -26,6 +26,9 @@ import AdminSettings from './pages/admin-page/Settings';
 import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
 import AdminSuppliers from './pages/admin-page/Supplier'; // ✅ Added import
 
+// ✅ POS PAGE
+import POS from "./components/admin-components/POS";
+
 // User Pages
 import UserDashboard from './pages/user-page/UserDashboard';
 import UserProfile from './pages/user-page/UserProfile';
@@ -201,6 +204,18 @@ export default function App() {
           <Route path="customers" element={<AdminCustomers />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
+
+        {/* ✅ POS PAGE ROUTE — Only Admin can access */}
+        <Route
+          path="/pos"
+          element={
+            <RequireVerifiedEmail>
+              <ProtectedRoute allowedRole="Admin">
+                <POS />
+              </ProtectedRoute>
+            </RequireVerifiedEmail>
+          }
+        />
 
         {/* ================= STAFF ROUTES ================= */}
         <Route

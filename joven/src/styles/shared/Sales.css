@@ -148,6 +148,43 @@
   color: #1e293b;
 }
 
+/* ================= FULLSCREEN POS (REVISED) ================= */
+.fullscreen-pos {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.45); /* Dark overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fullscreen-pos > * {
+  width: 100%;
+  height: 100%;
+}
+
+.fullscreen-pos .close-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100000;
+  background: #ef4444;
+  color: white;
+  padding: 0.65rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.fullscreen-pos .close-btn:hover {
+  background-color: #dc2626;
+}
+
 /* ================= FORM INPUTS ================= */
 .input-field {
   width: 100%;
@@ -341,4 +378,23 @@
   .form-buttons {
     flex-direction: column;
   }
+}
+
+.pos-floating-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 14px 22px;
+  border-radius: 50px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 999;
+}
+
+.pos-floating-btn:hover {
+  opacity: 0.9;
 }
