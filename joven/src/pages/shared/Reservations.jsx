@@ -1,10 +1,10 @@
-// 📄 src/pages/shared/Reservations.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import {
   collection,
   onSnapshot,
   doc,
+  getDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
@@ -17,19 +17,39 @@ import "../../styles/shared/Reservations.css";
 
 const Reservations = ({ role }) => {
   const [reservations, setReservations] = useState([]);
+  const [userNames, setUserNames] = useState({}); // store userId:name mapping
   const [searchTerm, setSearchTerm] = useState("");
   const [selected, setSelected] = useState([]);
 
   const normalizedRole = (role || "").toLowerCase();
 
+  // 🔹 Load all reservations
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "reservations"), (snapshot) => {
+    const unsub = onSnapshot(collection(db, "reservations"), async (snapshot) => {
       const list = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       setReservations(list);
+
+      // 🔹 Fetch associated user names
+      const userIds = [
+        ...new Set(list.map((res) => res.userId).filter(Boolean)),
+      ];
+      const nameMap = {};
+      for (const uid of userIds) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", uid));
+          if (userDoc.exists()) {
+            nameMap[uid] = userDoc.data().name || "—";
+          }
+        } catch (err) {
+          console.error("Failed to fetch user:", uid, err);
+        }
+      }
+      setUserNames(nameMap);
     });
+
     return () => unsub();
   }, []);
 
@@ -58,7 +78,11 @@ const Reservations = ({ role }) => {
       if (newStatus === "Completed") {
         await addDoc(collection(db, "sales"), {
           reservationId: id,
-          customerName: reservation?.customerName || "Unknown",
+          customerName:
+            userNames[reservation?.userId] ||
+            reservation?.customerName ||
+            reservation?.userName ||
+            "Unknown",
           service: reservation?.serviceType || reservation?.service || "Service",
           totalAmount: reservation?.estimatedCost || 0,
           createdAt: Timestamp.now(),
@@ -92,7 +116,8 @@ const Reservations = ({ role }) => {
   const handleBulkDelete = async () => {
     if (normalizedRole !== "admin") return;
     if (selected.length === 0) return alert("No reservations selected.");
-    if (!window.confirm(`Delete ${selected.length} selected reservation(s)?`)) return;
+    if (!window.confirm(`Delete ${selected.length} selected reservation(s)?`))
+      return;
 
     try {
       for (let id of selected) {
@@ -138,10 +163,12 @@ const Reservations = ({ role }) => {
     }
   };
 
+  // 🔍 Filter search
   const filtered = reservations.filter((r) => {
-    return `${r.customerName || ""} ${r.plateNumber || ""}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const customerName =
+      userNames[r.userId] || r.customerName || r.userName || "";
+    const searchField = `${customerName} ${r.plateNumber || ""}`;
+    return searchField.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   return (
@@ -202,11 +229,17 @@ const Reservations = ({ role }) => {
           <tbody>
             {filtered.map((res) => {
               const scheduledDate =
-                res.preferredDateTime instanceof Timestamp
-                  ? res.preferredDateTime.toDate()
-                  : new Date(res.preferredDateTime);
+                res.preferredDate instanceof Timestamp
+                  ? res.preferredDate.toDate()
+                  : new Date(res.preferredDate || Date.now());
 
               const isPast = scheduledDate < new Date();
+
+              const customerName =
+                userNames[res.userId] ||
+                res.customerName ||
+                res.userName ||
+                "—";
 
               return (
                 <tr
@@ -234,7 +267,8 @@ const Reservations = ({ role }) => {
                       : "—"}
                   </td>
                   <td>{scheduledDate.toLocaleString() || "—"}</td>
-                  <td>{res.customerName || "—"}</td>
+                  {/* ✅ Customer name from users collection */}
+                  <td>{customerName}</td>
                   <td>{res.serviceType || res.service || "—"}</td>
                   <td>
                     {res.vehicleBrand} {res.vehicleModel} {res.vehicleYear}

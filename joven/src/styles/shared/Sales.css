@@ -102,6 +102,8 @@
   white-space: nowrap;
 }
 
+/* ================= ACTION BUTTONS ================= */
+
 /* View Receipt Button */
 .view-receipt-btn {
   background-color: #22c55e;
@@ -113,10 +115,29 @@
   cursor: pointer;
   font-size: 0.85rem;
   transition: all 0.25s ease;
+  margin-right: 6px;
 }
 
 .view-receipt-btn:hover {
   background-color: #16a34a;
+  transform: translateY(-1px);
+}
+
+/* ✅ Delete Sale Button */
+.delete-sale-btn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.25s ease;
+}
+
+.delete-sale-btn:hover {
+  background-color: #dc2626;
   transform: translateY(-1px);
 }
 
@@ -155,7 +176,7 @@
   width: 100vw;
   height: 100vh;
   z-index: 99999;
-  background: rgba(0, 0, 0, 0.45); /* Dark overlay */
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -380,6 +401,7 @@
   }
 }
 
+/* ================= POS FLOATING BUTTON ================= */
 .pos-floating-btn {
   position: fixed;
   bottom: 24px;
@@ -391,7 +413,7 @@
   border-radius: 50px;
   font-weight: bold;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   z-index: 999;
 }
 

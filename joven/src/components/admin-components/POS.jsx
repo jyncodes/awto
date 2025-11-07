@@ -9,6 +9,9 @@ import {
   doc,
   Timestamp,
   getDoc,
+  getDocs,
+  query,
+  where
 } from "firebase/firestore";
 import "../../styles/shared/Sales.css"; // for inputs/receipt common styles
 import "../../styles/admin-styles/POS.css"; // POS specific styling
@@ -19,11 +22,11 @@ const VAT_RATE = 0.12; // 12%
 export default function POS({ role }) {
   const navigate = useNavigate();
 
-  const [products, setProducts] = useState([]); // merged tires + mags
+  const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [search, setSearch] = useState("");
 
-  const [cart, setCart] = useState([]); // { id, brand, model, price, stock, type, qty, productId }
+  const [cart, setCart] = useState([]);
   const [paymentMode, setPaymentMode] = useState("Cash");
   const [cashReceived, setCashReceived] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
@@ -31,6 +34,38 @@ export default function POS({ role }) {
 
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [lastReceipt, setLastReceipt] = useState(null);
+
+  // 🧍 Customer-related states
+  const [customerName, setCustomerName] = useState("");
+  const [customerList, setCustomerList] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // 🔹 Load registered customers (role = "User")
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      const q = query(collection(db, "users"), where("role", "==", "User"));
+      const snap = await getDocs(q);
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setCustomerList(list);
+    };
+    fetchCustomers();
+  }, []);
+
+  // 🔹 Filter customers by search input
+  useEffect(() => {
+    if (!customerName.trim()) {
+      setFilteredCustomers([]);
+      return;
+    }
+    const term = customerName.toLowerCase();
+    const matches = customerList.filter(
+      (c) =>
+        (c.name && c.name.toLowerCase().includes(term)) ||
+        (c.email && c.email.toLowerCase().includes(term))
+    );
+    setFilteredCustomers(matches);
+  }, [customerName, customerList]);
 
   // Load products from both collections and merge them
   useEffect(() => {
@@ -102,9 +137,9 @@ export default function POS({ role }) {
           price: Number(product.price || 0),
           stock: product.stock || 0,
           type: product.type,
-          qty: 1,
+          qty: 1
         },
-        ...cart,
+        ...cart
       ]);
     }
   };
@@ -154,6 +189,9 @@ export default function POS({ role }) {
       alert("Cart is empty.");
       return;
     }
+
+    const finalCustomer = customerName.trim() || "Walk-in";
+
     if (!paymentMode) {
       alert("Choose a payment method.");
       return;
@@ -167,8 +205,7 @@ export default function POS({ role }) {
       }
     } else {
       if (!paymentRef || paymentRef.trim().length < 3) {
-        if (!window.confirm("No payment reference provided. Continue anyway?"))
-          return;
+        if (!window.confirm("No payment reference provided. Continue anyway?")) return;
       }
     }
 
@@ -180,17 +217,15 @@ export default function POS({ role }) {
         quantity: i.qty,
         unitPrice: i.price,
         lineTotal: i.price * i.qty,
-        type: i.type,
+        type: i.type
       }));
 
-      // ✅ Fix: Always store actual logged-in user UID and info
       let createdByName = role || "Staff";
       let createdByRole = role || "Staff";
-      let createdByUID = auth?.currentUser?.uid || null;
-
       try {
-        if (createdByUID) {
-          const userDocRef = doc(db, "users", createdByUID);
+        const uid = auth?.currentUser?.uid;
+        if (uid) {
+          const userDocRef = doc(db, "users", uid);
           const userSnap = await getDoc(userDocRef);
           if (userSnap.exists()) {
             const u = userSnap.data();
@@ -203,7 +238,7 @@ export default function POS({ role }) {
       }
 
       const saleData = {
-        customerName: lastReceipt?.customerName || "Walk-in",
+        customerName: finalCustomer,
         products: productsArray,
         subtotal,
         vat,
@@ -213,9 +248,9 @@ export default function POS({ role }) {
         createdAt: Timestamp.now(),
         type: "in-store",
         status: "completed",
-        createdBy: createdByUID,
+        createdBy: auth?.currentUser?.uid || null,
         createdByName,
-        createdByRole,
+        createdByRole
       };
 
       const saleRef = await addDoc(collection(db, "sales"), saleData);
@@ -242,19 +277,21 @@ export default function POS({ role }) {
         items: productsArray,
         subtotal,
         vat,
-        total: total,
+        total,
         paymentMode,
         cashReceived: Number(cashReceived || 0),
         change: Number(cashReceived || 0) - total,
         createdByName,
         createdByRole,
         createdAt: new Date().toISOString(),
+        customerName: finalCustomer
       };
 
       setCart([]);
       setPaymentMode("Cash");
       setCashReceived("");
       setPaymentRef("");
+      setCustomerName("");
 
       setLastReceipt(receipt);
       setReceiptOpen(true);
@@ -272,23 +309,413 @@ export default function POS({ role }) {
     setLastReceipt(null);
   };
 
-  const handlePrintReceipt = () => {
-    window.print();
-  };
+  const handlePrintReceipt = () => window.print();
 
   return (
     <div className="pos-container">
       <div className="pos-header">
         <div>Joven Tire Enterprise — Point of Sale</div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="pos-close-btn" onClick={() => navigate("/admin-dashboard")}>
+          <button
+            className="pos-close-btn"
+            onClick={() => navigate("/admin-dashboard")}
+          >
             Back to Dashboard
           </button>
         </div>
       </div>
 
-      {/* Rest of your UI (unchanged) */}
-      {/* ... */}
+      <div className="pos-main">
+        {/* Products list */}
+        <div className="pos-product-list">
+          <div className="pos-search">
+            <input
+              placeholder="Search product by brand / model / id..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button onClick={() => setSearch(search)}>Search</button>
+          </div>
+
+          <div className="pos-product-items-container">
+            {filteredProducts.length === 0 && (
+              <div style={{ color: "#64748b" }}>No products</div>
+            )}
+            {filteredProducts.map((p) => (
+              <div className="pos-product-item" key={p.id}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>
+                    {p.brand} {p.model}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#64748b",
+                      marginTop: 4
+                    }}
+                  >
+                    {p.productId
+                      ? `ID: ${p.productId}`
+                      : `ID: ${p.id}`}{" "}
+                    — ₱{Number(p.price || 0).toFixed(2)} — {p.stock ?? 0} in stock
+                  </div>
+                </div>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                >
+                  <button
+                    className="btn-submit"
+                    onClick={() => addToCart(p)}
+                    disabled={(p.stock || 0) <= 0}
+                  >
+                    Add
+                  </button>
+                  <button className="btn-cancel" onClick={() => addToCart(p)}>
+                    Quick
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Cart */}
+        <div className="pos-cart">
+          <h3 style={{ marginTop: 0 }}>Cart</h3>
+
+          <div className="cart-items-container">
+            {cart.length === 0 ? (
+              <div style={{ color: "#64748b" }}>Cart is empty</div>
+            ) : (
+              cart.map((item) => (
+                <div className="cart-item" key={item.id}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "center",
+                      flex: 1
+                    }}
+                  >
+                    <div className="cart-item-name">
+                      {item.brand} {item.model}
+                    </div>
+                    <div style={{ fontSize: 13, color: "#475569" }}>
+                      ₱{item.price.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div
+                      className="cart-item-qty"
+                      style={{ display: "flex", alignItems: "center" }}
+                    >
+                      <button
+                        className="btn-cancel"
+                        onClick={() => decQty(item.id)}
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        value={item.qty}
+                        onChange={(e) => updateQty(item.id, e.target.value)}
+                        style={{ width: 56, margin: "0 6px" }}
+                      />
+                      <button
+                        className="btn-submit"
+                        onClick={() => incQty(item.id)}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div
+                      style={{
+                        minWidth: 90,
+                        textAlign: "right",
+                        fontWeight: 700
+                      }}
+                    >
+                      ₱{(item.price * item.qty).toFixed(2)}
+                    </div>
+                    <div>
+                      <button
+                        className="cart-item-remove"
+                        onClick={() => removeFromCart(item.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div
+            style={{
+              borderTop: "1px dashed #e2e8f0",
+              paddingTop: 12,
+              marginTop: 12
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div>Subtotal</div>
+              <div>₱{subtotal.toFixed(2)}</div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div>VAT (12%)</div>
+              <div>₱{vat.toFixed(2)}</div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontWeight: 700
+              }}
+            >
+              <div>Total</div>
+              <div>₱{total.toFixed(2)}</div>
+            </div>
+          </div>
+
+          {/* ✅ Customer Name Search */}
+          <div style={{ marginTop: 12, position: "relative" }}>
+            <label style={{ fontWeight: 700 }}>Customer</label>
+            <input
+              className="input-field"
+              placeholder="Enter customer name or leave blank for Walk-in"
+              value={customerName}
+              onChange={(e) => {
+                setCustomerName(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            />
+            {showSuggestions && filteredCustomers.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  background: "white",
+                  border: "1px solid #ccc",
+                  width: "100%",
+                  maxHeight: 150,
+                  overflowY: "auto",
+                  zIndex: 10
+                }}
+              >
+                {filteredCustomers.map((cust) => (
+                  <div
+                    key={cust.id}
+                    style={{
+                      padding: "6px 10px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #eee"
+                    }}
+                    onMouseDown={() => {
+                      setCustomerName(cust.name);
+                      setShowSuggestions(false);
+                    }}
+                  >
+                    {cust.name} — <small>{cust.email}</small>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Payment */}
+          <div style={{ marginTop: 12 }}>
+            <label style={{ fontWeight: 700 }}>Payment Mode</label>
+            <select
+              value={paymentMode}
+              onChange={(e) => setPaymentMode(e.target.value)}
+              className="sort-select"
+              style={{ width: "100%", marginTop: 6 }}
+            >
+              {PAYMENT_MODES.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+
+            {paymentMode === "Cash" ? (
+              <div style={{ marginTop: 8 }}>
+                <label style={{ fontWeight: 600 }}>Cash Received</label>
+                <input
+                  className="input-field"
+                  value={cashReceived}
+                  onChange={(e) => setCashReceived(e.target.value)}
+                  placeholder={`Enter amount (≥ ₱${total.toFixed(2)})`}
+                />
+                <div
+                  style={{
+                    marginTop: 6,
+                    display: "flex",
+                    justifyContent: "space-between"
+                  }}
+                >
+                  <div>Change</div>
+                  <div style={{ fontWeight: 700 }}>
+                    ₱
+                    {Number(cashReceived || 0) - total > 0
+                      ? (Number(cashReceived || 0) - total).toFixed(2)
+                      : "0.00"}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 8 }}>
+                <label style={{ fontWeight: 600 }}>
+                  {paymentMode} Reference
+                </label>
+                <input
+                  className="input-field"
+                  value={paymentRef}
+                  onChange={(e) => setPaymentRef(e.target.value)}
+                  placeholder="Transaction reference / note (optional)"
+                />
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button
+              className="pos-checkout-btn"
+              onClick={handleCheckout}
+              disabled={isProcessing}
+            >
+              {isProcessing ? "Processing..." : `Pay ₱${total.toFixed(2)}`}
+            </button>
+            <button
+              className="btn-cancel"
+              onClick={() => {
+                setCart([]);
+                setCashReceived("");
+                setPaymentRef("");
+                setCustomerName("");
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Receipt Modal */}
+      {receiptOpen && lastReceipt && (
+        <div className="pos-receipt-modal" role="dialog" aria-modal="true">
+          <div className="pos-receipt-box">
+            <div className="receipt-header">
+              <h3>Joven Tire Enterprise</h3>
+              <div>Official Receipt</div>
+              <small>{lastReceipt.id}</small>
+            </div>
+
+            <div className="receipt-body">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 8
+                }}
+              >
+                <div>
+                  <strong>Customer:</strong>
+                </div>
+                <div>{lastReceipt.customerName}</div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 8
+                }}
+              >
+                <div>
+                  <strong>Cashier:</strong>
+                </div>
+                <div>
+                  {lastReceipt.createdByName || role} (
+                  {lastReceipt.createdByRole || role})
+                </div>
+              </div>
+
+              {lastReceipt.items.map((it, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginTop: 6
+                  }}
+                >
+                  <div>
+                    {it.productName} x{it.quantity}
+                  </div>
+                  <div>₱{it.lineTotal.toFixed(2)}</div>
+                </div>
+              ))}
+
+              <hr
+                style={{ border: "none", borderTop: "1px dashed #ddd", margin: "8px 0" }}
+              />
+
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div>Subtotal</div>
+                <div>₱{lastReceipt.subtotal.toFixed(2)}</div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div>VAT (12%)</div>
+                <div>₱{lastReceipt.vat.toFixed(2)}</div>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontWeight: 700
+                }}
+              >
+                <div>Total</div>
+                <div>₱{lastReceipt.total.toFixed(2)}</div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                <div>Payment</div>
+                <div>{lastReceipt.paymentMode}</div>
+              </div>
+              {lastReceipt.paymentMode === "Cash" && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div>Cash</div>
+                  <div>₱{(lastReceipt.cashReceived || 0).toFixed(2)}</div>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div>Change</div>
+                <div>
+                  ₱
+                  {lastReceipt.change && lastReceipt.change > 0
+                    ? lastReceipt.change.toFixed(2)
+                    : "0.00"}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button className="btn-submit" onClick={handlePrintReceipt}>
+                Print
+              </button>
+              <button className="btn-cancel" onClick={closeReceipt}>
+                Close
+              </button>
+            </div>
+
+            <div className="receipt-footer">Thank you for your purchase!</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

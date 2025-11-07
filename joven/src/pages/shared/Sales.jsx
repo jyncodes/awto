@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../../firebase";
-import { collection, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  getDoc
+} from "firebase/firestore";
 import "../../styles/shared/Sales.css";
 import { FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
@@ -8,21 +14,66 @@ import { useNavigate } from "react-router-dom";
 const Sales = ({ role }) => {
   const [tab, setTab] = useState("all");
   const [salesLog, setSalesLog] = useState([]);
+  const [userNames, setUserNames] = useState({});
+  const [reservationNames, setReservationNames] = useState({}); // 🔹 Store reservation-based names
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [activeReceipt, setActiveReceipt] = useState(null);
 
   const navigate = useNavigate();
 
-  // Load sales data
+  // 🔹 Load sales data, user names, and reservation names
   useEffect(() => {
     const salesRef = collection(db, "sales");
-    const unsubSales = onSnapshot(salesRef, (snapshot) => {
+    const unsubSales = onSnapshot(salesRef, async (snapshot) => {
       const logs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       const sorted = logs.sort(
         (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
       );
       setSalesLog(sorted);
+
+      // Fetch all related user names
+      const userIds = [...new Set(logs.map((s) => s.userId).filter(Boolean))];
+      const nameMap = {};
+      for (const uid of userIds) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", uid));
+          if (userDoc.exists()) {
+            nameMap[uid] = userDoc.data().name || "—";
+          }
+        } catch (err) {
+          console.error("Error fetching user name for:", uid, err);
+        }
+      }
+      setUserNames(nameMap);
+
+      // 🔹 Fetch related reservation customer names
+      const reservationIds = [
+        ...new Set(
+          logs
+            .filter((s) => s.type === "reservation" && s.reservationId)
+            .map((s) => s.reservationId)
+        ),
+      ];
+
+      const resNameMap = {};
+      for (const rid of reservationIds) {
+        try {
+          const resDoc = await getDoc(doc(db, "reservations", rid));
+          if (resDoc.exists()) {
+            const data = resDoc.data();
+            resNameMap[rid] =
+              data.userName ||
+              data.customerName ||
+              (data.userId && userNames[data.userId]) ||
+              "—";
+          }
+        } catch (err) {
+          console.error("Error fetching reservation name for:", rid, err);
+        }
+      }
+      setReservationNames(resNameMap);
     });
+
     return () => unsubSales();
   }, []);
 
@@ -38,6 +89,28 @@ const Sales = ({ role }) => {
 
   const handlePrintReceipt = () => window.print();
 
+  // ✅ Admin-only Delete Function
+  const handleDeleteSale = async (saleId, customer, total) => {
+    if (role !== "admin") {
+      alert("You do not have permission to delete sales records.");
+      return;
+    }
+    const confirmDelete = window.confirm(
+      `🗑️ Are you sure you want to delete this sale?\n\nCustomer: ${
+        customer || "Walk-in"
+      }\nTotal: ₱${Number(total || 0).toFixed(2)}`
+    );
+    if (!confirmDelete) return;
+    try {
+      await deleteDoc(doc(db, "sales", saleId));
+      alert("✅ Sale deleted successfully.");
+    } catch (error) {
+      console.error("Error deleting sale:", error);
+      alert("❌ Failed to delete sale. See console for details.");
+    }
+  };
+
+  // 🔍 Filter by tab
   const filteredSales =
     tab === "all"
       ? salesLog
@@ -99,38 +172,68 @@ const Sales = ({ role }) => {
                 </td>
               </tr>
             ) : (
-              filteredSales.map((sale) => (
-                <tr key={sale.id}>
-                  <td>
-                    {sale.createdAt?.toDate?.().toLocaleDateString() || "N/A"}
-                  </td>
-                  <td>{sale.customerName || "Walk-in"}</td>
-                  <td>
-                    {sale.products?.map((p, i) => (
-                      <div key={i}>
-                        {p.productName} x{p.quantity}
-                      </div>
-                    ))}
-                  </td>
-                  <td>₱{Number(sale.totalAmount || 0).toFixed(2)}</td>
-                  <td>{sale.paymentMode}</td>
-                  <td>{sale.type}</td>
-                  {/* ✅ Shows correct Admin/Staff info */}
-                  <td>
-                    {sale.createdByName
-                      ? `${sale.createdByName} (${sale.createdByRole})`
-                      : "—"}
-                  </td>
-                  <td>
-                    <button
-                      className="view-receipt-btn"
-                      onClick={() => openReceipt(sale)}
-                    >
-                      Receipt
-                    </button>
-                  </td>
-                </tr>
-              ))
+              filteredSales.map((sale) => {
+                // ✅ Customer name logic
+                let customerName = "Walk-in";
+                if (sale.type === "reservation" && sale.reservationId) {
+                  customerName =
+                    reservationNames[sale.reservationId] ||
+                    sale.customerName ||
+                    "—";
+                } else {
+                  customerName =
+                    userNames[sale.userId] ||
+                    sale.customerName ||
+                    "Walk-in";
+                }
+
+                return (
+                  <tr key={sale.id}>
+                    <td>
+                      {sale.createdAt?.toDate?.().toLocaleDateString() || "N/A"}
+                    </td>
+                    {/* ✅ Customer from Reservation or User */}
+                    <td>{customerName}</td>
+                    <td>
+                      {sale.products?.map((p, i) => (
+                        <div key={i}>
+                          {p.productName} x{p.quantity}
+                        </div>
+                      ))}
+                    </td>
+                    <td>₱{Number(sale.totalAmount || 0).toFixed(2)}</td>
+                    <td>{sale.paymentMode}</td>
+                    <td>{sale.type}</td>
+                    <td>
+                      {sale.createdByName
+                        ? `${sale.createdByName} (${sale.createdByRole})`
+                        : "—"}
+                    </td>
+                    <td>
+                      <button
+                        className="view-receipt-btn"
+                        onClick={() => openReceipt(sale)}
+                      >
+                        Receipt
+                      </button>
+                      {role === "admin" && (
+                        <button
+                          className="delete-sale-btn"
+                          onClick={() =>
+                            handleDeleteSale(
+                              sale.id,
+                              customerName,
+                              sale.totalAmount
+                            )
+                          }
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -148,17 +251,32 @@ const Sales = ({ role }) => {
 
             <div className="receipt-body">
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div><strong>Customer:</strong></div>
-                <div>{activeReceipt.customerName || "Walk-in"}</div>
+                <div>
+                  <strong>Customer:</strong>
+                </div>
+                <div>
+                  {activeReceipt.type === "reservation" &&
+                  activeReceipt.reservationId
+                    ? reservationNames[activeReceipt.reservationId] ||
+                      activeReceipt.customerName ||
+                      "—"
+                    : userNames[activeReceipt.userId] ||
+                      activeReceipt.customerName ||
+                      "Walk-in"}
+                </div>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div><strong>Date:</strong></div>
+                <div>
+                  <strong>Date:</strong>
+                </div>
                 <div>
                   {activeReceipt.createdAt?.toDate?.().toLocaleString() || ""}
                 </div>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div><strong>Cashier:</strong></div>
+                <div>
+                  <strong>Cashier:</strong>
+                </div>
                 <div>
                   {activeReceipt.createdByName} ({activeReceipt.createdByRole})
                 </div>
