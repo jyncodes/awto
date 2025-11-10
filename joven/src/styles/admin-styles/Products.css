@@ -59,47 +59,23 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.controls-bar button:nth-child(2) { /* All */
-  background-color: #2563eb;
-}
-.controls-bar button:nth-child(2):hover {
-  background-color: #1e40af;
-}
+.btn-tires { background-color: #2563eb; }
+.btn-tires:hover { background-color: #1e40af; }
 
-.controls-bar button:nth-child(3) { /* Tires Only */
-  background-color: #16a34a;
-}
-.controls-bar button:nth-child(3):hover {
-  background-color: #15803d;
-}
+.btn-mags { background-color: #16a34a; }
+.btn-mags:hover { background-color: #15803d; }
 
-.controls-bar button:nth-child(4) { /* Wheels Only */
-  background-color: #9333ea;
-}
-.controls-bar button:nth-child(4):hover {
-  background-color: #7e22ce;
-}
+.btn-add-tire { background-color: #16a34a; }
+.btn-add-tire:hover { background-color: #15803d; }
 
-.controls-bar button:nth-child(5) { /* Add Tire */
-  background-color: #16a34a;
-}
-.controls-bar button:nth-child(5):hover {
-  background-color: #15803d;
-}
+.btn-add-mag { background-color: #9333ea; }
+.btn-add-mag:hover { background-color: #7e22ce; }
 
-.controls-bar button:nth-child(6) { /* Add Wheel */
-  background-color: #9333ea;
-}
-.controls-bar button:nth-child(6):hover {
-  background-color: #7e22ce;
-}
+.btn-reset { background-color: #f59e0b; color: #1e293b; }
+.btn-reset:hover { background-color: #d97706; color: #0f172a; }
 
-.controls-bar button:last-child { /* Danger actions */
-  background-color: #dc2626;
-}
-.controls-bar button:last-child:hover {
-  background-color: #b91c1c;
-}
+.btn-services { background-color: #0ea5a4; }
+.btn-services:hover { background-color: #0b9a97; }
 
 /* ===================== TABLE ===================== */
 .product-table-wrapper {
@@ -136,7 +112,6 @@
   background-color: #f9fafb;
 }
 
-/* Checkbox */
 .product-table th:first-child,
 .product-table td:first-child {
   width: 40px;
@@ -223,13 +198,8 @@
   padding-bottom: 0.3rem;
 }
 
-.tire-box {
-  border-color: #16a34a;
-}
-
-.mags-box {
-  border-color: #9333ea;
-}
+.tire-box { border-color: #16a34a; }
+.mags-box { border-color: #9333ea; }
 
 .form-group {
   display: flex;
@@ -290,6 +260,83 @@
 }
 .form-actions button[type="button"]:hover {
   background-color: #64748b;
+}
+
+/* ===================== SERVICE-SPECIFIC STYLES ===================== */
+.product-table-wrapper h2 + p {
+  margin: 0;
+}
+
+/* make services table and checkbox cleaner */
+.product-table.services-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.product-table.services-table th,
+.product-table.services-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.product-table.services-table td input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #0ea5a4;
+  vertical-align: middle;
+}
+
+/* service buttons */
+.product-table.services-table td button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin: 0 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.product-table.services-table td button:nth-child(1) {
+  background-color: #10b981; /* edit - green */
+  color: white;
+}
+.product-table.services-table td button:nth-child(1):hover {
+  background-color: #059669;
+}
+
+.product-table.services-table td button:nth-child(2) {
+  background-color: #f59e0b; /* toggle - amber */
+  color: white;
+}
+.product-table.services-table td button:nth-child(2):hover {
+  background-color: #d97706;
+}
+
+.product-table.services-table td button:nth-child(3) {
+  background-color: #ef4444; /* delete - red */
+  color: white;
+}
+.product-table.services-table td button:nth-child(3):hover {
+  background-color: #dc2626;
+}
+
+/* checkbox alignment inside modal */
+.form-modal-content .form-group label[for="active"],
+.form-modal-content .form-group input[type="checkbox"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-modal-content .form-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #0ea5a4;
+  cursor: pointer;
 }
 
 /* ===================== ANIMATIONS ===================== */
