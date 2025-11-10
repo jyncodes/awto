@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { db, auth } from "../../firebase";
 import {
   collection,
@@ -11,37 +11,47 @@ import {
   getDoc,
   getDocs,
   query,
-  where
+  where,
 } from "firebase/firestore";
-import "../../styles/shared/Sales.css"; // for inputs/receipt common styles
-import "../../styles/admin-styles/POS.css"; // POS specific styling
+import "../../styles/shared/Sales.css";
+import "../../styles/admin-styles/POS.css";
 
 const PAYMENT_MODES = ["Cash", "GCash", "Bank Transfer", "Card"];
-const VAT_RATE = 0.12; // 12%
+const VAT_RATE = 0.12;
+const RESERVATION_FEE = 500;
 
 export default function POS({ role }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const receiptRef = useRef(null);
+
+  const {
+    fromReservation = false,
+    reservedItems = [],
+    customerName: reservedCustomer = "",
+    reservationId = null,
+  } = location.state || {};
 
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [search, setSearch] = useState("");
-
   const [cart, setCart] = useState([]);
+  const [services, setServices] = useState([]);
   const [paymentMode, setPaymentMode] = useState("Cash");
   const [cashReceived, setCashReceived] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [lastReceipt, setLastReceipt] = useState(null);
-
-  // 🧍 Customer-related states
-  const [customerName, setCustomerName] = useState("");
+  const [customerName, setCustomerName] = useState(reservedCustomer || "");
   const [customerList, setCustomerList] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [reservationFeeApplied, setReservationFeeApplied] = useState(
+    fromReservation ? RESERVATION_FEE : 0
+  );
 
-  // 🔹 Load registered customers (role = "User")
+  // 🧍 Fetch customers
   useEffect(() => {
     const fetchCustomers = async () => {
       const q = query(collection(db, "users"), where("role", "==", "User"));
@@ -52,30 +62,20 @@ export default function POS({ role }) {
     fetchCustomers();
   }, []);
 
-  // 🔹 Filter customers by search input
-  useEffect(() => {
-    if (!customerName.trim()) {
-      setFilteredCustomers([]);
-      return;
-    }
-    const term = customerName.toLowerCase();
-    const matches = customerList.filter(
-      (c) =>
-        (c.name && c.name.toLowerCase().includes(term)) ||
-        (c.email && c.email.toLowerCase().includes(term))
-    );
-    setFilteredCustomers(matches);
-  }, [customerName, customerList]);
-
-  // Load products from both collections and merge them
+  // 🔹 Load products
   useEffect(() => {
     const tiresRef = collection(db, "products_tires");
     const magsRef = collection(db, "products_mags");
 
     const unsubTires = onSnapshot(tiresRef, (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...d.data(), type: "tires" }));
+      const list = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        type: "product",
+        category: "tires",
+      }));
       setProducts((prev) => {
-        const magsOnly = prev.filter((p) => p.type === "mags");
+        const magsOnly = prev.filter((p) => p.category === "mags");
         const merged = [...list, ...magsOnly];
         setFilteredProducts(merged);
         return merged;
@@ -83,9 +83,14 @@ export default function POS({ role }) {
     });
 
     const unsubMags = onSnapshot(magsRef, (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...d.data(), type: "mags" }));
+      const list = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        type: "product",
+        category: "mags",
+      }));
       setProducts((prev) => {
-        const tiresOnly = prev.filter((p) => p.type === "tires");
+        const tiresOnly = prev.filter((p) => p.category === "tires");
         const merged = [...tiresOnly, ...list];
         setFilteredProducts(merged);
         return merged;
@@ -98,433 +103,378 @@ export default function POS({ role }) {
     };
   }, []);
 
-  // search
+  // 🔹 Load services
   useEffect(() => {
-    if (!search) {
-      setFilteredProducts(products);
-      return;
+    const q = query(collection(db, "services"), where("active", "==", true));
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data(), type: "service" }));
+      setServices(list);
+    });
+    return () => unsub();
+  }, []);
+
+  // 🧾 Reservation items auto-load
+  useEffect(() => {
+    if (fromReservation && reservedItems?.length > 0) {
+      const converted = reservedItems.map((item, index) => ({
+        id: item.id || `reserved-${index}-${Date.now()}`,
+        productId: item.productId || item.id || "",
+        name: `${item.brand || ""} ${item.model || item.productName || ""}`,
+        price: Number(item.price || 0),
+        stock: item.stock || 1,
+        qty: item.quantity || item.qty || 1,
+        type: "product",
+      }));
+      setCart((prev) => [...converted, ...prev]);
+      setReservationFeeApplied(RESERVATION_FEE);
     }
-    const q = search.toLowerCase();
-    setFilteredProducts(
-      products.filter((p) =>
-        `${p.brand || ""} ${p.model || ""} ${p.productId || p.id || ""}`
-          .toLowerCase()
-          .includes(q)
-      )
-    );
+  }, [fromReservation, reservedItems]);
+
+  // 🔍 Search
+  useEffect(() => {
+    if (!search) setFilteredProducts(products);
+    else {
+      const q = search.toLowerCase();
+      setFilteredProducts(
+        products.filter((p) =>
+          `${p.brand || ""} ${p.model || ""}`.toLowerCase().includes(q)
+        )
+      );
+    }
   }, [search, products]);
 
-  // cart helpers
+  // ================= CART LOGIC =================
   const addToCart = (product) => {
-    const existing = cart.find((c) => c.id === product.id);
+    const existing = cart.find((c) => c.id === product.id && c.type === "product");
     if (existing) {
       if (existing.qty + 1 > (product.stock || 0)) {
         alert("Not enough stock.");
         return;
       }
-      setCart(cart.map((c) => (c.id === product.id ? { ...c, qty: c.qty + 1 } : c)));
+      setCart(
+        cart.map((c) =>
+          c.id === product.id && c.type === "product"
+            ? { ...c, qty: c.qty + 1 }
+            : c
+        )
+      );
     } else {
-      if (1 > (product.stock || 0)) {
+      if ((product.stock || 0) <= 0) {
         alert("Not enough stock.");
         return;
       }
       setCart([
         {
           id: product.id,
-          productId: product.productId || product.id,
-          brand: product.brand,
-          model: product.model,
+          name: `${product.brand} ${product.model}`,
           price: Number(product.price || 0),
+          qty: 1,
           stock: product.stock || 0,
-          type: product.type,
-          qty: 1
+          type: "product",
         },
-        ...cart
+        ...cart,
       ]);
     }
   };
 
-  const incQty = (id) => {
-    const product = products.find((p) => p.id === id);
-    const item = cart.find((c) => c.id === id);
-    if (!item || !product) return;
-    if (item.qty + 1 > (product.stock || 0)) {
-      alert("Not enough stock.");
+  const addServiceToCart = (svc) => {
+    const existing = cart.find((c) => c.id === svc.id && c.type === "service");
+    if (existing) {
+      alert("This service is already added to cart.");
       return;
     }
-    setCart(cart.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c)));
+    setCart([
+      {
+        id: svc.id,
+        name: svc.name,
+        price: Number(svc.price || 0),
+        qty: 1,
+        type: "service",
+      },
+      ...cart,
+    ]);
   };
 
-  const decQty = (id) => {
-    const item = cart.find((c) => c.id === id);
-    if (!item) return;
-    if (item.qty - 1 <= 0) {
-      setCart(cart.filter((c) => c.id !== id));
-      return;
-    }
-    setCart(cart.map((c) => (c.id === id ? { ...c, qty: c.qty - 1 } : c)));
-  };
+  const incQty = (id) =>
+    setCart(
+      cart.map((c) =>
+        c.id === id && c.type === "product"
+          ? { ...c, qty: c.qty + 1 }
+          : c
+      )
+    );
 
-  const updateQty = (id, value) => {
-    const qty = Number(value || 0);
-    if (isNaN(qty) || qty < 1) return;
-    const product = products.find((p) => p.id === id);
-    if (product && qty > (product.stock || 0)) {
-      alert("Not enough stock.");
-      return;
-    }
-    setCart(cart.map((c) => (c.id === id ? { ...c, qty } : c)));
-  };
+  const decQty = (id) =>
+    setCart(
+      cart
+        .map((c) =>
+          c.id === id && c.type === "product"
+            ? { ...c, qty: c.qty - 1 }
+            : c
+        )
+        .filter((c) => c.qty > 0)
+    );
+
+  const updateQty = (id, value) =>
+    setCart(
+      cart.map((c) =>
+        c.id === id && c.type === "product"
+          ? { ...c, qty: Number(value) }
+          : c
+      )
+    );
 
   const removeFromCart = (id) => setCart(cart.filter((c) => c.id !== id));
 
-  // totals
-  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  // 💰 Totals
+  const subtotalProducts = cart
+    .filter((i) => i.type === "product")
+    .reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  const subtotalServices = cart
+    .filter((i) => i.type === "service")
+    .reduce((sum, i) => sum + i.price, 0);
+
+  const subtotal = subtotalProducts + subtotalServices;
   const vat = subtotal * VAT_RATE;
-  const total = subtotal + vat;
+  const total = subtotal + vat - (reservationFeeApplied || 0);
 
-  // Checkout
+  // ================= CHECKOUT =================
   const handleCheckout = async () => {
-    if (cart.length === 0) {
-      alert("Cart is empty.");
-      return;
-    }
-
+    if (cart.length === 0) return alert("Cart is empty.");
     const finalCustomer = customerName.trim() || "Walk-in";
-
-    if (!paymentMode) {
-      alert("Choose a payment method.");
-      return;
-    }
-
-    if (paymentMode === "Cash") {
-      const cashVal = Number(cashReceived || 0);
-      if (isNaN(cashVal) || cashVal < total) {
-        alert(`Cash received must be at least ₱${total.toFixed(2)}.`);
-        return;
-      }
-    } else {
-      if (!paymentRef || paymentRef.trim().length < 3) {
-        if (!window.confirm("No payment reference provided. Continue anyway?")) return;
-      }
-    }
 
     setIsProcessing(true);
     try {
-      const productsArray = cart.map((i) => ({
-        productId: i.productId || i.id,
-        productName: `${i.brand} ${i.model}`,
-        quantity: i.qty,
-        unitPrice: i.price,
-        lineTotal: i.price * i.qty,
-        type: i.type
+      const items = cart.map((i) => ({
+        id: i.id,
+        name: i.name,
+        qty: i.qty,
+        price: i.price,
+        total: i.price * (i.qty || 1),
+        type: i.type,
       }));
 
-      let createdByName = role || "Staff";
-      let createdByRole = role || "Staff";
-      try {
-        const uid = auth?.currentUser?.uid;
-        if (uid) {
-          const userDocRef = doc(db, "users", uid);
-          const userSnap = await getDoc(userDocRef);
-          if (userSnap.exists()) {
-            const u = userSnap.data();
-            createdByName = u.name || createdByName;
-            createdByRole = u.role || createdByRole;
-          }
-        }
-      } catch (err) {
-        console.warn("Unable to fetch user info for sale metadata:", err);
-      }
+      const uid = auth?.currentUser?.uid;
+      const userSnap = uid ? await getDoc(doc(db, "users", uid)) : null;
+      const createdByName = userSnap?.data()?.name || role || "Staff";
+      const createdByRole = userSnap?.data()?.role || role || "Staff";
 
       const saleData = {
         customerName: finalCustomer,
-        products: productsArray,
+        items,
         subtotal,
         vat,
         totalAmount: total,
         paymentMode,
-        paymentRef: paymentRef || "",
+        paymentRef,
         createdAt: Timestamp.now(),
         type: "in-store",
         status: "completed",
-        createdBy: auth?.currentUser?.uid || null,
-        createdByName,
-        createdByRole
-      };
-
-      const saleRef = await addDoc(collection(db, "sales"), saleData);
-
-      for (const item of cart) {
-        const collectionName =
-          item.type === "mags" ? "products_mags" : "products_tires";
-        const prodRef = doc(db, collectionName, item.id);
-
-        try {
-          const prodSnap = await getDoc(prodRef);
-          const latestStock = Number(
-            prodSnap.exists() ? prodSnap.data().stock || 0 : item.stock || 0
-          );
-          const newStock = Math.max(0, latestStock - item.qty);
-          await updateDoc(prodRef, { stock: newStock });
-        } catch (err) {
-          console.warn("Failed to update stock for", item.id, err);
-        }
-      }
-
-      const receipt = {
-        id: saleRef.id,
-        items: productsArray,
-        subtotal,
-        vat,
-        total,
-        paymentMode,
-        cashReceived: Number(cashReceived || 0),
-        change: Number(cashReceived || 0) - total,
+        createdBy: uid || null,
         createdByName,
         createdByRole,
-        createdAt: new Date().toISOString(),
-        customerName: finalCustomer
+        reservationApplied: Boolean(reservationFeeApplied),
+        reservationId: reservationId || null,
       };
 
+      const docRef = await addDoc(collection(db, "sales"), saleData);
+      setLastReceipt({ id: docRef.id, ...saleData });
+      setReceiptOpen(true);
+
       setCart([]);
-      setPaymentMode("Cash");
       setCashReceived("");
       setPaymentRef("");
       setCustomerName("");
-
-      setLastReceipt(receipt);
-      setReceiptOpen(true);
-      alert("✅ Checkout successful — sale recorded and stock updated.");
+      setReservationFeeApplied(0);
     } catch (err) {
-      console.error("Checkout error:", err);
+      console.error(err);
       alert("❌ Checkout failed. See console.");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const closeReceipt = () => {
-    setReceiptOpen(false);
-    setLastReceipt(null);
+  const handlePrint = () => {
+    if (receiptRef.current) {
+      const printContents = receiptRef.current.innerHTML;
+      const newWindow = window.open("", "", "width=800,height=600");
+      newWindow.document.write(`
+        <html><head><title>Receipt</title></head>
+        <body>${printContents}</body></html>
+      `);
+      newWindow.document.close();
+      newWindow.print();
+      newWindow.close();
+    }
   };
 
-  const handlePrintReceipt = () => window.print();
-
+  // ================= RENDER =================
   return (
     <div className="pos-container">
       <div className="pos-header">
         <div>Joven Tire Enterprise — Point of Sale</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            className="pos-close-btn"
-            onClick={() => navigate("/admin-dashboard")}
-          >
-            Back to Dashboard
-          </button>
-        </div>
+        <button className="pos-close-btn" onClick={() => navigate("/admin-dashboard/sales")}>
+          Back to Dashboard
+        </button>
       </div>
 
       <div className="pos-main">
-        {/* Products list */}
+        {/* ========== LEFT SIDE (PRODUCTS + SERVICES) ========== */}
         <div className="pos-product-list">
           <div className="pos-search">
             <input
-              placeholder="Search product by brand / model / id..."
+              placeholder="Search product by brand / model..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <button onClick={() => setSearch(search)}>Search</button>
           </div>
 
+          <h4 style={{ margin: "0.5rem 0", color: "#1e293b" }}>🛞 Products</h4>
           <div className="pos-product-items-container">
-            {filteredProducts.length === 0 && (
+            {filteredProducts.length === 0 ? (
               <div style={{ color: "#64748b" }}>No products</div>
-            )}
-            {filteredProducts.map((p) => (
-              <div className="pos-product-item" key={p.id}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>
-                    {p.brand} {p.model}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "#64748b",
-                      marginTop: 4
-                    }}
-                  >
-                    {p.productId
-                      ? `ID: ${p.productId}`
-                      : `ID: ${p.id}`}{" "}
-                    — ₱{Number(p.price || 0).toFixed(2)} — {p.stock ?? 0} in stock
-                  </div>
-                </div>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 6 }}
-                >
-                  <button
-                    className="btn-submit"
-                    onClick={() => addToCart(p)}
-                    disabled={(p.stock || 0) <= 0}
-                  >
-                    Add
-                  </button>
-                  <button className="btn-cancel" onClick={() => addToCart(p)}>
-                    Quick
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Cart */}
-        <div className="pos-cart">
-          <h3 style={{ marginTop: 0 }}>Cart</h3>
-
-          <div className="cart-items-container">
-            {cart.length === 0 ? (
-              <div style={{ color: "#64748b" }}>Cart is empty</div>
             ) : (
-              cart.map((item) => (
-                <div className="cart-item" key={item.id}>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 12,
-                      alignItems: "center",
-                      flex: 1
-                    }}
-                  >
-                    <div className="cart-item-name">
-                      {item.brand} {item.model}
+              filteredProducts.map((p) => (
+                <div className="pos-product-item" key={p.id}>
+                  <div>
+                    <div style={{ fontWeight: 700 }}>
+                      {p.brand} {p.model}
                     </div>
-                    <div style={{ fontSize: 13, color: "#475569" }}>
-                      ₱{item.price.toFixed(2)}
+                    <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
+                      ₱{Number(p.price || 0).toFixed(2)} — {p.stock ?? 0} in stock
                     </div>
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div
-                      className="cart-item-qty"
-                      style={{ display: "flex", alignItems: "center" }}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <button
+                      className="btn-submit"
+                      onClick={() => addToCart(p)}
+                      disabled={(p.stock || 0) <= 0}
                     >
-                      <button
-                        className="btn-cancel"
-                        onClick={() => decQty(item.id)}
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        value={item.qty}
-                        onChange={(e) => updateQty(item.id, e.target.value)}
-                        style={{ width: 56, margin: "0 6px" }}
-                      />
-                      <button
-                        className="btn-submit"
-                        onClick={() => incQty(item.id)}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div
-                      style={{
-                        minWidth: 90,
-                        textAlign: "right",
-                        fontWeight: 700
-                      }}
-                    >
-                      ₱{(item.price * item.qty).toFixed(2)}
-                    </div>
-                    <div>
-                      <button
-                        className="cart-item-remove"
-                        onClick={() => removeFromCart(item.id)}
-                      >
-                        Remove
-                      </button>
-                    </div>
+                      Add
+                    </button>
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          <div
-            style={{
-              borderTop: "1px dashed #e2e8f0",
-              paddingTop: 12,
-              marginTop: 12
-            }}
-          >
+          <h4 style={{ margin: "1rem 0 0.5rem 0", color: "#1e293b" }}>🧰 Services</h4>
+          <div className="pos-product-items-container">
+            {services.length === 0 ? (
+              <div style={{ color: "#64748b" }}>No services available</div>
+            ) : (
+              services.map((svc) => (
+                <div className="pos-product-item" key={svc.id}>
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{svc.name}</div>
+                    <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
+                      ₱{Number(svc.price || 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <button className="btn-submit" onClick={() => addServiceToCart(svc)}>
+                      Add
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* ========== RIGHT SIDE (CART) ========== */}
+        <div className="pos-cart">
+          <h3 style={{ marginTop: 0 }}>Cart</h3>
+
+          <div className="cart-items-container">
+            {cart.filter((i) => i.type === "product").length > 0 && (
+              <>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>🛞 Products</div>
+                {cart
+                  .filter((i) => i.type === "product")
+                  .map((item) => (
+                    <div className="cart-item" key={item.id}>
+                      <div style={{ flex: 1 }}>
+                        <div className="cart-item-name">{item.name}</div>
+                        <div style={{ fontSize: 13, color: "#475569" }}>
+                          ₱{item.price.toFixed(2)}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div className="cart-item-qty" style={{ display: "flex", alignItems: "center" }}>
+                          <button className="btn-cancel" onClick={() => decQty(item.id)}>-</button>
+                          <input
+                            type="number"
+                            value={item.qty}
+                            onChange={(e) => updateQty(item.id, e.target.value)}
+                            style={{ width: 56, margin: "0 6px" }}
+                          />
+                          <button className="btn-submit" onClick={() => incQty(item.id)}>+</button>
+                        </div>
+                        <div style={{ minWidth: 90, textAlign: "right", fontWeight: 700 }}>
+                          ₱{(item.price * item.qty).toFixed(2)}
+                        </div>
+                        <button className="cart-item-remove" onClick={() => removeFromCart(item.id)}>
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </>
+            )}
+
+            {cart.filter((i) => i.type === "service").length > 0 && (
+              <>
+                <div style={{ fontWeight: 700, marginTop: 16, marginBottom: 6 }}>
+                  🧰 Services
+                </div>
+                {cart
+                  .filter((i) => i.type === "service")
+                  .map((svc) => (
+                    <div className="cart-item" key={svc.id}>
+                      <div style={{ flex: 1 }}>
+                        <div className="cart-item-name">{svc.name}</div>
+                        <div style={{ fontSize: 13, color: "#475569" }}>
+                          ₱{svc.price.toFixed(2)}
+                        </div>
+                      </div>
+                      <div>
+                        <button className="cart-item-remove" onClick={() => removeFromCart(svc.id)}>
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </>
+            )}
+
+            {cart.length === 0 && <div style={{ color: "#64748b" }}>Cart is empty</div>}
+          </div>
+
+          {/* ========== TOTALS ========== */}
+          <div style={{ borderTop: "1px dashed #e2e8f0", paddingTop: 12, marginTop: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <div>Subtotal</div>
               <div>₱{subtotal.toFixed(2)}</div>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
               <div>VAT (12%)</div>
               <div>₱{vat.toFixed(2)}</div>
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontWeight: 700
-              }}
-            >
+            {reservationFeeApplied > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                <div>Less Reservation Fee</div>
+                <div>- ₱{reservationFeeApplied.toFixed(2)}</div>
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, marginTop: 8 }}>
               <div>Total</div>
               <div>₱{total.toFixed(2)}</div>
             </div>
           </div>
 
-          {/* ✅ Customer Name Search */}
-          <div style={{ marginTop: 12, position: "relative" }}>
-            <label style={{ fontWeight: 700 }}>Customer</label>
-            <input
-              className="input-field"
-              placeholder="Enter customer name or leave blank for Walk-in"
-              value={customerName}
-              onChange={(e) => {
-                setCustomerName(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-            />
-            {showSuggestions && filteredCustomers.length > 0 && (
-              <div
-                style={{
-                  position: "absolute",
-                  background: "white",
-                  border: "1px solid #ccc",
-                  width: "100%",
-                  maxHeight: 150,
-                  overflowY: "auto",
-                  zIndex: 10
-                }}
-              >
-                {filteredCustomers.map((cust) => (
-                  <div
-                    key={cust.id}
-                    style={{
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                      borderBottom: "1px solid #eee"
-                    }}
-                    onMouseDown={() => {
-                      setCustomerName(cust.name);
-                      setShowSuggestions(false);
-                    }}
-                  >
-                    {cust.name} — <small>{cust.email}</small>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Payment */}
+          {/* ========== PAYMENT SECTION ========== */}
           <div style={{ marginTop: 12 }}>
             <label style={{ fontWeight: 700 }}>Payment Mode</label>
             <select
@@ -534,9 +484,7 @@ export default function POS({ role }) {
               style={{ width: "100%", marginTop: 6 }}
             >
               {PAYMENT_MODES.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
+                <option key={m} value={m}>{m}</option>
               ))}
             </select>
 
@@ -549,13 +497,7 @@ export default function POS({ role }) {
                   onChange={(e) => setCashReceived(e.target.value)}
                   placeholder={`Enter amount (≥ ₱${total.toFixed(2)})`}
                 />
-                <div
-                  style={{
-                    marginTop: 6,
-                    display: "flex",
-                    justifyContent: "space-between"
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
                   <div>Change</div>
                   <div style={{ fontWeight: 700 }}>
                     ₱
@@ -567,9 +509,7 @@ export default function POS({ role }) {
               </div>
             ) : (
               <div style={{ marginTop: 8 }}>
-                <label style={{ fontWeight: 600 }}>
-                  {paymentMode} Reference
-                </label>
+                <label style={{ fontWeight: 600 }}>{paymentMode} Reference</label>
                 <input
                   className="input-field"
                   value={paymentRef}
@@ -594,7 +534,6 @@ export default function POS({ role }) {
                 setCart([]);
                 setCashReceived("");
                 setPaymentRef("");
-                setCustomerName("");
               }}
             >
               Clear
@@ -603,116 +542,78 @@ export default function POS({ role }) {
         </div>
       </div>
 
-      {/* Receipt Modal */}
+      {/* ✅ RECEIPT MODAL */}
       {receiptOpen && lastReceipt && (
-        <div className="pos-receipt-modal" role="dialog" aria-modal="true">
-          <div className="pos-receipt-box">
-            <div className="receipt-header">
-              <h3>Joven Tire Enterprise</h3>
-              <div>Official Receipt</div>
-              <small>{lastReceipt.id}</small>
-            </div>
-
-            <div className="receipt-body">
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 8
-                }}
-              >
-                <div>
-                  <strong>Customer:</strong>
-                </div>
-                <div>{lastReceipt.customerName}</div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 8
-                }}
-              >
-                <div>
-                  <strong>Cashier:</strong>
-                </div>
-                <div>
-                  {lastReceipt.createdByName || role} (
-                  {lastReceipt.createdByRole || role})
-                </div>
-              </div>
-
-              {lastReceipt.items.map((it, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginTop: 6
-                  }}
-                >
-                  <div>
-                    {it.productName} x{it.quantity}
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            ref={receiptRef}
+            style={{
+              background: "#fff",
+              padding: "20px",
+              borderRadius: "10px",
+              width: "400px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            }}
+          >
+            <h3 style={{ textAlign: "center" }}>🧾 Official Receipt</h3>
+            <p><strong>Receipt ID:</strong> {lastReceipt.id}</p>
+            <p><strong>Customer:</strong> {lastReceipt.customerName}</p>
+            <p><strong>Date:</strong> {new Date().toLocaleString()}</p>
+            <hr />
+            {/* 🛞 Products */}
+              {lastReceipt.items
+                .filter((i) => i.type === "product")
+                .map((i, idx) => (
+                  <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div>Product {String(idx + 1).padStart(4, "0")} - {i.name}</div>
+                    <div>₱{i.total.toFixed(2)}</div>
                   </div>
-                  <div>₱{it.lineTotal.toFixed(2)}</div>
-                </div>
-              ))}
+                ))}
 
-              <hr
-                style={{ border: "none", borderTop: "1px dashed #ddd", margin: "8px 0" }}
-              />
+              {/* 🧰 Services */}
+              {lastReceipt.items
+                .filter((i) => i.type === "service")
+                .map((i, idx) => (
+                  <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div>Service {String(idx + 1).padStart(3, "0")} - {i.name}</div>
+                    <div>₱{i.total.toFixed(2)}</div>
+                  </div>
+                ))}
 
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>Subtotal</div>
-                <div>₱{lastReceipt.subtotal.toFixed(2)}</div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>VAT (12%)</div>
-                <div>₱{lastReceipt.vat.toFixed(2)}</div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontWeight: 700
-                }}
-              >
-                <div>Total</div>
-                <div>₱{lastReceipt.total.toFixed(2)}</div>
-              </div>
+            <hr />
+            <p>Subtotal: ₱{lastReceipt.subtotal.toFixed(2)}</p>
+            <p>VAT: ₱{lastReceipt.vat.toFixed(2)}</p>
+            {lastReceipt.reservationApplied && (
+              <p>Less Reservation Fee: ₱{RESERVATION_FEE}</p>
+            )}
+            <p><strong>Total: ₱{lastReceipt.totalAmount.toFixed(2)}</strong></p>
+            <p><strong>Payment:</strong> {lastReceipt.paymentMode}</p>
+            {lastReceipt.paymentRef && <p><strong>Ref:</strong> {lastReceipt.paymentRef}</p>}
+            <p><strong>Served by:</strong> {lastReceipt.createdByName}</p>
 
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-                <div>Payment</div>
-                <div>{lastReceipt.paymentMode}</div>
-              </div>
-              {lastReceipt.paymentMode === "Cash" && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <div>Cash</div>
-                  <div>₱{(lastReceipt.cashReceived || 0).toFixed(2)}</div>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>Change</div>
-                <div>
-                  ₱
-                  {lastReceipt.change && lastReceipt.change > 0
-                    ? lastReceipt.change.toFixed(2)
-                    : "0.00"}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-              <button className="btn-submit" onClick={handlePrintReceipt}>
+            <div style={{ textAlign: "center", marginTop: "16px" }}>
+              <button className="btn-submit" onClick={handlePrint} style={{ marginRight: "8px" }}>
                 Print
               </button>
-              <button className="btn-cancel" onClick={closeReceipt}>
+              <button className="btn-cancel" onClick={() => setReceiptOpen(false)}>
                 Close
               </button>
             </div>
-
-            <div className="receipt-footer">Thank you for your purchase!</div>
           </div>
         </div>
       )}

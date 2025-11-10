@@ -1,5 +1,3 @@
-/* src/styles/admin-styles/POS.css */
-
 /* ================= GLOBAL POS CONTAINER ================= */
 .pos-container {
   position: fixed;
@@ -13,7 +11,7 @@
   flex-direction: column;
   font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #1e293b;
-  overflow: hidden;
+  overflow: hidden; /* prevent browser scroll */
 }
 
 /* ================= POS HEADER ================= */
@@ -41,17 +39,19 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
-.pos-close-btn:hover { background-color: #dc2626; }
+.pos-close-btn:hover {
+  background-color: #dc2626;
+}
 
 /* ================= POS MAIN CONTENT ================= */
 .pos-main {
   display: flex;
   flex: 1;
-  overflow: hidden;
   gap: 1rem;
   padding: 1rem 1.5rem;
+  overflow: hidden; /* important: prevent double scroll */
   min-height: 0;
+  transition: all 0.3s ease;
 }
 
 /* ================= PRODUCT SEARCH & LIST ================= */
@@ -64,6 +64,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow-y: auto;
+  border-right: 2px solid #f1f5f9; /* subtle divider */
 }
 
 .pos-search {
@@ -105,10 +107,12 @@
   transition: background 0.12s ease;
   background-color: #fff;
 }
-
-.pos-product-item:hover { background-color: #f1f5f9; }
-
-.pos-product-item div { max-width: 70%; }
+.pos-product-item:hover {
+  background-color: #f1f5f9;
+}
+.pos-product-item div {
+  max-width: 70%;
+}
 
 /* ================= CART SECTION ================= */
 .pos-cart {
@@ -120,6 +124,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .cart-items-container {
@@ -137,10 +142,14 @@
   border-radius: 6px;
   background-color: #f8fafc;
 }
+.cart-item:hover {
+  background-color: #e8f0ff;
+}
 
-.cart-item:hover { background-color: #e8f0ff; }
-
-.cart-item-name { font-weight: 600; flex: 1; }
+.cart-item-name {
+  font-weight: 600;
+  flex: 1;
+}
 
 .cart-item-qty button {
   padding: 0.25rem 0.6rem;
@@ -189,13 +198,33 @@
 }
 
 /* ================= POS FOOTER / PAYMENT ================= */
-.pos-footer { padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+.pos-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
 
-.pos-totals { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.05rem; }
+.pos-totals {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
 
-.pos-payment { display: flex; gap: 0.6rem; align-items: center; margin-top: 0.6rem; }
+.pos-payment {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 0.6rem;
+}
 
-.pos-payment select, .pos-payment input { padding: 0.6rem 0.8rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; }
+.pos-payment select,
+.pos-payment input {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
 
 /* Checkout button */
 .pos-checkout-btn {
@@ -212,7 +241,7 @@
 .pos-receipt-modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -226,16 +255,43 @@
   width: 420px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
 /* ================= RESPONSIVE ================= */
 @media (max-width: 1024px) {
-  .pos-main { flex-direction: column; padding: 1rem; }
-  .pos-product-list, .pos-cart { width: 100%; }
+  .pos-main {
+    flex-direction: column;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  .pos-product-list,
+  .pos-cart {
+    width: 100%;
+    max-height: unset;
+  }
 }
 
 @media (max-width: 640px) {
-  .pos-header { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
-  .pos-footer { padding: 0.75rem; }
+  .pos-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+  .pos-footer {
+    padding: 0.75rem;
+  }
+}
+
+/* ✅ AUTO-STACK WHEN SCREEN HEIGHT IS SMALL */
+@media (max-height: 700px) {
+  .pos-main {
+    flex-direction: column;
+    padding: 0.75rem;
+  }
+  .pos-product-list,
+  .pos-cart {
+    width: 100%;
+    max-height: unset;
+  }
 }

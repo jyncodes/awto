@@ -5,23 +5,37 @@ import {
   onSnapshot,
   deleteDoc,
   doc,
-  getDoc
+  getDoc,
+  getDocs,
+  query,
+  where,
 } from "firebase/firestore";
 import "../../styles/shared/Sales.css";
 import { FaPlus } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Sales = ({ role }) => {
   const [tab, setTab] = useState("all");
   const [salesLog, setSalesLog] = useState([]);
   const [userNames, setUserNames] = useState({});
-  const [reservationNames, setReservationNames] = useState({}); // 🔹 Store reservation-based names
+  const [reservationNames, setReservationNames] = useState({});
+  const [reservationProducts, setReservationProducts] = useState({});
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [activeReceipt, setActiveReceipt] = useState(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // 🔹 Load sales data, user names, and reservation names
+  // ✅ Auto-open receipt if redirected from POS
+  useEffect(() => {
+    if (location.state?.newSale) {
+      const newSale = location.state.newSale;
+      setActiveReceipt(newSale);
+      setReceiptOpen(true);
+      window.history.replaceState({}, document.title); // clear state to prevent re-open
+    }
+  }, [location.state]);
+
   useEffect(() => {
     const salesRef = collection(db, "sales");
     const unsubSales = onSnapshot(salesRef, async (snapshot) => {
@@ -31,22 +45,16 @@ const Sales = ({ role }) => {
       );
       setSalesLog(sorted);
 
-      // Fetch all related user names
-      const userIds = [...new Set(logs.map((s) => s.userId).filter(Boolean))];
-      const nameMap = {};
-      for (const uid of userIds) {
-        try {
-          const userDoc = await getDoc(doc(db, "users", uid));
-          if (userDoc.exists()) {
-            nameMap[uid] = userDoc.data().name || "—";
-          }
-        } catch (err) {
-          console.error("Error fetching user name for:", uid, err);
-        }
-      }
-      setUserNames(nameMap);
+      const usersSnap = await getDocs(
+        query(collection(db, "users"), where("role", "==", "User"))
+      );
+      const usersMap = {};
+      usersSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        usersMap[docSnap.id] = data.name || "—";
+      });
+      setUserNames(usersMap);
 
-      // 🔹 Fetch related reservation customer names
       const reservationIds = [
         ...new Set(
           logs
@@ -56,22 +64,35 @@ const Sales = ({ role }) => {
       ];
 
       const resNameMap = {};
+      const resProductsMap = {};
       for (const rid of reservationIds) {
         try {
           const resDoc = await getDoc(doc(db, "reservations", rid));
           if (resDoc.exists()) {
             const data = resDoc.data();
-            resNameMap[rid] =
-              data.userName ||
-              data.customerName ||
-              (data.userId && userNames[data.userId]) ||
-              "—";
+            let finalName = data.userName || data.customerName || "—";
+            if (data.userId && usersMap[data.userId]) {
+              finalName = usersMap[data.userId];
+            }
+            resNameMap[rid] = finalName;
+            resProductsMap[rid] = data.products || [
+              {
+                productName: data.productName || "Reserved Item",
+                brand: data.brand || "",
+                model: data.model || "",
+                type: data.type || "",
+                price: data.price || 0,
+                qty: 1,
+              },
+            ];
           }
         } catch (err) {
-          console.error("Error fetching reservation name for:", rid, err);
+          console.error("Error fetching reservation data for:", rid, err);
         }
       }
+
       setReservationNames(resNameMap);
+      setReservationProducts(resProductsMap);
     });
 
     return () => unsubSales();
@@ -89,16 +110,15 @@ const Sales = ({ role }) => {
 
   const handlePrintReceipt = () => window.print();
 
-  // ✅ Admin-only Delete Function
   const handleDeleteSale = async (saleId, customer, total) => {
     if (role !== "admin") {
       alert("You do not have permission to delete sales records.");
       return;
     }
     const confirmDelete = window.confirm(
-      `🗑️ Are you sure you want to delete this sale?\n\nCustomer: ${
-        customer || "Walk-in"
-      }\nTotal: ₱${Number(total || 0).toFixed(2)}`
+      `🗑️ Delete this sale?\nCustomer: ${customer || "Walk-in"}\nTotal: ₱${Number(
+        total || 0
+      ).toFixed(2)}`
     );
     if (!confirmDelete) return;
     try {
@@ -110,7 +130,17 @@ const Sales = ({ role }) => {
     }
   };
 
-  // 🔍 Filter by tab
+  const handleComplete = (reservationId, products, customerName) => {
+    navigate("/pos", {
+      state: {
+        fromReservation: true,
+        reservationId,
+        reservedItems: products,
+        customerName,
+      },
+    });
+  };
+
   const filteredSales =
     tab === "all"
       ? salesLog
@@ -127,7 +157,6 @@ const Sales = ({ role }) => {
         </button>
       </div>
 
-      {/* Tabs */}
       <div className="sales-tabs">
         <button
           className={`sales-tab-btn ${tab === "all" ? "active" : ""}`}
@@ -149,7 +178,6 @@ const Sales = ({ role }) => {
         </button>
       </div>
 
-      {/* Sales Table */}
       <div className="sales-table-container">
         <table className="sales-table">
           <thead>
@@ -173,18 +201,23 @@ const Sales = ({ role }) => {
               </tr>
             ) : (
               filteredSales.map((sale) => {
-                // ✅ Customer name logic
-                let customerName = "Walk-in";
+                let customerName = sale.customerName || "Walk-in";
+                let items = sale.items || sale.products || [];
+                let totalDisplay = `₱${Number(sale.totalAmount || 0).toFixed(2)}`;
+                let paymentDisplay = sale.paymentMode || "—";
+                let createdBy = sale.createdByName
+                  ? `${sale.createdByName} (${sale.createdByRole})`
+                  : "—";
+
                 if (sale.type === "reservation" && sale.reservationId) {
                   customerName =
                     reservationNames[sale.reservationId] ||
                     sale.customerName ||
                     "—";
-                } else {
-                  customerName =
-                    userNames[sale.userId] ||
-                    sale.customerName ||
-                    "Walk-in";
+                  items = reservationProducts[sale.reservationId] || [];
+                  totalDisplay = "—";
+                  paymentDisplay = "Reservation Fee ₱500";
+                  createdBy = "System";
                 }
 
                 return (
@@ -192,30 +225,45 @@ const Sales = ({ role }) => {
                     <td>
                       {sale.createdAt?.toDate?.().toLocaleDateString() || "N/A"}
                     </td>
-                    {/* ✅ Customer from Reservation or User */}
                     <td>{customerName}</td>
                     <td>
-                      {sale.products?.map((p, i) => (
-                        <div key={i}>
-                          {p.productName} x{p.quantity}
-                        </div>
-                      ))}
+                      {items.length > 0 ? (
+                        items.map((i, idx) => (
+                          <div key={idx}>
+                            {i.productName || i.name}{" "}
+                            {i.quantity ? `x${i.quantity}` : i.qty ? `x${i.qty}` : ""}
+                          </div>
+                        ))
+                      ) : (
+                        <div>—</div>
+                      )}
                     </td>
-                    <td>₱{Number(sale.totalAmount || 0).toFixed(2)}</td>
-                    <td>{sale.paymentMode}</td>
+                    <td>{totalDisplay}</td>
+                    <td>{paymentDisplay}</td>
                     <td>{sale.type}</td>
+                    <td>{createdBy}</td>
                     <td>
-                      {sale.createdByName
-                        ? `${sale.createdByName} (${sale.createdByRole})`
-                        : "—"}
-                    </td>
-                    <td>
-                      <button
-                        className="view-receipt-btn"
-                        onClick={() => openReceipt(sale)}
-                      >
-                        Receipt
-                      </button>
+                      {sale.type === "reservation" ? (
+                        <button
+                          className="btn-submit"
+                          onClick={() =>
+                            handleComplete(
+                              sale.reservationId,
+                              items,
+                              customerName
+                            )
+                          }
+                        >
+                          Complete
+                        </button>
+                      ) : (
+                        <button
+                          className="view-receipt-btn"
+                          onClick={() => openReceipt(sale)}
+                        >
+                          Receipt
+                        </button>
+                      )}
                       {role === "admin" && (
                         <button
                           className="delete-sale-btn"
@@ -239,99 +287,75 @@ const Sales = ({ role }) => {
         </table>
       </div>
 
-      {/* Receipt Modal */}
+      {/* ================== 🧾 RECEIPT MODAL ================== */}
       {receiptOpen && activeReceipt && (
-        <div className="receipt-modal" role="dialog" aria-modal="true">
-          <div className="receipt-box">
-            <div className="receipt-header">
-              <h3>Joven Tire Enterprise</h3>
-              <p>Official Receipt</p>
-              <small>{activeReceipt.id}</small>
-            </div>
+        <div className="pos-receipt-modal">
+          <div className="pos-receipt-box">
+            <h3>Joven Tire Enterprise</h3>
+            <p>
+              <strong>Official Receipt</strong>
+              <br />
+              Transaction ID: {activeReceipt.id}
+            </p>
+            <hr />
+            <p>
+              <strong>Customer:</strong> {activeReceipt.customerName || "Walk-in"}
+            </p>
+            <p>
+              <strong>Cashier:</strong> {activeReceipt.createdByName} (
+              {activeReceipt.createdByRole})
+            </p>
+            <hr />
 
-            <div className="receipt-body">
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>
-                  <strong>Customer:</strong>
-                </div>
-                <div>
-                  {activeReceipt.type === "reservation" &&
-                  activeReceipt.reservationId
-                    ? reservationNames[activeReceipt.reservationId] ||
-                      activeReceipt.customerName ||
-                      "—"
-                    : userNames[activeReceipt.userId] ||
-                      activeReceipt.customerName ||
-                      "Walk-in"}
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>
-                  <strong>Date:</strong>
-                </div>
-                <div>
-                  {activeReceipt.createdAt?.toDate?.().toLocaleString() || ""}
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>
-                  <strong>Cashier:</strong>
-                </div>
-                <div>
-                  {activeReceipt.createdByName} ({activeReceipt.createdByRole})
-                </div>
-              </div>
-
-              <hr />
-              {activeReceipt.products?.map((item, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginTop: 6,
-                  }}
-                >
-                  <div>
-                    {item.productName} x{item.quantity}
-                  </div>
-                  <div>₱{item.lineTotal.toFixed(2)}</div>
-                </div>
-              ))}
-              <hr />
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>Subtotal</div>
-                <div>₱{activeReceipt.subtotal.toFixed(2)}</div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>VAT (12%)</div>
-                <div>₱{activeReceipt.vat.toFixed(2)}</div>
-              </div>
+            {activeReceipt.items?.map((i, idx) => (
               <div
+                key={idx}
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  fontWeight: 700,
+                  marginBottom: 6,
                 }}
               >
-                <div>Total</div>
-                <div>₱{activeReceipt.totalAmount.toFixed(2)}</div>
+                <div>
+                  {i.name || i.productName}{" "}
+                  {i.qty ? `x${i.qty}` : i.quantity ? `x${i.quantity}` : ""}
+                </div>
+                <div>₱{(i.price * (i.qty || i.quantity || 1)).toFixed(2)}</div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>Payment</div>
-                <div>{activeReceipt.paymentMode}</div>
-              </div>
+            ))}
+
+            <hr />
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div>Subtotal</div>
+              <div>₱{Number(activeReceipt.subtotal || 0).toFixed(2)}</div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div>VAT (12%)</div>
+              <div>₱{Number(activeReceipt.vat || 0).toFixed(2)}</div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontWeight: 700,
+              }}
+            >
+              <div>Total</div>
+              <div>₱{Number(activeReceipt.totalAmount || 0).toFixed(2)}</div>
             </div>
 
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
               <button className="btn-submit" onClick={handlePrintReceipt}>
                 Print
               </button>
-              <button className="close-receipt-btn" onClick={closeReceipt}>
+              <button className="btn-cancel" onClick={closeReceipt}>
                 Close
               </button>
             </div>
-            <div className="receipt-footer">Thank you for your purchase!</div>
+
+            <div style={{ marginTop: 12, textAlign: "center", fontSize: 13 }}>
+              Thank you for your purchase!
+            </div>
           </div>
         </div>
       )}

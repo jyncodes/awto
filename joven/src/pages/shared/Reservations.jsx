@@ -86,7 +86,7 @@ const Reservations = ({ role }) => {
           service: reservation?.serviceType || reservation?.service || "Service",
           totalAmount: reservation?.estimatedCost || 0,
           createdAt: Timestamp.now(),
-          type: "service",
+          type: "reservation", // ✅ changed from "service" to "reservation"
           status: "completed",
           createdBy: role,
         });
