@@ -196,9 +196,20 @@ const CatalogBox = ({ filters }) => {
           </p>
         ) : (
           paginatedProducts.map((product) => {
-            const imageUrl = `${SUPABASE_BASE_URL}/${product.id}.png`; // ✅ Use PNG or JPEG
             const fallbackImage =
               "https://placehold.co/150x150?text=No+Image";
+
+            // ✅ Try .png first, then .jpeg
+            const imageUrlPNG = `${SUPABASE_BASE_URL}/${product.id}.png`;
+            const imageUrlJPEG = `${SUPABASE_BASE_URL}/${product.id}.jpeg`;
+
+            const handleImgError = (e) => {
+              if (e.target.src.endsWith(".png")) {
+                e.target.src = imageUrlJPEG; // try .jpeg
+              } else {
+                e.target.src = fallbackImage; // fallback
+              }
+            };
 
             return (
               <div
@@ -207,10 +218,10 @@ const CatalogBox = ({ filters }) => {
                 onClick={() => handleView(product.category, product.id)}
               >
                 <img
-                  src={product.imageUrl || imageUrl}
+                  src={imageUrlPNG}
                   alt={`${product.brand || "Brand"} ${product.model || ""}`}
                   className="product-img"
-                  onError={(e) => (e.target.src = fallbackImage)}
+                  onError={handleImgError}
                 />
                 <h4 className="product-name">{product.brand}</h4>
                 <p className="product-model-size">
