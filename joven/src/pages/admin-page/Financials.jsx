@@ -15,14 +15,19 @@ import "../../styles/admin-styles/Financials.css";
 const Financials = () => {
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
-  const [todaySales, setTodaySales] = useState(0);
-  const [weeklySales, setWeeklySales] = useState(0);
-  const [totalExpenses, setTotalExpenses] = useState(0);
-  const [profit, setProfit] = useState(0);
+  const [assets, setAssets] = useState([]);
+  const [liabilities, setLiabilities] = useState([]);
+
   const [expenseForm, setExpenseForm] = useState({
     category: "",
     description: "",
     amount: "",
+  });
+
+  const [balanceForm, setBalanceForm] = useState({
+    type: "Asset",
+    name: "",
+    value: "",
   });
 
   const formatCurrency = (num) =>
@@ -30,65 +35,62 @@ const Financials = () => {
       minimumFractionDigits: 2,
     })}`;
 
-  // === Fetch Sales ===
+  // ======== SALES FETCH ========
   useEffect(() => {
-    const qSales = query(collection(db, "sales"), orderBy("createdAt", "desc"));
-    const unsubSales = onSnapshot(qSales, (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const q = query(collection(db, "sales"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setSales(data);
-
-      const now = new Date();
-      const today = now.toDateString();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-
-      let todayTotal = 0;
-      let weekTotal = 0;
-      data.forEach((sale) => {
-        const total = sale.totalAmount || 0;
-        const date = sale.createdAt?.seconds
-          ? new Date(sale.createdAt.seconds * 1000)
-          : null;
-
-        if (date) {
-          if (date.toDateString() === today) todayTotal += total;
-          if (date >= startOfWeek) weekTotal += total;
-        }
-      });
-
-      setTodaySales(todayTotal);
-      setWeeklySales(weekTotal);
     });
-
-    return () => unsubSales();
+    return () => unsub();
   }, []);
 
-  // === Fetch Expenses ===
+  // ======== EXPENSES FETCH ========
   useEffect(() => {
-    const qExpenses = query(collection(db, "expenses"), orderBy("createdAt", "desc"));
-    const unsubExpenses = onSnapshot(qExpenses, (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const q = query(collection(db, "expenses"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setExpenses(data);
-
-      const total = data.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-      setTotalExpenses(total);
     });
-
-    return () => unsubExpenses();
+    return () => unsub();
   }, []);
 
-  // === Compute Profit ===
+  // ======== BALANCE SHEET FETCH ========
   useEffect(() => {
-    const net = weeklySales - totalExpenses;
-    setProfit(net);
-  }, [weeklySales, totalExpenses]);
+    const qAssets = query(collection(db, "assets"), orderBy("createdAt", "desc"));
+    const qLiab = query(
+      collection(db, "liabilities"),
+      orderBy("createdAt", "desc")
+    );
 
-  // === Add Expense ===
+    const unsubA = onSnapshot(qAssets, (snapshot) => {
+      setAssets(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
+
+    const unsubL = onSnapshot(qLiab, (snapshot) => {
+      setLiabilities(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => {
+      unsubA();
+      unsubL();
+    };
+  }, []);
+
+  // ======== COMPUTATIONS ========
+  const totalSales = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+  const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const netProfit = totalSales - totalExpenses;
+
+  const totalAssets = assets.reduce((sum, a) => sum + (a.value || 0), 0);
+  const totalLiabilities = liabilities.reduce((sum, l) => sum + (l.value || 0), 0);
+  const totalEquity = totalAssets - totalLiabilities;
+
+  // ======== ADD EXPENSE ========
   const handleAddExpense = async (e) => {
     e.preventDefault();
     if (!expenseForm.category || !expenseForm.amount) {
-      alert("Please complete all fields.");
+      alert("Please fill in all fields.");
       return;
     }
 
@@ -98,153 +100,284 @@ const Financials = () => {
         amount: Number(expenseForm.amount),
         createdAt: Timestamp.now(),
       });
-      alert("✅ Expense added successfully.");
       setExpenseForm({ category: "", description: "", amount: "" });
-    } catch (err) {
-      console.error("Error adding expense:", err);
-      alert("❌ Failed to add expense.");
+    } catch (error) {
+      console.error("Error adding expense:", error);
     }
   };
 
-  // === Delete Expense ===
-  const handleDeleteExpense = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this expense?")) return;
+  // ======== ADD BALANCE ITEM ========
+  const handleAddBalance = async (e) => {
+    e.preventDefault();
+    if (!balanceForm.name || !balanceForm.value) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
     try {
-      await deleteDoc(doc(db, "expenses", id));
-      alert("🗑️ Expense deleted.");
+      const targetCollection =
+        balanceForm.type === "Asset" ? "assets" : "liabilities";
+      await addDoc(collection(db, targetCollection), {
+        name: balanceForm.name,
+        value: Number(balanceForm.value),
+        createdAt: Timestamp.now(),
+      });
+      setBalanceForm({ type: "Asset", name: "", value: "" });
+    } catch (error) {
+      console.error("Error adding balance item:", error);
+    }
+  };
+
+  // ======== DELETE EXPENSE / BALANCE ========
+  const handleDelete = async (col, id) => {
+    if (!window.confirm("Delete this record?")) return;
+    try {
+      await deleteDoc(doc(db, col, id));
     } catch (err) {
-      console.error("Error deleting expense:", err);
+      console.error("Error deleting record:", err);
     }
   };
 
   return (
-    <div className="finance-container">
-      <div className="finance-header">
-        <h1>Financial Overview</h1>
-        <p>Monitor sales, track expenses, and view net profit.</p>
-      </div>
+    <div className="financials-container">
+      <h1 className="finance-title">Financial Overview</h1>
 
-      {/* Summary Cards */}
-      <div className="finance-summary">
-        <div className="finance-card blue">
-          <h3>Today's Sales</h3>
-          <p>{formatCurrency(todaySales)}</p>
-        </div>
-        <div className="finance-card green">
-          <h3>This Week's Sales</h3>
-          <p>{formatCurrency(weeklySales)}</p>
-        </div>
-        <div className="finance-card red">
-          <h3>Total Expenses</h3>
-          <p>{formatCurrency(totalExpenses)}</p>
-        </div>
-        <div className={`finance-card ${profit >= 0 ? "purple" : "gray"}`}>
-          <h3>Net Profit</h3>
-          <p>{formatCurrency(profit)}</p>
-        </div>
-      </div>
-
-      {/* Recent Sales */}
+      {/* ================== INCOME STATEMENT ================== */}
       <div className="finance-section">
-        <h2>🧾 Recent Sales</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Customer</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sales.slice(0, 5).map((sale) => (
-              <tr key={sale.id}>
-                <td>
-                  {sale.createdAt
-                    ? new Date(sale.createdAt.seconds * 1000).toLocaleDateString()
-                    : "N/A"}
-                </td>
-                <td>{sale.customerName || "Walk-in"}</td>
-                <td>{formatCurrency(sale.totalAmount)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h2>📊 Income Statement</h2>
+
+        <div className="finance-tables">
+          {/* SALES TABLE */}
+          <div className="finance-table">
+            <h3>Sales</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sales.length > 0 ? (
+                  sales.map((s) => (
+                    <tr key={s.id}>
+                      <td>
+                        {s.createdAt
+                          ? new Date(s.createdAt.seconds * 1000).toLocaleDateString()
+                          : "N/A"}
+                      </td>
+                      <td>{s.customerName || "Walk-in"}</td>
+                      <td>{formatCurrency(s.totalAmount)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3">No sales recorded.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* EXPENSES TABLE */}
+          <div className="finance-table">
+            <h3>Expenses</h3>
+            <form onSubmit={handleAddExpense} className="form-row">
+              <input
+                type="text"
+                placeholder="Category"
+                value={expenseForm.category}
+                onChange={(e) =>
+                  setExpenseForm({ ...expenseForm, category: e.target.value })
+                }
+              />
+              <input
+                type="number"
+                placeholder="Amount"
+                value={expenseForm.amount}
+                onChange={(e) =>
+                  setExpenseForm({ ...expenseForm, amount: e.target.value })
+                }
+              />
+              <input
+                type="text"
+                placeholder="Description"
+                value={expenseForm.description}
+                onChange={(e) =>
+                  setExpenseForm({ ...expenseForm, description: e.target.value })
+                }
+              />
+              <button type="submit">Add</button>
+            </form>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.length > 0 ? (
+                  expenses.map((exp) => (
+                    <tr key={exp.id}>
+                      <td>{exp.category}</td>
+                      <td>{formatCurrency(exp.amount)}</td>
+                      <td>
+                        {exp.createdAt
+                          ? new Date(exp.createdAt.seconds * 1000).toLocaleDateString()
+                          : "N/A"}
+                      </td>
+                      <td>
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDelete("expenses", exp.id)}
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No expenses recorded.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="summary">
+          <p>Total Sales: <strong>{formatCurrency(totalSales)}</strong></p>
+          <p>Total Expenses: <strong>{formatCurrency(totalExpenses)}</strong></p>
+          <p>
+            Net Profit:{" "}
+            <strong style={{ color: netProfit >= 0 ? "green" : "red" }}>
+              {formatCurrency(netProfit)}
+            </strong>
+          </p>
+        </div>
       </div>
 
-      {/* Expense Form */}
+      {/* ================== BALANCE SHEET ================== */}
       <div className="finance-section">
-        <h2>💸 Add Expense</h2>
-        <form onSubmit={handleAddExpense} className="expense-form">
+        <h2>📘 Balance Sheet</h2>
+
+        <form onSubmit={handleAddBalance} className="form-row">
+          <select
+            value={balanceForm.type}
+            onChange={(e) =>
+              setBalanceForm({ ...balanceForm, type: e.target.value })
+            }
+          >
+            <option>Asset</option>
+            <option>Liability</option>
+          </select>
           <input
             type="text"
-            placeholder="Category (e.g. Rent, Salary)"
-            value={expenseForm.category}
+            placeholder="Name"
+            value={balanceForm.name}
             onChange={(e) =>
-              setExpenseForm({ ...expenseForm, category: e.target.value })
+              setBalanceForm({ ...balanceForm, name: e.target.value })
             }
           />
           <input
             type="number"
-            placeholder="Amount"
-            value={expenseForm.amount}
+            placeholder="Value"
+            value={balanceForm.value}
             onChange={(e) =>
-              setExpenseForm({ ...expenseForm, amount: e.target.value })
+              setBalanceForm({ ...balanceForm, value: e.target.value })
             }
           />
-          <input
-            type="text"
-            placeholder="Description"
-            value={expenseForm.description}
-            onChange={(e) =>
-              setExpenseForm({ ...expenseForm, description: e.target.value })
-            }
-          />
-          <button type="submit">Add Expense</button>
+          <button type="submit">Add</button>
         </form>
-      </div>
 
-      {/* Expense List */}
-      <div className="finance-section">
-        <h2>📉 Expense List</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {expenses.length > 0 ? (
-              expenses.map((exp) => (
-                <tr key={exp.id}>
-                  <td>{exp.category}</td>
-                  <td>{exp.description || "—"}</td>
-                  <td>{formatCurrency(exp.amount)}</td>
-                  <td>
-                    {exp.createdAt
-                      ? new Date(exp.createdAt.seconds * 1000).toLocaleDateString()
-                      : "N/A"}
-                  </td>
-                  <td>
-                    <button
-                      className="delete-expense"
-                      onClick={() => handleDeleteExpense(exp.id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
+        <div className="finance-tables">
+          <div className="finance-table">
+            <h3>Assets</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Value</th>
+                  <th></th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5">No expenses recorded.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {assets.length > 0 ? (
+                  assets.map((a) => (
+                    <tr key={a.id}>
+                      <td>{a.name}</td>
+                      <td>{formatCurrency(a.value)}</td>
+                      <td>
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDelete("assets", a.id)}
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3">No assets recorded.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="finance-table">
+            <h3>Liabilities</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Value</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {liabilities.length > 0 ? (
+                  liabilities.map((l) => (
+                    <tr key={l.id}>
+                      <td>{l.name}</td>
+                      <td>{formatCurrency(l.value)}</td>
+                      <td>
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDelete("liabilities", l.id)}
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3">No liabilities recorded.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="summary">
+          <p>Total Assets: <strong>{formatCurrency(totalAssets)}</strong></p>
+          <p>Total Liabilities: <strong>{formatCurrency(totalLiabilities)}</strong></p>
+          <p>
+            Owner’s Equity:{" "}
+            <strong style={{ color: "#2563eb" }}>
+              {formatCurrency(totalEquity)}
+            </strong>
+          </p>
+        </div>
       </div>
     </div>
   );
