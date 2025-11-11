@@ -1,12 +1,12 @@
 // 📄 src/pages/admin-dashboard/AdminDashboardContent.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
 import {
   collection,
   onSnapshot,
   query,
   orderBy,
-  limit,
 } from "firebase/firestore";
 import {
   BarChart,
@@ -20,9 +20,10 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import "../../styles/admin-styles/AdminDashboardContent.css";
+import "../../styles/admin-styles/Analytics.css";
 
-const AdminDashboardContent = () => {
+const Analytics = () => {
+  const navigate = useNavigate();
   const [salesData, setSalesData] = useState([]);
   const [recentSales, setRecentSales] = useState([]);
   const [monthlySales, setMonthlySales] = useState([]);
@@ -30,12 +31,11 @@ const AdminDashboardContent = () => {
   const [upcomingReservations, setUpcomingReservations] = useState([]);
   const [productDistribution, setProductDistribution] = useState([]);
 
-  // ✅ Format currency
   const formatCurrency = (amount) =>
     `₱${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   useEffect(() => {
-    // 🧾 Sync live SALES data (fixed: use createdAt instead of date)
+    // 🧾 SALES DATA
     const qSales = query(collection(db, "sales"), orderBy("createdAt", "desc"));
     const unsubSales = onSnapshot(qSales, (snapshot) => {
       const data = snapshot.docs.map((doc) => ({
@@ -46,7 +46,7 @@ const AdminDashboardContent = () => {
       setRecentSales(data.slice(0, 5));
     });
 
-    // 📅 Monthly Sales Summary (for chart)
+    // 📅 MONTHLY SALES SUMMARY
     const unsubMonthly = onSnapshot(collection(db, "sales"), (snapshot) => {
       const salesByMonth = {};
       snapshot.forEach((doc) => {
@@ -64,7 +64,7 @@ const AdminDashboardContent = () => {
       setMonthlySales(chartData);
     });
 
-    // 📦 PRODUCTS (low stock + distribution)
+    // 📦 PRODUCTS
     const unsubProducts = onSnapshot(collection(db, "products"), (snapshot) => {
       const lowStock = [];
       const categoryTotals = {};
@@ -83,11 +83,32 @@ const AdminDashboardContent = () => {
       setProductDistribution(dist);
     });
 
-    // 🧾 UPCOMING RESERVATIONS
-    const qRes = query(collection(db, "reservations"), orderBy("date", "asc"), limit(5));
+    // 📅 UPCOMING RESERVATIONS
+    const qRes = query(collection(db, "reservations"), orderBy("preferredDate", "asc"));
     const unsubRes = onSnapshot(qRes, (snapshot) => {
+      const now = new Date();
       const reservations = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setUpcomingReservations(reservations);
+
+      // Debug log (remove later)
+      console.log("📅 Reservations fetched:", reservations);
+
+      const filtered = reservations
+        .filter((r) => {
+          const date =
+            r.preferredDate?.seconds
+              ? new Date(r.preferredDate.seconds * 1000)
+              : r.preferredDate
+              ? new Date(r.preferredDate)
+              : r.date?.seconds
+              ? new Date(r.date.seconds * 1000)
+              : null;
+
+          if (!date) return false;
+          return date >= now; // show future reservations only
+        })
+        .slice(0, 5);
+
+      setUpcomingReservations(filtered);
     });
 
     return () => {
@@ -98,15 +119,18 @@ const AdminDashboardContent = () => {
     };
   }, []);
 
-  // 🎨 Chart colors for pie
   const chartColors = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+
+  const handleRowClick = (reservationId) => {
+    navigate(`/admin-dashboard/reservations/${reservationId}`);
+  };
 
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
         <h1 className="dashboard-title">📊 Business Analytics</h1>
         <p className="dashboard-subtitle">
-          Real-time analytics synced with the Sales system for accurate insights.
+          Real-time analytics synced with Sales and Reservations data.
         </p>
       </div>
 
@@ -158,7 +182,7 @@ const AdminDashboardContent = () => {
           <div className="overview-header">
             <h2>🧾 Recent Sales</h2>
             <p className="overview-subtitle">
-              Fetched live from <code>sales</code> collection used by Sales.jsx
+              Fetched live from <code>sales</code> collection
             </p>
           </div>
           <table className="overview-table">
@@ -224,32 +248,42 @@ const AdminDashboardContent = () => {
           </table>
         </div>
 
-        {/* Reservations */}
+        {/* Upcoming Reservations */}
         <div className="overview-card">
           <div className="overview-header">
             <h2>📅 Upcoming Reservations</h2>
+            <p className="overview-subtitle">Click a row to view reservation details.</p>
           </div>
           <table className="overview-table">
             <thead>
               <tr>
                 <th>Customer</th>
                 <th>Service</th>
-                <th>Date</th>
+                <th>Preferred Date</th>
               </tr>
             </thead>
             <tbody>
               {upcomingReservations.length > 0 ? (
-                upcomingReservations.map((res) => (
-                  <tr key={res.id}>
-                    <td>{res.customerName || "N/A"}</td>
-                    <td>{res.service || "N/A"}</td>
-                    <td>
-                      {res.date
-                        ? new Date(res.date.seconds * 1000).toLocaleDateString()
-                        : "-"}
-                    </td>
-                  </tr>
-                ))
+                upcomingReservations.map((res) => {
+                  const date =
+                    res.preferredDate?.seconds
+                      ? new Date(res.preferredDate.seconds * 1000)
+                      : res.preferredDate
+                      ? new Date(res.preferredDate)
+                      : new Date();
+                  return (
+                    <tr
+                      key={res.id}
+                      onClick={() => handleRowClick(res.id)}
+                      className="clickable-row"
+                      style={{ cursor: "pointer" }}
+                    >
+                      <td>{res.userName || res.customerName || "N/A"}</td>
+                      <td>{res.serviceType || res.service || res.type || "N/A"}</td>
+                      <td>{date.toLocaleDateString()}</td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan="3">No upcoming reservations</td>
@@ -263,4 +297,4 @@ const AdminDashboardContent = () => {
   );
 };
 
-export default AdminDashboardContent;
+export default Analytics;

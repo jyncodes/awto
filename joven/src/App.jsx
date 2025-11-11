@@ -12,8 +12,7 @@ import LandingPage from "./pages/LandingPage";
 import Register from "./pages/Register";
 import ViewProduct from "./pages/user-page/ViewProduct";
 import Verify from "./pages/Verify";
-import ServicesPage from "./pages/user-page/ServicesPage"; // ✅ Added import
-
+import ServicesPage from "./pages/user-page/ServicesPage"; 
 // Admin Pages
 import AdminDashboard from './pages/admin-page/AdminDashboard';
 import AdminSales from './pages/admin-page/AdminSales';
@@ -23,8 +22,8 @@ import AdminStaffs from './pages/admin-page/Staffs';
 import AdminReservations from './pages/admin-page/AdminReservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
-import AdminDashboardContent from './pages/admin-page/AdminDashboardContent';
-import AdminSuppliers from './pages/admin-page/Supplier'; // ✅ Added import
+import Analytics from './pages/admin-page/Analytics';
+import AdminSuppliers from './pages/admin-page/Supplier'; 
 
 // ✅ POS PAGE
 import POS from "./components/admin-components/POS";
@@ -194,7 +193,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         >
-          <Route index element={<AdminDashboardContent />} />
+          <Route index element={<Analytics />} />
           <Route path="sales" element={<AdminSales />} />
           <Route path="inventory" element={<AdminInventory />} />
           <Route path="products" element={<AdminProducts />} />
