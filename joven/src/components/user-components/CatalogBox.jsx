@@ -14,10 +14,12 @@ const CatalogBox = ({ filters }) => {
     location.state || {};
 
   const [products, setProducts] = useState([]);
+  const [validImages, setValidImages] = useState({});
   const [sortOption, setSortOption] = useState("default");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
+  // 🔹 Fetch all products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -60,6 +62,42 @@ const CatalogBox = ({ filters }) => {
     fetchProducts();
   }, []);
 
+  // 🔹 Check if Supabase image exists before showing it (with cache-bypass)
+  useEffect(() => {
+    const checkImages = async () => {
+      const newValidImages = {};
+      await Promise.all(
+        products.map(async (product) => {
+          const timestamp = Date.now(); // prevent caching
+          const pngUrl = `${SUPABASE_BASE_URL}/${product.id}.png?t=${timestamp}`;
+          const jpegUrl = `${SUPABASE_BASE_URL}/${product.id}.jpeg?t=${timestamp}`;
+
+          try {
+            const res = await fetch(pngUrl, { method: "HEAD", cache: "no-store" });
+            if (res.ok) {
+              newValidImages[product.id] = pngUrl;
+              return;
+            }
+
+            const res2 = await fetch(jpegUrl, { method: "HEAD", cache: "no-store" });
+            if (res2.ok) {
+              newValidImages[product.id] = jpegUrl;
+              return;
+            }
+
+            newValidImages[product.id] = null; // deleted or missing
+          } catch {
+            newValidImages[product.id] = null;
+          }
+        })
+      );
+      setValidImages(newValidImages);
+    };
+
+    if (products.length > 0) checkImages();
+  }, [products]);
+
+  // 🔹 Parse fitment size for matching
   const parseFitmentSize = (sizeStr) => {
     if (!sizeStr) return null;
     let match = sizeStr.match(/^(\d{3})\/(\d{2,3})R(\d{2}(?:\.\d)?)$/i);
@@ -71,6 +109,7 @@ const CatalogBox = ({ filters }) => {
     return null;
   };
 
+  // 🔹 Apply filters, sorting, and fitment
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
@@ -156,6 +195,7 @@ const CatalogBox = ({ filters }) => {
     }
   }, [products, filters, fitment, fitmentSizes, sortOption]);
 
+  // 🔹 Pagination
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(
     startIdx,
@@ -163,6 +203,7 @@ const CatalogBox = ({ filters }) => {
   );
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
+  // 🔹 View product
   const handleView = (category, id) =>
     navigate(`/view-product/${id}`, { state: { ...location.state, category } });
 
@@ -196,20 +237,9 @@ const CatalogBox = ({ filters }) => {
           </p>
         ) : (
           paginatedProducts.map((product) => {
-            const fallbackImage =
+            const imageSrc =
+              validImages[product.id] ||
               "https://placehold.co/150x150?text=No+Image";
-
-            // ✅ Try .png first, then .jpeg
-            const imageUrlPNG = `${SUPABASE_BASE_URL}/${product.id}.png`;
-            const imageUrlJPEG = `${SUPABASE_BASE_URL}/${product.id}.jpeg`;
-
-            const handleImgError = (e) => {
-              if (e.target.src.endsWith(".png")) {
-                e.target.src = imageUrlJPEG; // try .jpeg
-              } else {
-                e.target.src = fallbackImage; // fallback
-              }
-            };
 
             return (
               <div
@@ -218,10 +248,12 @@ const CatalogBox = ({ filters }) => {
                 onClick={() => handleView(product.category, product.id)}
               >
                 <img
-                  src={imageUrlPNG}
+                  src={imageSrc}
                   alt={`${product.brand || "Brand"} ${product.model || ""}`}
                   className="product-img"
-                  onError={handleImgError}
+                  onError={(e) =>
+                    (e.target.src = "https://placehold.co/150x150?text=No+Image")
+                  }
                 />
                 <h4 className="product-name">{product.brand}</h4>
                 <p className="product-model-size">
