@@ -2,11 +2,10 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
-import ModelViewer from "./ModelViewer";
 import "../../styles/user-styles/CatalogBox.css";
 
 const SUPABASE_BASE_URL =
-  "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
+  "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/Images";
 
 const CatalogBox = ({ filters }) => {
   const navigate = useNavigate();
@@ -75,7 +74,6 @@ const CatalogBox = ({ filters }) => {
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // ✅ Type-based filtering — Only show matching product type
     if (fitment?.type) {
       if (fitment.type.toLowerCase() === "tire") {
         result = result.filter(
@@ -90,7 +88,6 @@ const CatalogBox = ({ filters }) => {
       }
     }
 
-    // ✅ Apply extra filters (brand, price, etc.)
     if (filters && Object.keys(filters).length > 0) {
       result = result.filter((product) =>
         Object.entries(filters).every(([key, values]) => {
@@ -100,7 +97,6 @@ const CatalogBox = ({ filters }) => {
       );
     }
 
-    // ✅ Fitment spec filtering
     if (fitmentSizes.length > 0 || Object.keys(fitment).length > 0) {
       const fitmentSpecs = fitmentSizes.map(parseFitmentSize).filter(Boolean);
 
@@ -142,7 +138,6 @@ const CatalogBox = ({ filters }) => {
       });
     }
 
-    // ✅ Sorting
     switch (sortOption) {
       case "name-asc":
         return result.sort((a, b) =>
@@ -201,8 +196,9 @@ const CatalogBox = ({ filters }) => {
           </p>
         ) : (
           paginatedProducts.map((product) => {
-            const modelUrl = `${SUPABASE_BASE_URL}/${product.id}.glb`;
-            const hasGLB = product.id.startsWith("MA-");
+            const imageUrl = `${SUPABASE_BASE_URL}/${product.id}.png`; // ✅ Use PNG or JPEG
+            const fallbackImage =
+              "https://placehold.co/150x150?text=No+Image";
 
             return (
               <div
@@ -210,24 +206,12 @@ const CatalogBox = ({ filters }) => {
                 className="product-card"
                 onClick={() => handleView(product.category, product.id)}
               >
-                {hasGLB ? (
-                  <div className="model-preview">
-                    <ModelViewer modelUrl={modelUrl} />
-                  </div>
-                ) : (
-                  <img
-                    src={
-                      product.imageUrl ||
-                      "https://placehold.co/150x150?text=No+Image"
-                    }
-                    alt={`${product.brand || "Brand"} ${product.model || ""}`}
-                    className="product-img"
-                    onError={(e) =>
-                      (e.target.src =
-                        "https://placehold.co/150x150?text=No+Image")
-                    }
-                  />
-                )}
+                <img
+                  src={product.imageUrl || imageUrl}
+                  alt={`${product.brand || "Brand"} ${product.model || ""}`}
+                  className="product-img"
+                  onError={(e) => (e.target.src = fallbackImage)}
+                />
                 <h4 className="product-name">{product.brand}</h4>
                 <p className="product-model-size">
                   {product.size} {product.model}
