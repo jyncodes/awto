@@ -1,218 +1,185 @@
-/* ===========================
-   📊 ADMIN DASHBOARD CONTENT
-   (Unified with Sidebar Theme)
-=========================== */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
 
-.dashboard-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem 1.5rem;
-  background-color: #f4f4f4; /* match admin layout bg */
-  min-height: 100vh;
+.analytics-container {
   font-family: "Poppins", sans-serif;
+  background-color: #f8fafc;
+  min-height: 100vh;
+  padding: 2rem;
   color: #1e293b;
-  transition: all 0.3s ease;
 }
 
-/* ===========================
-   🏷️ HEADER
-=========================== */
-.dashboard-header {
-  width: 100%;
+/* ===== HEADER ===== */
+.analytics-header {
   text-align: center;
   margin-bottom: 2rem;
+  position: relative;
 }
 
-.dashboard-title {
+.analytics-header h1 {
   font-size: 2rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-.dashboard-subtitle {
+.analytics-header p {
+  color: #64748b;
   font-size: 0.95rem;
-  color: #6b7280;
+  margin-bottom: 1rem;
 }
 
-/* ===========================
-   📈 CHART CARDS
-=========================== */
-.chart-card {
-  background-color: #ffffff;
-  padding: 1.5rem;
-  border-radius: 1rem;
-  width: 100%;
-  max-width: 1100px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
+.add-sale-btn {
+  background-color: #2563eb;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-sale-btn:hover {
+  background-color: #1e40af;
+}
+
+/* ===== SUMMARY CARDS ===== */
+.summary-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  justify-content: center;
   margin-bottom: 2rem;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.chart-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
-}
-
-.chart-card h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 1rem;
-}
-
-/* ===========================
-   📊 OVERVIEW SECTION (TABLES)
-=========================== */
-.overview-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 1.5rem;
-  width: 100%;
-  max-width: 1100px;
-}
-
-.overview-card {
-  background-color: #ffffff;
-  border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
+.summary-card {
+  flex: 1;
+  min-width: 260px;
+  background-color: #fff;
+  border-radius: 12px;
   padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.overview-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+.summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
-.overview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.overview-header h2 {
-  font-size: 1.15rem;
+.summary-card h3 {
+  font-size: 1rem;
   font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #475569;
+}
+
+.summary-card p {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.summary-card.blue {
+  border-top: 4px solid #2563eb;
+}
+.summary-card.green {
+  border-top: 4px solid #10b981;
+}
+
+/* ===== TABLES ===== */
+.table-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.2rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.table-card h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
   color: #1e293b;
 }
 
-/* ===========================
-   🧾 TABLE STYLES
-=========================== */
-.overview-table {
+.table-card table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
 }
 
-.overview-table th,
-.overview-table td {
+.table-card th,
+.table-card td {
+  padding: 0.6rem;
+  border-bottom: 1px solid #e2e8f0;
   text-align: left;
-  padding: 0.65rem 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
 }
 
-.overview-table th {
-  background-color: #f9fafb;
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.85rem;
+.table-card th {
+  background-color: #f8fafc;
   text-transform: uppercase;
+  font-size: 0.8rem;
+  color: #475569;
 }
 
-.overview-table tbody tr:hover {
-  background-color: #fef3c7; /* light yellow hover */
+.table-card tr:hover td {
+  background-color: #f1f5f9;
 }
 
-.overview-table td {
-  color: #1e293b;
-}
-
-.overview-table td[colspan] {
+.table-card td[colspan] {
   text-align: center;
-  color: #9ca3af;
+  color: #94a3b8;
+  padding: 0.8rem;
   font-style: italic;
-  padding: 1rem 0;
 }
 
-/* ===========================
-   🎨 STATUS COLORS
-=========================== */
-.status-completed {
-  color: #10b981;
-  font-weight: 600;
+/* ===== BUTTONS INSIDE TABLE ===== */
+.restock-btn {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin-right: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.status-pending {
-  color: #f59e0b;
-  font-weight: 600;
+.restock-btn:hover {
+  background-color: #d97706;
 }
 
-.status-cancelled {
-  color: #ef4444;
-  font-weight: 600;
+.contact-supplier-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-/* ===========================
-   📱 RESPONSIVE DESIGN
-=========================== */
-@media (max-width: 1024px) {
-  .dashboard-title {
-    font-size: 1.75rem;
-  }
-
-  .chart-card {
-    padding: 1.25rem;
-  }
+.contact-supplier-btn:hover {
+  background-color: #1d4ed8;
 }
 
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.clickable-row:hover {
+  background-color: #e0f2fe;
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .dashboard-container {
-    padding: 1.5rem 1rem;
+  .summary-cards {
+    flex-direction: column;
+    align-items: center;
   }
 
-  .dashboard-title {
-    font-size: 1.5rem;
-  }
-
-  .chart-card h2,
-  .overview-header h2 {
-    font-size: 1.1rem;
-  }
-
-  .overview-table th,
-  .overview-table td {
-    padding: 0.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-title {
-    font-size: 1.3rem;
-  }
-
-  .chart-card,
-  .overview-card {
-    padding: 1rem;
-  }
-
-  .overview-section {
-    grid-template-columns: 1fr;
-  }
-
-  .overview-table th {
-    font-size: 0.8rem;
-  }
-
-  .overview-table td {
-    font-size: 0.8rem;
+  .add-sale-btn {
+    width: 100%;
   }
 }

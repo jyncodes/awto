@@ -13,6 +13,7 @@ import Register from "./pages/Register";
 import ViewProduct from "./pages/user-page/ViewProduct";
 import Verify from "./pages/Verify";
 import ServicesPage from "./pages/user-page/ServicesPage"; 
+
 // Admin Pages
 import AdminDashboard from './pages/admin-page/AdminDashboard';
 import AdminSales from './pages/admin-page/AdminSales';
@@ -24,6 +25,7 @@ import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import Analytics from './pages/admin-page/Analytics';
 import AdminSuppliers from './pages/admin-page/Supplier'; 
+import Financials from './pages/admin-page/Financials';
 
 // ✅ POS PAGE
 import POS from "./components/admin-components/POS";
@@ -109,7 +111,6 @@ export default function App() {
         <Route path="/devtools" element={<DevTools />} />
 
         {/* ================= USER ROUTES ================= */}
-        {/* ServicesPage Route */}
         <Route
           path="/services"
           element={
@@ -120,7 +121,6 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
-
         <Route
           path="/reservation/:productId"
           element={
@@ -202,6 +202,7 @@ export default function App() {
           <Route path="reservations" element={<AdminReservations />} />
           <Route path="customers" element={<AdminCustomers />} />
           <Route path="settings" element={<AdminSettings />} />
+          <Route path="financials" element={<Financials />} />
         </Route>
 
         {/* ✅ POS PAGE ROUTE — Only Admin can access */}

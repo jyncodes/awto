@@ -20,6 +20,7 @@ const AdminDashboard = () => {
 
   const navItems = [
     { path: '', label: 'Analytics' },
+    { path: 'financials', label: 'Financials' },
     { path: 'sales', label: 'Sales' },
     { path: 'inventory', label: 'Inventory' },
     { path: 'products', label: 'Products' },
