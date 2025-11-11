@@ -22,8 +22,37 @@ const Reservations = ({ role }) => {
   const [selected, setSelected] = useState([]);
   const [activeTab, setActiveTab] = useState("All");
   const [viewModal, setViewModal] = useState(null);
+  const [productStocks, setProductStocks] = useState({}); // 🟢 Stock data map
 
   const normalizedRole = (role || "").toLowerCase();
+
+  // 🟢 Fetch Realtime Stocks from products_tires & products_mags
+  useEffect(() => {
+    const stocks = {};
+
+    const unsubTires = onSnapshot(collection(db, "products_tires"), (snap) => {
+      snap.docs.forEach((docItem) => {
+        const data = docItem.data();
+        const key = data.model || data.productName || docItem.id;
+        stocks[key] = data.stock || 0;
+      });
+      setProductStocks((prev) => ({ ...prev, ...stocks }));
+    });
+
+    const unsubMags = onSnapshot(collection(db, "products_mags"), (snap) => {
+      snap.docs.forEach((docItem) => {
+        const data = docItem.data();
+        const key = data.model || data.productName || docItem.id;
+        stocks[key] = data.stock || 0;
+      });
+      setProductStocks((prev) => ({ ...prev, ...stocks }));
+    });
+
+    return () => {
+      unsubTires();
+      unsubMags();
+    };
+  }, []);
 
   // 🔹 Load all reservations + Auto-decline expired
   useEffect(() => {
@@ -206,6 +235,7 @@ const Reservations = ({ role }) => {
               <th>Reservation ID</th>
               <th>Schedule Date</th>
               <th>Product</th>
+              <th>Stock</th> {/* 🟢 New Stock Column */}
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -216,11 +246,17 @@ const Reservations = ({ role }) => {
                 const date = res.preferredDate?.seconds
                   ? new Date(res.preferredDate.seconds * 1000)
                   : new Date(res.preferredDate || Date.now());
+                const stock =
+                  productStocks[res.model] ||
+                  productStocks[res.productName] ||
+                  "—";
+
                 return (
                   <tr key={res.id}>
                     <td>{res.id}</td>
                     <td>{date.toLocaleDateString()}</td>
                     <td>{res.productName || "—"}</td>
+                    <td>{stock}</td>
                     <td>
                       <select
                         className="status-dropdown"
@@ -254,7 +290,7 @@ const Reservations = ({ role }) => {
               })
             ) : (
               <tr>
-                <td colSpan="5" className="text-center">
+                <td colSpan="6" className="text-center">
                   No reservations found.
                 </td>
               </tr>
@@ -273,13 +309,16 @@ const Reservations = ({ role }) => {
             <p><strong>Brand:</strong> {viewModal.brand}</p>
             <p><strong>Model:</strong> {viewModal.model}</p>
             <p><strong>Price:</strong> ₱{viewModal.price}</p>
+            <p><strong>Stock:</strong> {productStocks[viewModal.model] || productStocks[viewModal.productName] || "—"}</p>
             <p><strong>Status:</strong> {viewModal.status}</p>
             <p><strong>Customer:</strong> {viewModal.userName}</p>
-            <p><strong>Schedule:</strong> {new Date(
-              viewModal.preferredDate?.seconds
-                ? viewModal.preferredDate.seconds * 1000
-                : viewModal.preferredDate
-            ).toLocaleString()}</p>
+            <p><strong>Schedule:</strong>{" "}
+              {new Date(
+                viewModal.preferredDate?.seconds
+                  ? viewModal.preferredDate.seconds * 1000
+                  : viewModal.preferredDate
+              ).toLocaleString()}
+            </p>
             <p><strong>Note:</strong> {viewModal.note || "—"}</p>
             <button className="close-btn" onClick={() => setViewModal(null)}>
               Close

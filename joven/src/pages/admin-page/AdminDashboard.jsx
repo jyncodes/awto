@@ -25,7 +25,6 @@ const AdminDashboard = () => {
     { path: 'inventory', label: 'Inventory' },
     { path: 'products', label: 'Products' },
     { path: 'suppliers', label: 'Suppliers' },
-    { path: 'staffs', label: 'Staffs' },
     { path: 'customers', label: 'Customers' },
     { path: 'reservations', label: 'Reservations' },
     { path: 'settings', label: 'Settings' },

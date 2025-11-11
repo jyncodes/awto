@@ -19,7 +19,6 @@ import AdminDashboard from './pages/admin-page/AdminDashboard';
 import AdminSales from './pages/admin-page/AdminSales';
 import AdminInventory from './pages/admin-page/AdminInventory';
 import AdminProducts from './pages/admin-page/Products';
-import AdminStaffs from './pages/admin-page/Staffs';
 import AdminReservations from './pages/admin-page/AdminReservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
@@ -198,7 +197,6 @@ export default function App() {
           <Route path="inventory" element={<AdminInventory />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="suppliers" element={<AdminSuppliers />} />
-          <Route path="staffs" element={<AdminStaffs />} />
           <Route path="reservations" element={<AdminReservations />} />
           <Route path="customers" element={<AdminCustomers />} />
           <Route path="settings" element={<AdminSettings />} />

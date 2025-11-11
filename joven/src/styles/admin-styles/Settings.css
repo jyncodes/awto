@@ -2,10 +2,10 @@
    SETTINGS PAGE CONTAINER
 =========================== */
 .settings-container {
-  max-width: 1200px;              /* ⬅ widened from 900px */
+  max-width: 1200px;
   width: 100%;
   margin: 2rem auto;
-  padding: 2rem 3rem;             /* ⬅ more horizontal padding */
+  padding: 2rem 3rem;
   font-family: "Poppins", sans-serif;
   color: #1e293b; /* slate-800 */
   background: #f8fafc; /* subtle background */
@@ -22,6 +22,7 @@
   color: #1e293b;
   margin-bottom: 2rem;
   text-align: center;
+  letter-spacing: -0.5px;
 }
 
 /* ===========================
@@ -52,7 +53,7 @@
    INPUT FIELDS
 =========================== */
 .settings-field {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .settings-field label {
@@ -69,6 +70,7 @@
   border-radius: 0.5rem;
   background-color: #f8fafc; /* slate-50 */
   transition: border-color 0.3s ease, background-color 0.3s ease;
+  font-size: 0.95rem;
 }
 
 .settings-field input:focus {
@@ -78,25 +80,7 @@
 }
 
 /* ===========================
-   TOGGLE BUTTONS
-=========================== */
-.toggle-field button {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: #3b82f6; /* blue-500 */
-  color: white;
-  font-weight: 500;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.toggle-field button:hover {
-  background: #2563eb; /* blue-600 */
-}
-
-/* ===========================
-   SAVE BUTTON
+   ACTION BUTTON
 =========================== */
 .settings-button {
   display: inline-block;
@@ -107,42 +91,183 @@
   border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, transform 0.2s ease;
 }
 
 .settings-button:hover {
   background: #15803d; /* green-700 */
+  transform: translateY(-2px);
 }
 
-/* ===========================
-   DANGER ZONE
-=========================== */
-.danger-zone {
-  border: 1px solid #f87171; /* red-400 */
-  background: #fef2f2; /* red-50 */
-  padding: 1.8rem;
+/* ==========================================================
+   STAFF MANAGEMENT SECTION — merged from Staffs.css
+========================================================== */
+.staff-container {
+  background: #ffffff;
   border-radius: 0.75rem;
-  margin-top: 1.5rem;
-  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  margin-top: 2.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.danger-zone h2 {
-  color: #b91c1c; /* red-700 */
+.staff-container:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
 }
 
-.danger-btn {
-  background: #ef4444; /* red-500 */
+.staff-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.staff-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* ========== STAFF FORM ========== */
+.staff-form-section {
+  margin-bottom: 2rem;
+}
+
+.staff-form-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+.staff-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.staff-form input {
+  flex: 1 1 calc(33.333% - 1rem);
+  min-width: 240px;
+  padding: 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background-color: #f8fafc;
+  font-size: 0.95rem;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.staff-form input:focus {
+  border-color: #3b82f6;
+  background-color: #ffffff;
+}
+
+.staff-form button {
+  flex: 1 1 100%;
+  background: #3b82f6;
   color: white;
-  padding: 0.85rem 1.75rem;
+  padding: 0.9rem;
   border: none;
   border-radius: 0.5rem;
-  cursor: pointer;
   font-weight: 600;
-  transition: background 0.3s ease;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
 }
 
-.danger-btn:hover {
+.staff-form button:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+}
+
+/* ========== STAFF LIST ========== */
+.staff-list-section {
+  margin-top: 1rem;
+}
+
+.staff-list-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+.no-staff {
+  text-align: center;
+  color: #64748b; /* slate-500 */
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+.staff-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.staff-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.staff-item:hover {
+  background: #f1f5f9;
+  transform: translateY(-2px);
+}
+
+.staff-avatar {
+  background: #3b82f6;
+  color: white;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.staff-info {
+  flex: 1;
+}
+
+.staff-info strong {
+  display: block;
+  color: #0f172a;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.staff-info small {
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.delete-btn {
+  background: #ef4444; /* red-500 */
+  color: #fff;
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.delete-btn:hover {
   background: #dc2626; /* red-600 */
+  transform: translateY(-2px);
 }
 
 /* ===========================
@@ -153,6 +278,10 @@
     padding: 1.5rem 2rem;
     max-width: 95%;
   }
+
+  .staff-form input {
+    flex: 1 1 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -161,7 +290,7 @@
   }
 
   .settings-title {
-    font-size: 1.6rem;
+    font-size: 1.7rem;
   }
 
   .settings-section {
@@ -169,13 +298,25 @@
   }
 
   .settings-field input {
-    padding: 0.7rem;
+    padding: 0.75rem;
   }
 
   .settings-button,
-  .toggle-field button,
-  .danger-btn {
+  .staff-form button,
+  .delete-btn {
     width: 100%;
     text-align: center;
+  }
+
+  .staff-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .staff-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
   }
 }
