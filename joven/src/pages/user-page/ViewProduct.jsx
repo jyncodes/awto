@@ -110,7 +110,6 @@ const ViewProduct = () => {
     }
   };
 
-  // ✅ Pass full product to reservation page
   const handleReserveClick = () => {
     if (product?.id) {
       navigate(`/reservation/${product.id}`, {
@@ -119,19 +118,16 @@ const ViewProduct = () => {
     }
   };
 
-  // ✅ Improved AR compatibility handling
   const handleARClick = () => {
     const modelUrl = `${SUPABASE_BASE_URL}/${id}.glb`;
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isAndroid = /Android/i.test(navigator.userAgent);
 
-    // Try WebXR/Model Viewer AR first
     if (arViewerRef.current && typeof arViewerRef.current.activateAR === "function") {
       arViewerRef.current.activateAR();
       return;
     }
 
-    // ✅ Android fallback → Google Scene Viewer
     if (isAndroid) {
       const sceneViewerUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(
         modelUrl
@@ -142,7 +138,6 @@ const ViewProduct = () => {
       return;
     }
 
-    // ✅ iOS fallback → Quick Look
     if (isIOS) {
       const usdzUrl = modelUrl.replace(".glb", ".usdz");
       const anchor = document.createElement("a");
@@ -152,7 +147,6 @@ const ViewProduct = () => {
       return;
     }
 
-    // ❌ If all failed
     alert("❌ AR is not supported on this device.");
   };
 
@@ -164,7 +158,8 @@ const ViewProduct = () => {
       ? `${product.size} ${product.model}`
       : product.name || "No Name";
 
-  const hasGLB = id.startsWith("MA-");
+  // ✅ Allow AR for both MA (mags) and TI (tires)
+  const hasGLB = id.startsWith("MA-") || id.startsWith("TI-");
   const modelUrl = hasGLB ? `${SUPABASE_BASE_URL}/${id}.glb` : null;
 
   return (
