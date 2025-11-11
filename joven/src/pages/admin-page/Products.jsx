@@ -68,6 +68,8 @@ const Products = () => {
   const [editingService, setEditingService] = useState(null);
   const [isServiceSaving, setIsServiceSaving] = useState(false);
 
+  const [showSupplierList, setShowSupplierList] = useState(false);
+
   // ================================
   // FETCH PRODUCTS & RELATED DATA
   // ================================
@@ -651,21 +653,49 @@ const Products = () => {
                 </>
               )}
 
-              <div className="form-group">
-                <label>Supplier</label>
-                <select
-                  name="supplierId"
-                  value={formData.supplierId}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select Supplier</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
+            {/* ================= SUPPLIER SEARCH FIELD ================= */}
+            <div className="form-group">
+              <label>Supplier</label>
+              <div className="searchable-select">
+                <input
+                  type="text"
+                  placeholder="Search supplier..."
+                  value={formData.supplierName || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData((prev) => ({
+                      ...prev,
+                      supplierName: value,
+                      supplierId: "", // reset supplierId while typing
+                    }));
+                  }}
+                  onFocus={() => setShowSupplierList(true)}
+                />
+                {showSupplierList && (
+                  <ul className="search-results">
+                    {suppliers
+                      .filter((s) =>
+                        s.name.toLowerCase().includes((formData.supplierName || "").toLowerCase())
+                      )
+                      .map((s) => (
+                        <li
+                          key={s.id}
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              supplierName: s.name,
+                              supplierId: s.id,
+                            }));
+                            setShowSupplierList(false);
+                          }}
+                        >
+                          {s.name}
+                        </li>
+                      ))}
+                  </ul>
+                )}
               </div>
+            </div>
 
               <div className="form-group">
                 <label>Price</label>

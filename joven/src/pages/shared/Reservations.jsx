@@ -17,13 +17,15 @@ import "../../styles/shared/Reservations.css";
 
 const Reservations = ({ role }) => {
   const [reservations, setReservations] = useState([]);
-  const [userNames, setUserNames] = useState({}); // store userId:name mapping
+  const [userNames, setUserNames] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [selected, setSelected] = useState([]);
+  const [activeTab, setActiveTab] = useState("All");
+  const [viewModal, setViewModal] = useState(null);
 
   const normalizedRole = (role || "").toLowerCase();
 
-  // 🔹 Load all reservations
+  // 🔹 Load all reservations + Auto-decline expired
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "reservations"), async (snapshot) => {
       const list = snapshot.docs.map((doc) => ({
@@ -32,10 +34,34 @@ const Reservations = ({ role }) => {
       }));
       setReservations(list);
 
+      const now = new Date();
+
+      // 🔹 Auto-decline if date has passed and not completed
+      for (const r of list) {
+        const date = r.preferredDate?.seconds
+          ? new Date(r.preferredDate.seconds * 1000)
+          : new Date(r.preferredDate);
+
+        if (
+          date < now &&
+          (r.status === "Pending" || r.status === "Approved") &&
+          r.status !== "Completed" &&
+          r.status !== "Declined"
+        ) {
+          try {
+            await updateDoc(doc(db, "reservations", r.id), {
+              status: "Declined",
+              declinedAt: serverTimestamp(),
+              autoDeclined: true,
+            });
+          } catch (err) {
+            console.error("Auto-decline failed for:", r.id, err);
+          }
+        }
+      }
+
       // 🔹 Fetch associated user names
-      const userIds = [
-        ...new Set(list.map((res) => res.userId).filter(Boolean)),
-      ];
+      const userIds = [...new Set(list.map((r) => r.userId).filter(Boolean))];
       const nameMap = {};
       for (const uid of userIds) {
         try {
@@ -53,16 +79,15 @@ const Reservations = ({ role }) => {
     return () => unsub();
   }, []);
 
+  // 🔹 Status update
   const handleStatusChange = async (id, newStatus) => {
     try {
       const reservationRef = doc(db, "reservations", id);
       const updateData = { status: newStatus };
       const reservation = reservations.find((r) => r.id === id);
 
-      // ✅ When Approved: Send notification
       if (newStatus === "Approved") {
         updateData.approvedAt = serverTimestamp();
-
         if (reservation?.userId) {
           await addDoc(collection(db, "notifications"), {
             userId: reservation.userId,
@@ -74,7 +99,6 @@ const Reservations = ({ role }) => {
         }
       }
 
-      // ✅ When Completed: Auto-record to Sales collection
       if (newStatus === "Completed") {
         await addDoc(collection(db, "sales"), {
           reservationId: id,
@@ -83,231 +107,154 @@ const Reservations = ({ role }) => {
             reservation?.customerName ||
             reservation?.userName ||
             "Unknown",
-          service: reservation?.serviceType || reservation?.service || "Service",
-          totalAmount: reservation?.estimatedCost || 0,
+          items: [
+            {
+              productName: reservation?.productName || "Unknown Product",
+              brand: reservation?.brand || "",
+              model: reservation?.model || "",
+              type: reservation?.type || "",
+              price: reservation?.price || 0,
+              qty: 1,
+            },
+          ],
+          totalAmount: reservation?.price || 0,
+          paymentMode: reservation?.paymentMethod || "Reservation",
+          type: "reservation",
           createdAt: Timestamp.now(),
-          type: "reservation", // ✅ changed from "service" to "reservation"
+          createdByName: role === "Admin" ? "System" : role,
+          createdByRole: role,
           status: "completed",
-          createdBy: role,
         });
       }
 
       await updateDoc(reservationRef, updateData);
     } catch (error) {
-      console.error("Error updating status or sending notification:", error);
+      console.error("Error updating status:", error);
     }
   };
 
   const handleDelete = async (id) => {
     if (normalizedRole !== "admin") return;
-    if (window.confirm("Are you sure you want to delete this reservation?")) {
-      try {
-        await deleteDoc(doc(db, "reservations", id));
-        const resSnap = await getDocs(collection(db, "reservations"));
-        if (resSnap.empty) {
-          await resetReservationCounter();
-        }
-      } catch (error) {
-        console.error("Error deleting reservation:", error);
-      }
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (normalizedRole !== "admin") return;
-    if (selected.length === 0) return alert("No reservations selected.");
-    if (!window.confirm(`Delete ${selected.length} selected reservation(s)?`))
-      return;
-
+    if (!window.confirm("Are you sure you want to delete this reservation?")) return;
     try {
-      for (let id of selected) {
-        await deleteDoc(doc(db, "reservations", id));
-      }
-
+      await deleteDoc(doc(db, "reservations", id));
       const resSnap = await getDocs(collection(db, "reservations"));
       if (resSnap.empty) {
-        await resetReservationCounter();
+        await setDoc(doc(db, "counters", "reservations"), { lastId: 0 });
       }
-
-      setSelected([]);
-      alert("Selected reservations deleted.");
     } catch (error) {
-      console.error("Bulk delete failed:", error);
-      alert("Failed to delete some reservations.");
+      console.error("Error deleting reservation:", error);
     }
   };
 
-  const resetReservationCounter = async () => {
-    if (normalizedRole !== "admin") return;
-    try {
-      await setDoc(doc(db, "counters", "reservations"), { lastId: 0 });
-      alert("Reservation counter reset to 0.");
-    } catch (error) {
-      console.error("Error resetting counter:", error);
+  // 🔍 Filter by tab
+  const now = new Date();
+  const filteredByTab = reservations.filter((r) => {
+    const date = r.preferredDate?.seconds
+      ? new Date(r.preferredDate.seconds * 1000)
+      : new Date(r.preferredDate);
+
+    switch (activeTab) {
+      case "Upcoming":
+        return date >= now && r.status !== "Completed" && r.status !== "Declined";
+      case "Approved":
+        return r.status === "Approved";
+      case "Declined":
+        return r.status === "Declined";
+      case "Completed":
+        return r.status === "Completed";
+      default:
+        return true;
     }
-  };
-
-  const toggleSelection = (id) => {
-    if (normalizedRole !== "admin") return;
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const toggleSelectAll = () => {
-    if (normalizedRole !== "admin") return;
-    if (selected.length === filtered.length) {
-      setSelected([]);
-    } else {
-      setSelected(filtered.map((r) => r.id));
-    }
-  };
-
-  // 🔍 Filter search
-  const filtered = reservations.filter((r) => {
-    const customerName =
-      userNames[r.userId] || r.customerName || r.userName || "";
-    const searchField = `${customerName} ${r.plateNumber || ""}`;
-    return searchField.toLowerCase().includes(searchTerm.toLowerCase());
   });
+
+  // 🔍 Search filter
+  const filtered = filteredByTab.filter((r) =>
+    (r.productName || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="reservations-container">
       <div className="reservations-header">
         <h1>📅 Reservations</h1>
+        <input
+          type="text"
+          placeholder="Search by product..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="reservation-search"
+        />
+      </div>
 
-        <div className="reservation-controls">
-          <input
-            type="text"
-            placeholder="Search by name or plate..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="reservation-search"
-          />
-
-          {normalizedRole === "admin" && filtered.length > 0 && (
-            <button className="bulk-delete-btn" onClick={handleBulkDelete}>
-              🗑 Delete Selected ({selected.length})
-            </button>
-          )}
-
-          {normalizedRole === "admin" && reservations.length === 0 && (
-            <button className="reset-btn" onClick={resetReservationCounter}>
-              🔄 Reset Reservation Counter
-            </button>
-          )}
-        </div>
+      {/* 🔹 Tabs */}
+      <div className="reservation-tabs">
+        {["All", "Upcoming", "Approved", "Declined", "Completed"].map((tab) => (
+          <button
+            key={tab}
+            className={`tab-btn ${activeTab === tab ? "active" : ""}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
       <div className="reservation-table-wrapper">
         <table className="reservation-table">
           <thead>
             <tr>
-              {normalizedRole === "admin" && (
-                <th>
-                  <input
-                    type="checkbox"
-                    checked={
-                      selected.length === filtered.length && filtered.length > 0
-                    }
-                    onChange={toggleSelectAll}
-                  />
-                </th>
-              )}
               <th>Reservation ID</th>
-              <th>Posted</th>
-              <th>Approved</th>
-              <th>Scheduled</th>
-              <th>Customer</th>
-              <th>Service</th>
-              <th>Vehicle Info</th>
-              <th>Notes</th>
+              <th>Schedule Date</th>
+              <th>Product</th>
               <th>Status</th>
-              {normalizedRole === "admin" && <th>Actions</th>}
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((res) => {
-              const scheduledDate =
-                res.preferredDate instanceof Timestamp
-                  ? res.preferredDate.toDate()
+            {filtered.length > 0 ? (
+              filtered.map((res) => {
+                const date = res.preferredDate?.seconds
+                  ? new Date(res.preferredDate.seconds * 1000)
                   : new Date(res.preferredDate || Date.now());
-
-              const isPast = scheduledDate < new Date();
-
-              const customerName =
-                userNames[res.userId] ||
-                res.customerName ||
-                res.userName ||
-                "—";
-
-              return (
-                <tr
-                  key={res.id}
-                  className={`reservation-row ${isPast ? "past-reservation" : ""}`}
-                >
-                  {normalizedRole === "admin" && (
+                return (
+                  <tr key={res.id}>
+                    <td>{res.id}</td>
+                    <td>{date.toLocaleDateString()}</td>
+                    <td>{res.productName || "—"}</td>
                     <td>
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(res.id)}
-                        onChange={() => toggleSelection(res.id)}
-                      />
+                      <select
+                        className="status-dropdown"
+                        value={res.status || "Pending"}
+                        onChange={(e) => handleStatusChange(res.id, e.target.value)}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Declined">Declined</option>
+                        <option value="Completed">Completed</option>
+                      </select>
                     </td>
-                  )}
-                  <td>{res.id}</td>
-                  <td>
-                    {res.createdAt?.toDate
-                      ? res.createdAt.toDate().toLocaleString()
-                      : "—"}
-                  </td>
-                  <td>
-                    {res.approvedAt?.toDate
-                      ? res.approvedAt.toDate().toLocaleString()
-                      : "—"}
-                  </td>
-                  <td>{scheduledDate.toLocaleString() || "—"}</td>
-                  {/* ✅ Customer name from users collection */}
-                  <td>{customerName}</td>
-                  <td>{res.serviceType || res.service || "—"}</td>
-                  <td>
-                    {res.vehicleBrand} {res.vehicleModel} {res.vehicleYear}
-                    <br />
-                    <small>{res.plateNumber}</small>
-                  </td>
-                  <td>{res.note || "—"}</td>
-                  <td>
-                    <select
-                      className="status-dropdown"
-                      value={res.status || "Pending"}
-                      onChange={(e) => handleStatusChange(res.id, e.target.value)}
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Rescheduled">Rescheduled</option>
-                      <option value="Declined">Declined</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                  </td>
-                  {normalizedRole === "admin" && (
                     <td>
                       <button
-                        className="delete-btn"
-                        onClick={() => handleDelete(res.id)}
+                        className="view-btn"
+                        onClick={() => setViewModal(res)}
                       >
-                        🗑 Delete
+                        👁 View
                       </button>
+                      {normalizedRole === "admin" && (
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDelete(res.id)}
+                        >
+                          🗑 Delete
+                        </button>
+                      )}
                     </td>
-                  )}
-                </tr>
-              );
-            })}
-            {filtered.length === 0 && (
+                  </tr>
+                );
+              })
+            ) : (
               <tr>
-                <td
-                  colSpan={normalizedRole === "admin" ? "11" : "10"}
-                  className="text-center"
-                >
+                <td colSpan="5" className="text-center">
                   No reservations found.
                 </td>
               </tr>
@@ -315,6 +262,31 @@ const Reservations = ({ role }) => {
           </tbody>
         </table>
       </div>
+
+      {/* 🔹 View Modal */}
+      {viewModal && (
+        <div className="reservation-modal">
+          <div className="modal-content">
+            <h2>Reservation Details</h2>
+            <p><strong>ID:</strong> {viewModal.id}</p>
+            <p><strong>Product:</strong> {viewModal.productName}</p>
+            <p><strong>Brand:</strong> {viewModal.brand}</p>
+            <p><strong>Model:</strong> {viewModal.model}</p>
+            <p><strong>Price:</strong> ₱{viewModal.price}</p>
+            <p><strong>Status:</strong> {viewModal.status}</p>
+            <p><strong>Customer:</strong> {viewModal.userName}</p>
+            <p><strong>Schedule:</strong> {new Date(
+              viewModal.preferredDate?.seconds
+                ? viewModal.preferredDate.seconds * 1000
+                : viewModal.preferredDate
+            ).toLocaleString()}</p>
+            <p><strong>Note:</strong> {viewModal.note || "—"}</p>
+            <button className="close-btn" onClick={() => setViewModal(null)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -59,23 +59,49 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.btn-tires { background-color: #2563eb; }
-.btn-tires:hover { background-color: #1e40af; }
+.btn-tires {
+  background-color: #2563eb;
+}
+.btn-tires:hover {
+  background-color: #1e40af;
+}
 
-.btn-mags { background-color: #16a34a; }
-.btn-mags:hover { background-color: #15803d; }
+.btn-mags {
+  background-color: #16a34a;
+}
+.btn-mags:hover {
+  background-color: #15803d;
+}
 
-.btn-add-tire { background-color: #16a34a; }
-.btn-add-tire:hover { background-color: #15803d; }
+.btn-add-tire {
+  background-color: #16a34a;
+}
+.btn-add-tire:hover {
+  background-color: #15803d;
+}
 
-.btn-add-mag { background-color: #9333ea; }
-.btn-add-mag:hover { background-color: #7e22ce; }
+.btn-add-mag {
+  background-color: #9333ea;
+}
+.btn-add-mag:hover {
+  background-color: #7e22ce;
+}
 
-.btn-reset { background-color: #f59e0b; color: #1e293b; }
-.btn-reset:hover { background-color: #d97706; color: #0f172a; }
+.btn-reset {
+  background-color: #f59e0b;
+  color: #1e293b;
+}
+.btn-reset:hover {
+  background-color: #d97706;
+  color: #0f172a;
+}
 
-.btn-services { background-color: #0ea5a4; }
-.btn-services:hover { background-color: #0b9a97; }
+.btn-services {
+  background-color: #0ea5a4;
+}
+.btn-services:hover {
+  background-color: #0b9a97;
+}
 
 /* ===================== TABLE ===================== */
 .product-table-wrapper {
@@ -198,8 +224,12 @@
   padding-bottom: 0.3rem;
 }
 
-.tire-box { border-color: #16a34a; }
-.mags-box { border-color: #9333ea; }
+.tire-box {
+  border-color: #16a34a;
+}
+.mags-box {
+  border-color: #9333ea;
+}
 
 .form-group {
   display: flex;
@@ -228,6 +258,53 @@
 .form-group textarea {
   min-height: 80px;
   resize: vertical;
+}
+
+/* ===================== SUPPLIER SEARCH FIELD ===================== */
+.searchable-select {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-select input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  background-color: #fff;
+}
+
+.searchable-select input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.search-results li {
+  padding: 0.6rem 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.search-results li:hover {
+  background-color: #f1f5f9;
 }
 
 /* ===================== MODAL ACTIONS ===================== */
@@ -267,7 +344,6 @@
   margin: 0;
 }
 
-/* make services table and checkbox cleaner */
 .product-table.services-table {
   width: 100%;
   border-collapse: collapse;
@@ -288,7 +364,6 @@
   vertical-align: middle;
 }
 
-/* service buttons */
 .product-table.services-table td button {
   padding: 6px 10px;
   border: none;
@@ -301,7 +376,7 @@
 }
 
 .product-table.services-table td button:nth-child(1) {
-  background-color: #10b981; /* edit - green */
+  background-color: #10b981;
   color: white;
 }
 .product-table.services-table td button:nth-child(1):hover {
@@ -309,7 +384,7 @@
 }
 
 .product-table.services-table td button:nth-child(2) {
-  background-color: #f59e0b; /* toggle - amber */
+  background-color: #f59e0b;
   color: white;
 }
 .product-table.services-table td button:nth-child(2):hover {
@@ -317,14 +392,13 @@
 }
 
 .product-table.services-table td button:nth-child(3) {
-  background-color: #ef4444; /* delete - red */
+  background-color: #ef4444;
   color: white;
 }
 .product-table.services-table td button:nth-child(3):hover {
   background-color: #dc2626;
 }
 
-/* checkbox alignment inside modal */
 .form-modal-content .form-group label[for="active"],
 .form-modal-content .form-group input[type="checkbox"] {
   display: flex;
@@ -341,8 +415,14 @@
 
 /* ===================== ANIMATIONS ===================== */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===================== RESPONSIVE ===================== */
