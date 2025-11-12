@@ -1,42 +1,37 @@
 // src/components/user-components/ModelViewer.jsx
 import React, { Suspense, useRef, useEffect, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF } from "@react-three/drei";
+import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
 import * as THREE from "three";
 
 function Model({ url }) {
   const { scene } = useGLTF(url);
   const { camera } = useThree();
 
-  scene.traverse((child) => {
-    if (child.isMesh) {
-      child.material = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        metalness: 0.1,
-        roughness: 0.9,
-      });
-      child.castShadow = true;
-      child.receiveShadow = true;
-    }
-  });
-
   useEffect(() => {
     if (!scene) return;
 
+    // ✅ Keep the model's original materials (no overwrite)
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    // ✅ Auto-center model
     const box = new THREE.Box3().setFromObject(scene);
     const size = new THREE.Vector3();
     const center = new THREE.Vector3();
     box.getSize(size);
     box.getCenter(center);
+    scene.position.sub(center);
 
-    scene.position.x = -center.x;
-    scene.position.y = -center.y;
-    scene.position.z = -center.z;
-
+    // ✅ Adjust camera distance dynamically
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = camera.fov * (Math.PI / 180);
     const cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-    camera.position.set(0, 0, cameraZ * 1.2);
+    camera.position.set(0, 0, cameraZ * 2);
     camera.lookAt(0, 0, 0);
   }, [scene, camera]);
 
@@ -49,18 +44,27 @@ function ModelViewer({ modelUrl }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     const checkUrl = async () => {
-      if (!modelUrl) return setError(true);
+      if (!modelUrl) {
+        if (isMounted) setError(true);
+        return;
+      }
       try {
         const res = await fetch(modelUrl, { method: "HEAD" });
-        if (res.ok) setValidUrl(modelUrl);
-        else setError(true);
+        if (isMounted) {
+          if (res.ok) setValidUrl(modelUrl);
+          else setError(true);
+        }
       } catch (err) {
         console.error("Model URL check failed:", err);
-        setError(true);
+        if (isMounted) setError(true);
       }
     };
     checkUrl();
+    return () => {
+      isMounted = false;
+    };
   }, [modelUrl]);
 
   if (error || !validUrl) {
@@ -101,16 +105,25 @@ function ModelViewer({ modelUrl }) {
         backgroundColor: "#ffffff",
       }}
     >
-      <Canvas style={{ width: "100%", height: "100%" }}>
-        <ambientLight intensity={0.8} />
-        <directionalLight position={[5, 5, 5]} intensity={1} />
+      <Canvas
+        shadows
+        style={{ width: "100%", height: "100%" }}
+        onCreated={({ gl }) => {
+          gl.setClearColor("#ffffff");
+          gl.toneMapping = THREE.ACESFilmicToneMapping; // ✅ same as model-viewer
+          gl.outputEncoding = THREE.sRGBEncoding; // ✅ correct color space
+        }}
+      >
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[5, 5, 5]} intensity={1.2} castShadow />
         <Suspense fallback={null}>
+          <Environment preset="studio" background={false} /> {/* ✅ adds soft reflection */}
           <Model url={validUrl} />
         </Suspense>
         <OrbitControls
-          enableZoom={false}
+          enableZoom={true}
+          enablePan={false}
           maxPolarAngle={Math.PI / 2}
-          minPolarAngle={0}
           target={[0, 0, 0]}
         />
       </Canvas>
