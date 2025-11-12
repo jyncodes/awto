@@ -14,9 +14,13 @@ import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
 import ARViewer from "../../components/user-components/ARViewer";
+import ModelViewer from "../../components/user-components/ModelViewer";
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
+
+const SUPABASE_IMAGE_URL =
+  "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/images";
 
 const ViewProduct = () => {
   const { id } = useParams();
@@ -26,6 +30,8 @@ const ViewProduct = () => {
 
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
+  const [showAR, setShowAR] = useState(false);
+  const [modelUrl, setModelUrl] = useState(null); // ✅ store final working model URL
   const arViewerRef = useRef(null);
 
   const getCollectionName = (productId) => {
@@ -35,10 +41,11 @@ const ViewProduct = () => {
     return null;
   };
 
+  // ✅ Fetch Firestore product data
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        let collectionName = getCollectionName(id);
+        const collectionName = getCollectionName(id);
 
         if (!collectionName) {
           const tiresRef = doc(db, "products_tires", id);
@@ -49,7 +56,9 @@ const ViewProduct = () => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setProduct({ ...data, id: docSnap.id });
-            setMainImage(data.imageUrl || data.images?.[0] || null);
+
+            const imageUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
+            setMainImage(imageUrl);
           }
           return;
         }
@@ -60,14 +69,47 @@ const ViewProduct = () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setProduct({ ...data, id: docSnap.id });
-          setMainImage(data.imageUrl || data.images?.[0] || null);
+          const imageUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
+          setMainImage(imageUrl);
         }
       } catch (error) {
         console.error("❌ Error fetching product:", error);
       }
     };
-
     fetchProduct();
+  }, [id]);
+
+  // ✅ Check if model exists in Supabase (handles both .glb and .GLB + folder variations)
+  useEffect(() => {
+    const checkModel = async () => {
+      if (!id) return;
+
+      const possiblePaths = [
+        `${SUPABASE_BASE_URL}/${id}.glb`,
+        `${SUPABASE_BASE_URL}/${id}.GLB`,
+        `${SUPABASE_BASE_URL}/products_tires/${id}.glb`,
+        `${SUPABASE_BASE_URL}/products_tires/${id}.GLB`,
+        `${SUPABASE_BASE_URL}/products_mags/${id}.glb`,
+        `${SUPABASE_BASE_URL}/products_mags/${id}.GLB`,
+      ];
+
+      for (const url of possiblePaths) {
+        try {
+          const res = await fetch(url, { method: "HEAD" });
+          if (res.ok) {
+            setModelUrl(url);
+            return;
+          }
+        } catch {
+          continue;
+        }
+      }
+
+      console.warn(`⚠️ No GLB model found for ${id} in Supabase`);
+      setModelUrl(null);
+    };
+
+    checkModel();
   }, [id]);
 
   const handleAddToCart = async () => {
@@ -119,35 +161,11 @@ const ViewProduct = () => {
   };
 
   const handleARClick = () => {
-    const modelUrl = `${SUPABASE_BASE_URL}/${id}.glb`;
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isAndroid = /Android/i.test(navigator.userAgent);
-
-    if (arViewerRef.current && typeof arViewerRef.current.activateAR === "function") {
-      arViewerRef.current.activateAR();
+    if (!modelUrl) {
+      alert("⚠️ Model not available for AR visualization.");
       return;
     }
-
-    if (isAndroid) {
-      const sceneViewerUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(
-        modelUrl
-      )}&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(
-        modelUrl
-      )};end;`;
-      window.location.href = sceneViewerUrl;
-      return;
-    }
-
-    if (isIOS) {
-      const usdzUrl = modelUrl.replace(".glb", ".usdz");
-      const anchor = document.createElement("a");
-      anchor.setAttribute("rel", "ar");
-      anchor.setAttribute("href", usdzUrl);
-      anchor.click();
-      return;
-    }
-
-    alert("❌ AR is not supported on this device.");
+    setShowAR(true);
   };
 
   if (!product)
@@ -158,9 +176,7 @@ const ViewProduct = () => {
       ? `${product.size} ${product.model}`
       : product.name || "No Name";
 
-  // ✅ Allow AR for both MA (mags) and TI (tires)
-  const hasGLB = id.startsWith("MA-") || id.startsWith("TI-");
-  const modelUrl = hasGLB ? `${SUPABASE_BASE_URL}/${id}.glb` : null;
+  const hasGLB = !!modelUrl;
 
   return (
     <div className="view-product">
@@ -170,13 +186,18 @@ const ViewProduct = () => {
 
       <div className="product-container">
         <div className="product-images">
-          {hasGLB && modelUrl ? (
+          {/* ✅ Always show 3D model if found */}
+          {hasGLB ? (
             <div className="ar-viewer-container">
-              <ARViewer
-                src={modelUrl}
-                alt={displayName}
-                viewerRef={arViewerRef}
-              />
+              {!showAR ? (
+                <ModelViewer modelUrl={modelUrl} />
+              ) : (
+                <ARViewer
+                  src={modelUrl}
+                  alt={displayName}
+                  viewerRef={arViewerRef}
+                />
+              )}
             </div>
           ) : (
             <img
@@ -237,6 +258,23 @@ const ViewProduct = () => {
               <FiShoppingCart size={24} />
             </button>
           </div>
+
+          {showAR && (
+            <button
+              className="exit-ar-button"
+              onClick={() => setShowAR(false)}
+              style={{
+                marginTop: "1rem",
+                padding: "0.5rem 1rem",
+                borderRadius: "8px",
+                backgroundColor: "#eee",
+                border: "1px solid #ccc",
+                cursor: "pointer",
+              }}
+            >
+              Exit AR Mode
+            </button>
+          )}
         </div>
       </div>
     </div>
