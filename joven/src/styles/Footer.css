@@ -3,7 +3,7 @@
   color: #f1f1f1;
   padding: 3rem 2rem;
   font-family: "Poppins", sans-serif;
-  border-top: 5px solid #e2b007;
+  border-top: 5px solid #f39c12;
 }
 
 .footer-top {
@@ -31,14 +31,14 @@
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
   color: #fff;
-  border-left: 4px solid #e2b007;
+  border-left: 4px solid #f39c12;;
   padding-left: 0.5rem;
 }
 
 .footer-section h6 {
   font-size: 1rem;
   margin-bottom: 0.4rem;
-  color: #e2b007;
+  color: #f39c12;;
   font-weight: 600;
 }
 
@@ -56,7 +56,7 @@
 }
 
 .footer-section a:hover {
-  color: #e2b007;
+  color: #f39c12;
 }
 
 .map-link,
@@ -70,7 +70,7 @@
 
 .map-link:hover,
 .phone-link:hover {
-  color: #e2b007;
+  color: #f39c12;
 }
 
 .social-links {
@@ -90,7 +90,7 @@
 }
 
 .icon-inline {
-  color: #e2b007;
+  color: #f39c12;
   vertical-align: middle;
 }
 
