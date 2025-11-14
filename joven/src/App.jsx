@@ -12,7 +12,7 @@ import LandingPage from "./pages/LandingPage";
 import Register from "./pages/Register";
 import ViewProduct from "./pages/user-page/ViewProduct";
 import Verify from "./pages/Verify";
-import ServicesPage from "./pages/user-page/ServicesPage"; 
+import ServicesPage from "./pages/user-page/ServicesPage";
 
 // Admin Pages
 import AdminDashboard from './pages/admin-page/AdminDashboard';
@@ -23,10 +23,10 @@ import AdminReservations from './pages/admin-page/AdminReservations';
 import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import Analytics from './pages/admin-page/Analytics';
-import AdminSuppliers from './pages/admin-page/Supplier'; 
+import AdminSuppliers from './pages/admin-page/Supplier';
 import Financials from './pages/admin-page/Financials';
 
-// ✅ POS PAGE
+// POS PAGE
 import POS from "./components/admin-components/POS";
 
 // User Pages
@@ -35,6 +35,7 @@ import UserProfile from './pages/user-page/UserProfile';
 import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
 import ReceiptPage from './pages/user-page/ReceiptPage';
+import PaymentSuccess from "./pages/user-page/PaymentSuccess";
 import DevTools from './pages/user-page/DevTools';
 
 // Reservation Page
@@ -51,13 +52,13 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import RedirectIfAuthenticated from "./routes/RedirectIfAuthenticated";
 import RequireVerifiedEmail from "./routes/RequireVerifiedEmail";
 
-// Utility wrapper to pass origin
+// Wrapper to pass origin
 const WithOrigin = ({ children }) => {
   const location = useLocation();
   return React.cloneElement(children, { origin: location.pathname });
 };
 
-// Global shortcut key hook
+// Global DevTools shortcut
 const GlobalKeyboardShortcuts = () => {
   const navigate = useNavigate();
 
@@ -81,6 +82,7 @@ export default function App() {
     <Router>
       <GlobalKeyboardShortcuts />
       <Routes>
+
         {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<LandingPage />} />
         <Route
@@ -106,7 +108,7 @@ export default function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
 
-        {/* ✅ DevTools Route */}
+        {/* DevTools */}
         <Route path="/devtools" element={<DevTools />} />
 
         {/* ================= USER ROUTES ================= */}
@@ -120,6 +122,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
+
         <Route
           path="/reservation/:productId"
           element={
@@ -130,6 +133,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
+
         <Route
           path="/invoice/:reservationId"
           element={
@@ -140,6 +144,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
+
         <Route
           path="/payment/:reservationId"
           element={
@@ -150,6 +155,19 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
+
+        {/* ✅ NEW PAYMENT SUCCESS ROUTE */}
+        <Route
+          path="/payment-success"
+          element={
+            <RequireVerifiedEmail>
+              <ProtectedRoute allowedRole="User">
+                <PaymentSuccess />
+              </ProtectedRoute>
+            </RequireVerifiedEmail>
+          }
+        />
+
         <Route
           path="/receipt/:reservationId"
           element={
@@ -160,6 +178,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
+
         <Route
           path="/profile"
           element={
@@ -170,6 +189,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
+
         <Route
           path="/user-dashboard"
           element={
@@ -203,7 +223,7 @@ export default function App() {
           <Route path="financials" element={<Financials />} />
         </Route>
 
-        {/* ✅ POS PAGE ROUTE — Only Admin can access */}
+        {/* POS Page */}
         <Route
           path="/pos"
           element={
@@ -226,6 +246,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
+
         <Route
           path="/staff-inventory"
           element={
@@ -236,6 +257,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
+
         <Route
           path="/staff-sales"
           element={
@@ -246,6 +268,7 @@ export default function App() {
             </RequireVerifiedEmail>
           }
         />
+
         <Route
           path="/staff-reservation"
           element={
@@ -257,7 +280,7 @@ export default function App() {
           }
         />
 
-        {/* ================= 404 FALLBACK ================= */}
+        {/* ================= 404 ================= */}
         <Route
           path="*"
           element={<div className="text-center p-10">404 - Page Not Found</div>}

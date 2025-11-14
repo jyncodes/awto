@@ -1,7 +1,7 @@
 /* =============================
    DEVTOOLS & VEHICLE FITMENT DASHBOARD
    Author: JM x Jane Capstone
-   ============================= */
+============================= */
 
 /* ===== GLOBAL ===== */
 .devtools-container {
@@ -17,6 +17,71 @@
   box-sizing: border-box;
   width: 100%;
 }
+
+/* =============================
+   PASSWORD SCREEN
+============================= */
+
+.password-screen {
+  background: #1e293b;
+  padding: 40px 30px;
+  border-radius: 18px;
+  max-width: 450px;
+  width: 100%;
+  margin-top: 100px;
+  box-shadow: 0 0 25px rgba(0,0,0,0.4);
+}
+
+.password-screen h2 {
+  margin-bottom: 10px;
+  font-size: 1.8rem;
+  color: #e2e8f0;
+}
+
+.password-screen p {
+  color: #94a3b8;
+  margin-bottom: 20px;
+  font-size: 1rem;
+}
+
+.password-input {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 10px;
+  border: none;
+  margin-bottom: 20px;
+  font-size: 1rem;
+  outline: none;
+  background: #334155;
+  color: white;
+}
+
+.password-input::placeholder {
+  color: #94a3b8;
+}
+
+/* PASSWORD VIEW BUTTON */
+.password-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.view-btn {
+  padding: 10px 14px;
+  background: #475569;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.2s ease;
+}
+
+.view-btn:hover {
+  background: #64748b;
+}
+
 
 /* ===== HEADER ===== */
 .devtools-header h1 {
@@ -70,17 +135,15 @@
   max-width: 1400px;
   text-align: left;
   box-sizing: border-box;
-  overflow-x: auto; /* horizontal scroll if content overflows */
+  overflow-x: auto;
 }
 
-/* Headings inside content */
 .devtools-content h2 {
   font-size: clamp(1.5rem, 4vw, 1.75rem);
   margin-bottom: 1rem;
   color: #f1f5f9;
 }
 
-/* Lists inside content */
 .devtools-content ul {
   list-style: none;
   padding-left: 0;
@@ -110,7 +173,7 @@
   transform: scale(1.05);
 }
 
-/* ===== CAR DATA WRAPPER (inside DevTools) ===== */
+/* ===== CAR DATA WRAPPER ===== */
 .car-data-wrapper {
   background: #0f172a;
   padding: 25px 20px;
@@ -120,15 +183,14 @@
   width: 100%;
   max-width: 1400px;
   box-sizing: border-box;
-  overflow-x: auto; /* horizontal scroll if table too wide */
+  overflow-x: auto;
 }
 
-/* Fitment table inside CarData */
 .car-data-wrapper table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 15px;
-  min-width: 600px; /* ensures table isn’t squished too small */
+  min-width: 600px;
 }
 
 .car-data-wrapper th,
@@ -145,7 +207,6 @@
   font-weight: 600;
 }
 
-/* Optional AR preview section */
 .ar-preview {
   background: #334155;
   padding: 25px;
@@ -162,21 +223,17 @@
   .devtools-container {
     padding: 20px 15px;
   }
-
   .devtools-tabs {
     gap: 10px;
   }
-
   .tab-btn {
     padding: 8px 14px;
     font-size: 0.9rem;
   }
-
   .devtools-content,
   .car-data-wrapper {
     padding: 15px 10px;
   }
-
   .ar-preview {
     padding: 15px;
     font-size: 0.9rem;

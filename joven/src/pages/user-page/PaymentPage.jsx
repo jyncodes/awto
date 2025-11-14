@@ -68,7 +68,6 @@ const PaymentPage = () => {
     setPaying(true);
 
     try {
-      // 👉 Create Checkout Session on your backend
       const response = await fetch("http://localhost:5000/create-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,22 +81,17 @@ const PaymentPage = () => {
       const data = await response.json();
 
       if (data.success && data.checkoutUrl) {
-        // ✅ Redirect user to PayMongo Checkout
+        // 🔗 Redirect to PayMongo checkout page
         window.open(data.checkoutUrl, "_blank");
 
-        const confirmed = window.confirm(
-          "✅ Payment successful via PayMongo (mock). Click OK to return to your reservations."
-        );
+        // 🟢 Update Firestore payment status
+        const reservationRef = doc(db, "reservations", reservationId);
+        await updateDoc(reservationRef, {
+          paymentStatus: "paid",
+        });
 
-        if (confirmed) {
-          const reservationRef = doc(db, "reservations", reservationId);
-          await updateDoc(reservationRef, {
-            paymentStatus: "paid",
-          });
-
-          alert("✅ Payment successful via PayMongo");
-          navigate(`/profile?tab=reservations`);
-        }
+        // 🟢 Redirect to success page
+        navigate("/payment-success");
       } else {
         console.error("❌ PayMongo error:", data);
         alert("❌ Failed to create payment session.");
