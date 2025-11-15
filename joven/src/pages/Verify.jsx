@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { auth } from '../firebase';
+import React, { useEffect, useState } from "react";
+import { auth } from "../firebase";
 import {
   sendEmailVerification,
   reload,
   onAuthStateChanged,
   signOut,
-} from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
-import '../styles/Verify.css';
+} from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+import "../styles/Verify.css";
 
 const Verify = () => {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ const Verify = () => {
           handleSendEmail(currentUser);
         }
       } else {
-        navigate('/login');
+        navigate("/login");
       }
     });
 
@@ -57,8 +57,8 @@ const Verify = () => {
       setEmailSent(true);
       setCooldown(60);
     } catch (error) {
-      console.error('Failed to send email:', error);
-      alert('Too many requests. Please try again later.');
+      console.error("Failed to send email:", error);
+      alert("Too many requests. Please try again later.");
     }
   };
 
@@ -68,20 +68,20 @@ const Verify = () => {
       if (user.emailVerified) {
         setIsVerified(true);
       } else {
-        alert('Email is still not verified.');
+        alert("Email is still not verified.");
       }
     } catch (error) {
-      console.error('Reload error:', error);
-      alert('Something went wrong. Please try again.');
+      console.error("Reload error:", error);
+      alert("Something went wrong. Please try again.");
     }
   };
 
   const handleGoToLogin = async () => {
     try {
-      await signOut(auth); // logout first
-      navigate('/login'); // then go to login
+      await signOut(auth);
+      navigate("/login");
     } catch (err) {
-      console.error('Sign out failed:', err);
+      console.error("Sign out failed:", err);
     }
   };
 
@@ -95,47 +95,49 @@ const Verify = () => {
 
   return (
     <div className="verify-page">
-      <div className="verify-container">
+      <div className="verify-card section fade-in">
         <h2 className="verify-title">Verify Your Email</h2>
 
         {!isVerified ? (
           <>
-            <p className="verify-description">
-              A verification link has been sent to:<br />
-              <span className="verify-email">{user?.email}</span><br />
+            <p className="verify-text">
+              A verification link has been sent to:
+              <br />
+              <span className="verify-email">{user?.email}</span>
+              <br />
               Please check your inbox or spam folder.
             </p>
 
             {emailSent && (
-              <p className="verify-success">✅ Verification email sent successfully!</p>
+              <p className="verify-success">
+                ✅ Verification email sent successfully!
+              </p>
             )}
 
             {cooldown > 0 ? (
-              <p className="verify-description">
-                You can resend the email in <strong>{cooldown}</strong> seconds.
+              <p className="verify-text">
+                You can resend the email in{" "}
+                <strong>{cooldown}</strong> seconds.
               </p>
             ) : (
-              <button
-                onClick={handleSendEmail}
-                className="verify-button"
-              >
+              <button onClick={handleSendEmail} className="verify-btn primary">
                 Resend Verification Email
               </button>
             )}
 
             <button
               onClick={handleCheckVerification}
-              className="verify-secondary-button"
+              className="verify-btn outline"
             >
               I’ve already verified. Check again.
             </button>
           </>
         ) : (
           <>
-            <p className="verify-success">Your email is verified!</p>
+            <p className="verify-success">🎉 Your email is verified!</p>
             <button
               onClick={handleGoToLogin}
-              className="verify-button verify-success-button"
+              className="verify-btn success"
             >
               Go to Login
             </button>

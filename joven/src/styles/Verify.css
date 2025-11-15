@@ -1,122 +1,146 @@
-/* Layout & Background */
+/* 🌐 Base Layout */
 .verify-page {
+  background-color: #f4f4f4;
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1rem;
-  background: linear-gradient(to bottom right, #e0f2ff, #ffffff);
+  font-family: "Poppins", sans-serif;
+  padding: 60px 20px;
 }
 
-.verify-container {
-  background: white;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
-  border-radius: 1rem;
-  max-width: 400px;
+/* 🧾 Card Container */
+.verify-card {
+  background-color: #fff;
+  max-width: 420px;
   width: 100%;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  padding: 2.5rem;
   text-align: center;
+  position: relative;
+  transition: all 0.4s ease;
 }
 
-/* Text Styles */
+.verify-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.18);
+}
+
+/* ✨ Title */
 .verify-title {
-  font-size: 1.75rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  color: #2563eb;
+  color: #111;
   margin-bottom: 1rem;
 }
 
-.verify-description {
+/* 📄 Description Text */
+.verify-text {
+  color: #444;
   font-size: 0.95rem;
-  color: #374151;
   margin-bottom: 1rem;
+  line-height: 1.6;
 }
 
 .verify-email {
-  color: #2563eb;
+  color: #0073e6;
   font-weight: 600;
 }
 
+/* ✅ Success Message */
 .verify-success {
-  color: #16a34a;
+  background: #ecfdf5;
+  color: #15803d;
+  border-left: 4px solid #16a34a;
   font-weight: 600;
+  border-radius: 8px;
+  padding: 0.75rem;
   margin-bottom: 1rem;
 }
 
-/* Buttons */
-.verify-button {
-  background-color: #2563eb;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  transition: background-color 0.3s ease;
-  margin-bottom: 0.75rem;
-  border: none;
+/* 🔘 Buttons */
+.verify-btn {
+  display: block;
   width: 100%;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
+  transition: all 0.3s ease;
 }
 
-.verify-button:hover {
-  background-color: #1d4ed8;
+/* Primary Button */
+.verify-btn.primary {
+  background-color: #000;
+  color: #fff;
 }
 
-.verify-link {
-  color: #2563eb;
-  font-weight: 500;
-  text-decoration: underline;
-  cursor: pointer;
-  font-size: 0.9rem;
+.verify-btn.primary:hover {
+  background-color: #f39c12;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(243, 156, 18, 0.3);
 }
 
-/* Green Success Button */
-.verify-success-button {
+/* Outline Button */
+.verify-btn.outline {
+  background-color: transparent;
+  border: 2px solid #000;
+  color: #000;
+}
+
+.verify-btn.outline:hover {
+  background-color: #000;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* Success Button */
+.verify-btn.success {
   background-color: #16a34a;
+  color: #fff;
 }
 
-.verify-success-button:hover {
+.verify-btn.success:hover {
   background-color: #15803d;
+  transform: translateY(-2px);
 }
 
-/* Loading Spinner */
+/* ⏳ Loading Screen */
 .verify-loading-screen {
   height: 100vh;
+  background-color: #f4f4f4;
   display: flex;
-  align-items: center;
   justify-content: center;
-  background-color: #f3f4f6;
+  align-items: center;
 }
 
 .verify-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #2563eb;
-  border-top: 4px solid transparent;
-  border-radius: 9999px;
+  width: 55px;
+  height: 55px;
+  border: 5px solid #ddd;
+  border-top: 5px solid #f39c12;
+  border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
-/* Spinner Animation */
+/* 🔄 Animations */
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.verify-secondary-button {
-  background-color: transparent;
-  color: #2563eb;
-  border: 2px solid #2563eb;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.section {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s ease;
 }
 
-.verify-secondary-button:hover {
-  background-color: #2563eb;
-  color: white;
+.section.fade-in {
+  opacity: 1;
+  transform: translateY(0);
 }
-
