@@ -41,7 +41,13 @@ const AdminSettings = () => {
   const [staffLoading, setStaffLoading] = useState(false);
 
   // =============================
-  // FETCH ADMIN INFO
+  // DOWNPAYMENT SETTINGS STATE
+  // =============================
+  const [downpayment, setDownpayment] = useState("");
+  const [savingDownpayment, setSavingDownpayment] = useState(false);
+
+  // =============================
+  // FETCH ADMIN INFO + SETTINGS
   // =============================
   useEffect(() => {
     const fetchAdmin = async () => {
@@ -71,8 +77,24 @@ const AdminSettings = () => {
       }
     };
 
+    const fetchDownpaymentSetting = async () => {
+      try {
+        const settingsRef = doc(db, "settings", "payments");
+        const snap = await getDoc(settingsRef);
+
+        if (snap.exists()) {
+          setDownpayment(snap.data().downpayment || "");
+        } else {
+          setDownpayment("");
+        }
+      } catch (error) {
+        console.error("Error loading payment settings:", error);
+      }
+    };
+
     fetchAdmin();
     fetchStaffs();
+    fetchDownpaymentSetting();
   }, []);
 
   // =============================
@@ -146,7 +168,6 @@ const AdminSettings = () => {
   // STAFF MANAGEMENT FUNCTIONS
   // =============================
 
-  // Fetch staff list
   const fetchStaffs = async () => {
     try {
       const usersRef = collection(db, "users");
@@ -163,7 +184,6 @@ const AdminSettings = () => {
     }
   };
 
-  // Input handler
   const handleStaffInputChange = (e) => {
     const { name, value } = e.target;
     setNewStaff((prev) => ({
@@ -172,7 +192,6 @@ const AdminSettings = () => {
     }));
   };
 
-  // Add staff
   const handleAddStaff = async (e) => {
     e.preventDefault();
     setStaffLoading(true);
@@ -205,7 +224,6 @@ const AdminSettings = () => {
     }
   };
 
-  // Delete staff
   const handleDeleteStaff = async (uid) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this staff?"
@@ -219,6 +237,30 @@ const AdminSettings = () => {
     } catch (error) {
       console.error("Error deleting staff:", error);
       alert("❌ Failed to delete staff.");
+    }
+  };
+
+  // =============================
+  // SAVE DOWNPAYMENT SETTING
+  // =============================
+  const handleSaveDownpayment = async () => {
+    if (downpayment === "" || isNaN(downpayment)) {
+      alert("Please enter a valid numeric value.");
+      return;
+    }
+
+    try {
+      setSavingDownpayment(true);
+      await setDoc(doc(db, "settings", "payments"), {
+        downpayment: Number(downpayment),
+      });
+
+      alert("✅ Downpayment updated successfully!");
+    } catch (error) {
+      console.error("Error saving downpayment:", error);
+      alert("Failed to update downpayment.");
+    } finally {
+      setSavingDownpayment(false);
     }
   };
 
@@ -280,6 +322,29 @@ const AdminSettings = () => {
           disabled={loading}
         >
           {loading ? "Updating..." : "Update Password"}
+        </button>
+      </div>
+
+      {/* =================== RESERVATION DOWNPAYMENT SETTINGS =================== */}
+      <div className="settings-section">
+        <h2>Reservation Downpayment</h2>
+
+        <div className="settings-field">
+          <label>Downpayment Amount (₱):</label>
+          <input
+            type="number"
+            value={downpayment}
+            onChange={(e) => setDownpayment(e.target.value)}
+            placeholder="Enter amount (e.g. 500)"
+          />
+        </div>
+
+        <button
+          className="settings-button"
+          onClick={handleSaveDownpayment}
+          disabled={savingDownpayment}
+        >
+          {savingDownpayment ? "Saving..." : "Save Downpayment"}
         </button>
       </div>
 
@@ -347,7 +412,7 @@ const AdminSettings = () => {
                         Delete
                       </button>
                     </div>
-                  </li>
+                  </li> 
                 ))}
               </ul>
             )}

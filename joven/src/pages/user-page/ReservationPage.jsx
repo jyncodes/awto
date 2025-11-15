@@ -38,75 +38,44 @@ const ReservationPage = () => {
   const [fullyBookedDates, setFullyBookedDates] = useState([]);
   const [note, setNote] = useState("");
 
-  const downpayment = 500;
+  // 🔥 DYNAMIC DOWNPAYMENT FROM FIRESTORE
+  const [downpayment, setDownpayment] = useState(0);
+  const [loadingDownpayment, setLoadingDownpayment] = useState(true);
+
   const MAX_BOOKINGS_PER_DATE = 3;
-  const BREVO_SERVER_URL = import.meta.env.VITE_BREVO_SERVER_URL || "http://localhost:5000";
+  const BREVO_SERVER_URL =
+    import.meta.env.VITE_BREVO_SERVER_URL || "http://localhost:5000";
 
-  // ✅ Generate auto-increment reservation ID
-  const generateReservationId = async () => {
-    const counterRef = doc(db, "counters", "reservations");
-    return await runTransaction(db, async (transaction) => {
-      const counterSnap = await transaction.get(counterRef);
-      if (!counterSnap.exists()) throw new Error("Counter document not found");
-      const lastId = counterSnap.data().lastId || 0;
-      const nextId = lastId + 1;
-      transaction.update(counterRef, { lastId: nextId });
-      return `RES${String(nextId).padStart(5, "0")}`;
-    });
-  };
-
-  // ✅ Send confirmation email
-  const sendReservationEmail = async (email, name, appointmentDate, reservationId, productName) => {
-    console.log("📨 Preparing to send reservation email...");
-    console.log("📧 To:", email);
-    console.log("👤 Name:", name);
-    console.log("🪪 Reservation ID:", reservationId);
-    console.log("📅 Appointment Date:", appointmentDate);
-    console.log("🛞 Product:", productName);
-
-    const payload = {
-      to: email,
-      name,
-      subject: `Reservation Confirmed - ${reservationId}`,
-      htmlContent: `
-        <h3>Hello ${name},</h3>
-        <p>Your reservation has been successfully submitted.</p>
-        <ul>
-          <li><strong>Reservation ID:</strong> ${reservationId}</li>
-          <li><strong>Product:</strong> ${productName}</li>
-          <li><strong>Appointment Date:</strong> ${appointmentDate}</li>
-        </ul>
-        <p>Thank you for choosing Awto!</p>
-      `,
-    };
-
-    try {
-      console.log("📤 Sending payload to Brevo server:", payload);
-      const response = await axios.post(`${BREVO_SERVER_URL}/send-email`, payload);
-      console.log("✅ Email sent successfully!");
-      console.log("📨 Server response:", response.data);
-    } catch (error) {
-      console.error("❌ Failed to send confirmation email.");
-      if (error.response) {
-        console.error("📡 Brevo server responded with:", error.response.data);
-        console.error("📊 Status code:", error.response.status);
-      } else if (error.request) {
-        console.error("🌐 No response received from Brevo server.");
-        console.error("📝 Request details:", error.request);
-      } else {
-        console.error("⚠️ Error:", error.message);
+  // ================================
+  // 🔥 LOAD DOWNPAYMENT
+  // ================================
+  useEffect(() => {
+    const loadDownpayment = async () => {
+      try {
+        const paymentsRef = doc(db, "settings", "payments");
+        const snap = await getDoc(paymentsRef);
+        setDownpayment(snap.exists() ? snap.data().downpayment : 0);
+      } catch (err) {
+        console.error("Error loading downpayment:", err);
+        setDownpayment(0);
+      } finally {
+        setLoadingDownpayment(false);
       }
-      // Do not throw — so the reservation will still proceed even if email fails
-    }
-  };
+    };
+    loadDownpayment();
+  }, []);
 
-  // 🔹 Track user authentication
+  // ================================
+  // 🔥 LOAD USER
+  // ================================
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, setUser);
     return () => unsub();
   }, []);
 
-  // 🔹 Fetch product if not passed via navigation
+  // ================================
+  // 🔥 LOAD PRODUCT
+  // ================================
   useEffect(() => {
     const fetchProduct = async () => {
       if (passedProduct) {
@@ -116,8 +85,10 @@ const ReservationPage = () => {
       try {
         const tiresRef = doc(db, "products_tires", productId);
         const magsRef = doc(db, "products_mags", productId);
+
         let snap = await getDoc(tiresRef);
         if (!snap.exists()) snap = await getDoc(magsRef);
+
         if (snap.exists()) setProduct({ ...snap.data(), id: snap.id });
       } catch (err) {
         console.error("Product fetch error:", err);
@@ -125,10 +96,13 @@ const ReservationPage = () => {
         setLoading(false);
       }
     };
+
     fetchProduct();
   }, [productId, passedProduct]);
 
-  // 🔹 Load fully booked dates
+  // ================================
+  // 🔥 LOAD FULLY BOOKED DATES
+  // ================================
   useEffect(() => {
     const fetchFullyBooked = async () => {
       try {
@@ -147,46 +121,114 @@ const ReservationPage = () => {
           dateCounts[key] = (dateCounts[key] || 0) + 1;
         });
 
-        const fullyBooked = Object.keys(dateCounts).filter(
-          (d) => dateCounts[d] >= MAX_BOOKINGS_PER_DATE
+        setFullyBookedDates(
+          Object.keys(dateCounts).filter(
+            (d) => dateCounts[d] >= MAX_BOOKINGS_PER_DATE
+          )
         );
-        setFullyBookedDates(fullyBooked);
       } catch (error) {
         console.error("Error fetching fully booked dates:", error);
       }
     };
+
     fetchFullyBooked();
   }, [productId]);
 
-  // 🧱 Helper: Build product details
+  // ================================
+  // 🔥 GENERATE RESERVATION ID
+  // ================================
+  const generateReservationId = async () => {
+    const counterRef = doc(db, "counters", "reservations");
+    return await runTransaction(db, async (transaction) => {
+      const counterSnap = await transaction.get(counterRef);
+      const lastId = counterSnap.exists() ? counterSnap.data().lastId : 0;
+      const nextId = lastId + 1;
+
+      transaction.set(counterRef, { lastId: nextId }, { merge: true });
+      return `RES${String(nextId).padStart(5, "0")}`;
+    });
+  };
+
+  // ================================
+  // 🔥 SEND EMAIL
+  // ================================
+  const sendReservationEmail = async (
+    email,
+    name,
+    appointmentDate,
+    reservationId,
+    productName
+  ) => {
+    try {
+      await axios.post(`${BREVO_SERVER_URL}/send-email`, {
+        to: email,
+        name,
+        subject: `Reservation Confirmed - ${reservationId}`,
+        htmlContent: `
+          <h3>Hello ${name},</h3>
+          <p>Your reservation has been successfully submitted.</p>
+          <ul>
+            <li><strong>Reservation ID:</strong> ${reservationId}</li>
+            <li><strong>Product:</strong> ${productName}</li>
+            <li><strong>Appointment Date:</strong> ${appointmentDate}</li>
+          </ul>
+        `,
+      });
+    } catch (err) {
+      console.error("Email failed:", err);
+    }
+  };
+
+  // ================================
+  // 🔥 BUILD PRODUCT DETAILS
+  // ================================
   const buildProductDetails = (prod) => {
-    if (!prod) return { productName: "Unknown Product", size: "", type: "" };
-    const type = prod.type || (prod.productId?.startsWith("MA-") ? "Mags" : "Tire") || "";
+    if (!prod)
+      return { productName: "Unknown Product", size: "", type: "" };
+
+    const type =
+      prod.type ||
+      (prod.productId?.startsWith("MA-") ? "Mags" : "Tire") ||
+      "";
+
     if (type.toLowerCase().includes("tire")) {
       const w = prod.tireWidth || prod.width || "";
       const ar = prod.aspectRatio || prod.aspect || "";
       const rim = prod.rimDiameter || prod.rim || "";
-      const sizeParts = [];
-      if (w) sizeParts.push(w);
-      if (ar) sizeParts.push(ar);
-      const size = sizeParts.length
-        ? `${sizeParts.join("/")}R${rim || ""}`.replace(/R$/, "")
-        : prod.size || "";
-      const productName = `${prod.brand || ""} ${prod.model || ""} ${size}`.trim();
-      return { productName: productName || prod.name || prod.productId || "Tire", size, type: "Tire" };
+      const size =
+        w && ar ? `${w}/${ar}R${rim || ""}`.replace(/R$/, "") : prod.size || "";
+      return {
+        productName:
+          `${prod.brand || ""} ${prod.model || ""} ${size}`.trim() || "Tire",
+        size,
+        type: "Tire",
+      };
     }
-    if (type.toLowerCase().includes("mag") || type.toLowerCase().includes("wheel")) {
-      const w = prod.wheelWidth || prod.wheel_width || prod.wheelwidth || "";
-      const dia = prod.wheelDiameter || prod.rimDiameter || prod.rim || prod.wheel_diameter || "";
+
+    if (type.toLowerCase().includes("mag")) {
+      const w = prod.wheelWidth || "";
+      const dia = prod.wheelDiameter || "";
       const size = w && dia ? `${w}x${dia}` : prod.size || "";
-      const productName = `${prod.brand || ""} ${prod.model || ""} ${size}`.trim();
-      return { productName: productName || prod.name || prod.productId || "Mags", size, type: "Mags" };
+      return {
+        productName:
+          `${prod.brand || ""} ${prod.model || ""} ${size}`.trim() || "Mags",
+        size,
+        type: "Mags",
+      };
     }
-    const fallbackName = `${prod.brand || ""} ${prod.model || ""} ${prod.size || ""}`.trim();
-    return { productName: fallbackName || prod.name || prod.productId || "Product", size: prod.size || "", type: type || "" };
+
+    return {
+      productName:
+        `${prod.brand || ""} ${prod.model || ""} ${prod.size || ""}`.trim() ||
+        "Product",
+      size: prod.size || "",
+      type,
+    };
   };
 
-  // ✅ Handle reservation submission
+  // ================================
+  // 🔥 SUBMIT RESERVATION
+  // ================================
   const handleSubmit = async () => {
     if (!user) return alert("You must be logged in to reserve.");
     if (
@@ -196,25 +238,15 @@ const ReservationPage = () => {
       !plateNumber.trim() ||
       !preferredDate
     )
-      return alert("Please fill out all required fields.");
-    if (!product) return alert("Product information is not available.");
-
-    const today = new Date();
-    const minAllowedDate = new Date();
-    minAllowedDate.setDate(today.getDate() + 1);
-    minAllowedDate.setHours(0, 0, 0, 0);
+      return alert("Fill out all required fields.");
+    if (!product) return alert("Product not found.");
 
     const chosenDate = new Date(preferredDate);
     chosenDate.setHours(0, 0, 0, 0);
 
-    if (chosenDate < minAllowedDate) {
-      return alert("You can only book at least 24 hours in advance.");
-    }
-
     const chosenKey = chosenDate.toDateString();
-    if (fullyBookedDates.includes(chosenKey)) {
-      return alert("This date is fully booked. Please choose another date.");
-    }
+    if (fullyBookedDates.includes(chosenKey))
+      return alert("Date fully booked.");
 
     try {
       const reservationId = await generateReservationId();
@@ -225,12 +257,12 @@ const ReservationPage = () => {
         userId: user.uid,
         userEmail: user.email,
         userName: user.displayName || "Customer",
-        productId: product.id || product.productId || productId,
+        productId: product.id,
         productName,
-        brand: product.brand || "Unknown",
+        brand: product.brand || "",
         model: product.model || "",
         size: size || "",
-        type: type || product.type || "",
+        type,
         price: Number(product.price || 0),
         downpayment,
         vehicleBrand: vehicleBrand.trim(),
@@ -242,30 +274,32 @@ const ReservationPage = () => {
         paymentMethod: "PayMongo",
         status: "Pending Payment",
         isCancelled: false,
-        reminderSent: false,
         createdAt: serverTimestamp(),
       };
 
       await setDoc(doc(db, "reservations", reservationId), reservationData);
 
-      // ✉️ Send confirmation email (non-blocking)
-      const appointmentDate = chosenDate.toLocaleDateString();
       sendReservationEmail(
         user.email,
         user.displayName || "Customer",
-        appointmentDate,
+        chosenDate.toLocaleDateString(),
         reservationId,
         productName
       );
 
-      alert("✅ Reservation submitted successfully!");
-      navigate(`/invoice/${reservationId}`, { state: { reservation: reservationData } });
+      alert("Reservation submitted!");
+      navigate(`/invoice/${reservationId}`, {
+        state: { reservation: reservationData },
+      });
     } catch (err) {
       console.error("Reservation submission error:", err);
-      alert("Failed to submit reservation. Please try again.");
+      alert("Failed to reserve.");
     }
   };
 
+  // ================================
+  // 🔥 DISABLE DATES
+  // ================================
   const tileDisabled = ({ date }) => {
     const now = new Date();
     const key = date.toDateString();
@@ -274,26 +308,51 @@ const ReservationPage = () => {
     return false;
   };
 
-  if (loading) return <div className="reservation-page">Loading...</div>;
-  if (!product) return <div className="reservation-page">Product not found.</div>;
+  // ================================
+  // 🔥 RENDER
+  // ================================
+  if (loading || loadingDownpayment)
+    return <div className="reservation-page">Loading...</div>;
+
+  if (!product)
+    return <div className="reservation-page">Product not found.</div>;
 
   const { productName: headerName } = buildProductDetails(product);
 
   return (
     <div className="reservation-page">
-      <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+
       <h2>Reserve: {headerName}</h2>
 
       <div className="reservation-form">
         <label>Vehicle Info</label>
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-          <input value={vehicleBrand} onChange={(e) => setVehicleBrand(e.target.value)} placeholder="Brand (e.g. Toyota)" />
-          <input value={vehicleModel} onChange={(e) => setVehicleModel(e.target.value)} placeholder="Model (e.g. Vios)" />
-          <input value={vehicleYear} onChange={(e) => setVehicleYear(e.target.value)} placeholder="Year (e.g. 2020)" />
+          <input
+            value={vehicleBrand}
+            onChange={(e) => setVehicleBrand(e.target.value)}
+            placeholder="Brand (e.g. Toyota)"
+          />
+          <input
+            value={vehicleModel}
+            onChange={(e) => setVehicleModel(e.target.value)}
+            placeholder="Model (e.g. Vios)"
+          />
+          <input
+            value={vehicleYear}
+            onChange={(e) => setVehicleYear(e.target.value)}
+            placeholder="Year (e.g. 2020)"
+          />
         </div>
 
         <label>Plate Number</label>
-        <input value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="e.g. ABC 1234" />
+        <input
+          value={plateNumber}
+          onChange={(e) => setPlateNumber(e.target.value)}
+          placeholder="e.g. ABC 1234"
+        />
 
         <label>Preferred Date</label>
         <Calendar
@@ -311,8 +370,12 @@ const ReservationPage = () => {
         />
 
         <div className="price-summary">
-          <p><strong>Price:</strong> ₱{Number(product.price || 0)}</p>
-          <p><strong>Downpayment:</strong> ₱{downpayment}</p>
+          <p>
+            <strong>Price:</strong> ₱{product.price}
+          </p>
+          <p>
+            <strong>Downpayment:</strong> ₱{downpayment}
+          </p>
         </div>
 
         <button className="submit-btn" onClick={handleSubmit}>

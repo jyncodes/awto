@@ -36,6 +36,7 @@ import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
 import ReceiptPage from './pages/user-page/ReceiptPage';
 import PaymentSuccess from "./pages/user-page/PaymentSuccess";
+import PaymentFailed from "./pages/user-page/PaymentFailed";   // ⭐ NEW
 import DevTools from './pages/user-page/DevTools';
 
 // Reservation Page
@@ -156,13 +157,25 @@ export default function App() {
           }
         />
 
-        {/* ✅ NEW PAYMENT SUCCESS ROUTE */}
+        {/* ⭐ PAYMENT SUCCESS */}
         <Route
           path="/payment-success"
           element={
             <RequireVerifiedEmail>
               <ProtectedRoute allowedRole="User">
                 <PaymentSuccess />
+              </ProtectedRoute>
+            </RequireVerifiedEmail>
+          }
+        />
+
+        {/* ⭐ PAYMENT FAILED (NEW) */}
+        <Route
+          path="/payment-failed"
+          element={
+            <RequireVerifiedEmail>
+              <ProtectedRoute allowedRole="User">
+                <PaymentFailed />
               </ProtectedRoute>
             </RequireVerifiedEmail>
           }

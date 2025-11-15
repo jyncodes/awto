@@ -2,15 +2,45 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const crypto = require("crypto");
 require("dotenv").config();
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-/* ===========================
+/* ======================================================
+   🔥 RAW BODY PARSER FOR PAYMONGO SIGNATURE VERIFICATION
+====================================================== */
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString(); // PayMongo requires this
+    },
+  })
+);
+
+app.use(cors());
+
+/* ======================================================
+   🔥 FIREBASE SETUP (for updating reservation status)
+====================================================== */
+const { initializeApp } = require("firebase/app");
+const { getFirestore, doc, updateDoc } = require("firebase/firestore");
+
+const firebaseConfig = {
+  apiKey: process.env.FB_API_KEY,
+  authDomain: process.env.FB_AUTH_DOMAIN,
+  projectId: process.env.FB_PROJECT_ID,
+  storageBucket: process.env.FB_STORAGE_BUCKET,
+  messagingSenderId: process.env.FB_SENDER_ID,
+  appId: process.env.FB_APP_ID,
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
+/* ======================================================
    📩 BREVO - Send Email
-=========================== */
+====================================================== */
 app.post("/send-email", async (req, res) => {
   const { to, name, subject, htmlContent } = req.body;
 
@@ -41,11 +71,15 @@ app.post("/send-email", async (req, res) => {
   }
 });
 
-/* ===========================
-   💳 PAYMONGO - Create Checkout Session
-=========================== */
+/* ======================================================
+   💳 PAYMONGO - Create Checkout Session (LIVE READY)
+====================================================== */
 app.post("/create-payment", async (req, res) => {
-  const { amount, description, email } = req.body;
+  const { amount, description, email, reservationId } = req.body;
+
+  console.log("💰 Creating payment with amount:", amount);
+  console.log("🧾 Reservation ID:", reservationId);
+  console.log("📧 Customer Email:", email);
 
   try {
     const response = await axios.post(
@@ -53,14 +87,6 @@ app.post("/create-payment", async (req, res) => {
       {
         data: {
           attributes: {
-            amount: Math.round(amount * 100), // Convert PHP to centavos
-            currency: "PHP",
-            description: description || "Reservation Payment",
-            cancel_url: "http://localhost:5173/payment-failed",
-            success_url: "http://localhost:5173/payment-success",
-            payment_method_types: ["card", "gcash", "paymaya"],
-
-            // ✅ Required by PayMongo
             line_items: [
               {
                 name: description || "Downpayment",
@@ -69,11 +95,19 @@ app.post("/create-payment", async (req, res) => {
                 quantity: 1,
               },
             ],
+            payment_method_types: ["card", "gcash", "grab_pay"],
+            description: description || "Reservation Payment",
+            send_email_receipt: true,
 
             billing: {
+              email,
               name: email,
-              email: email,
             },
+
+            success_url: "http://localhost:5173/payment-success",
+            cancel_url: "http://localhost:5173/payment-failed",
+
+            metadata: { reservationId },
           },
         },
       },
@@ -87,10 +121,25 @@ app.post("/create-payment", async (req, res) => {
       }
     );
 
-    const checkoutUrl = response.data.data.attributes.checkout_url;
+    const checkoutUrl =
+      response.data.data.attributes.checkout_url ||
+      response.data.data.attributes.redirect?.checkout_url;
+
     res.status(200).send({ success: true, checkoutUrl });
+
   } catch (error) {
-    console.error("❌ PayMongo error:", error.response?.data || error.message);
+
+    // ⭐⭐⭐ FULL PAYMENT ERROR LOGGING ADDED HERE ⭐⭐⭐
+    console.error("❌ FULL PayMongo ERROR OBJECT:", error);
+    console.error("❌ PayMongo RESPONSE DATA:", error.response?.data);
+    console.error("❌ PayMongo RESPONSE STATUS:", error.response?.status);
+    console.error("❌ PayMongo REQUEST DATA SENT:", {
+      amount,
+      description,
+      email,
+      reservationId
+    });
+
     res.status(500).send({
       success: false,
       error: error.response?.data || error.message,
@@ -98,9 +147,59 @@ app.post("/create-payment", async (req, res) => {
   }
 });
 
-/* ===========================
-   🚀 Server Start
-=========================== */
+/* ======================================================
+   🔔 PAYMONGO WEBHOOK - PAYMENT VERIFIED
+====================================================== */
+app.post("/webhook/paymongo", async (req, res) => {
+  try {
+    const signature = req.headers["paymongo-signature"];
+    const secret = process.env.PAYMONGO_WEBHOOK_SECRET;
+
+    const computed = crypto
+      .createHmac("sha256", secret)
+      .update(req.rawBody)
+      .digest("hex");
+
+    if (computed !== signature) {
+      console.log("❌ Invalid webhook signature — rejected");
+      return res.status(400).send("Invalid signature");
+    }
+
+    const event = req.body;
+    const eventType = event.data?.attributes?.type;
+
+    console.log("📩 Webhook Event:", eventType);
+
+    if (eventType === "payment.paid") {
+      const paymentAttributes = event.data.attributes.data.attributes;
+      const reservationId = paymentAttributes.metadata.reservationId;
+
+      if (!reservationId) {
+        console.log("⚠️ No reservationId found in metadata.");
+        return res.status(200).send("OK");
+      }
+
+      console.log("💰 Payment confirmed for reservation:", reservationId);
+
+      const reservationRef = doc(db, "reservations", reservationId);
+      await updateDoc(reservationRef, {
+        paymentStatus: "paid",
+        paidAt: new Date(),
+      });
+
+      console.log("✅ Firestore updated (paymentStatus = paid)");
+    }
+
+    res.status(200).send("OK");
+  } catch (error) {
+    console.error("❌ Webhook error:", error);
+    res.status(500).send("Webhook error");
+  }
+});
+
+/* ======================================================
+   🚀 SERVER START
+====================================================== */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`✅ Backend server running on port ${PORT}`)
