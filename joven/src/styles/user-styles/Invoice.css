@@ -119,3 +119,19 @@ hr {
     width: 100%;
   }
 }
+
+.pay-later-button {
+  background-color: #e2e8f0; 
+  color: #1e293b; 
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+.pay-later-button:hover {
+  background-color: #cbd5e1; 
+}
+

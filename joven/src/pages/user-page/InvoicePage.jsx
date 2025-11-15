@@ -107,6 +107,14 @@ const InvoicePage = () => {
           >
             Continue to Payment →
           </button>
+
+          {/* ✅ Added Pay Later button */}
+          <button
+            className="pay-later-button"
+            onClick={() => navigate("/profile?tab=reservations")}
+          >
+            Pay Later
+          </button>
         </div>
       </div>
     </div>
