@@ -47,6 +47,14 @@ body {
   padding-bottom: 0.3rem;
 }
 
+.view-fitments-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #007bff; /* Added color */
+  margin-bottom: 1rem;
+  margin-top: 2rem;
+}
+
 /* ===== SECTION HEADINGS ===== */
 h2 {
   font-size: 1.4rem;
