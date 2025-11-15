@@ -1,0 +1,55 @@
+.ar-testing-container {
+  padding: 20px;
+  color: white;
+}
+
+.viewer-section {
+  position: relative;
+  width: 640px;
+  height: 480px;
+  border: 2px solid #444;
+  margin-bottom: 20px;
+}
+
+.ar-video, .ar-canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.controls-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.btn-start,
+.btn-detect,
+.btn-test {
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: none;
+}
+
+.btn-start { background: #3b82f6; color: white; }
+.btn-detect { background: #10b981; color: white; }
+.btn-test { background: #eab308; color: black; }
+
+.simple-table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+}
+
+.simple-table th,
+.simple-table td {
+  border: 1px solid #444;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.simple-table th {
+  background: #222;
+}

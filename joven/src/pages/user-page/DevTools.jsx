@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import "../../styles/DevTools.css";
 import CarData from "../../components/dev-components/CarData.jsx";
+import ARTesting from "../../components/dev-components/ARTesting.jsx";
+
 
 export default function DevTools() {
   const [visibleSection, setVisibleSection] = useState("info");
@@ -135,8 +137,9 @@ export default function DevTools() {
             {visibleSection === "ar" && (
               <div>
                 <h2>AR Testing</h2>
-                <p>Test WebXR or AR integration here.</p>
-                <div className="ar-preview">[AR preview or script goes here]</div>
+                <p>Use this section to test GLB models and AR mode.</p>
+
+                <ARTesting />
               </div>
             )}
           </div>
