@@ -1,78 +1,160 @@
-/* 🌐 Base Layout */
-.services-main {
-  background-color: #f9f9f9;
-  padding-top: 80px;
-  font-family: "Poppins", sans-serif;
-  color: #222;
+/* MAIN WRAPPER FULL HEIGHT */
+.services-wrapper {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
 }
 
-/* 🏷️ Section Styling */
-.services-section {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 60px 20px 100px;
+/* Main Area */
+.services-main {
+  padding-top: 130px;
+  padding-bottom: 60px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.services-container {
+  display: flex;
+  width: 90%;
+  max-width: 1400px;
+  gap: 30px;
+}
+
+/* --------------------------------
+   SIDEBAR
+-------------------------------- */
+.services-sidebar {
+  width: 28%;
+  background: #ffffff;
+  padding: 22px;
+  border-radius: 14px;
+  box-shadow: 0px 4px 20px rgba(0,0,0,0.08);
+  border-left: 6px solid #f39c12;
+}
+
+.services-sidebar h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  color: #f39c12;
+}
+
+.services-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.services-table tr {
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.services-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 16px;
+  color: #444;
+}
+
+.services-table tr:hover td {
+  background: #fff3e0;
+}
+
+.active-row td {
+  background: #f39c12 !important;
+  color: white !important;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+/* --------------------------------
+   SERVICE DETAILS
+-------------------------------- */
+.service-details {
+  width: 70%;
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 14px;
+  box-shadow: 0px 4px 20px rgba(0,0,0,0.08);
+}
+
+.service-title {
+  font-size: 30px;
+  font-weight: 700;
+  color: #f39c12;
+  margin-bottom: 25px;
   text-align: center;
 }
 
-/* 🔠 Title */
-.services-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #d6006e;
-  text-transform: uppercase;
-  margin-bottom: 40px;
-  position: relative;
+.service-large-image {
+  width: 90%;
+  max-height: 430px;
+  object-fit: contain;
+  border-radius: 10px;
+  margin-bottom: 25px;
 }
 
-.services-title::after {
-  content: "";
-  display: block;
-  width: 80px;
-  height: 4px;
-  background: #d6006e;
-  margin: 10px auto 0;
-  border-radius: 2px;
+.service-description {
+  font-size: 18px;
+  color: #555;
+  line-height: 1.7;
+  text-align: center;
+  margin-bottom: 30px;
 }
 
-/* 📋 Service List */
-.services-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  text-align: left;
-  line-height: 2;
+/* --------------------------------
+   FACEBOOK INQUIRY BOX
+-------------------------------- */
+.inquiry-box {
+  background: #fff7e6;
+  padding: 20px;
+  border-radius: 10px;
+  border-left: 6px solid #f39c12;
+  text-align: center;
 }
 
-.service-item {
-  font-size: 1.2rem;
-  padding: 10px 0;
-  border-bottom: 1px solid #ddd;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.inquiry-box p {
+  font-size: 17px;
+  margin-bottom: 12px;
+  color: #444;
 }
 
-.service-item:hover {
-  color: #d6006e;
-  padding-left: 10px;
+.fb-button {
+  display: inline-block;
+  padding: 10px 18px;
+  background: #f39c12;
+  color: white;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: 0.2s;
 }
 
-/* ✨ Highlighted Item (from LandingPage click) */
-.highlight-text {
-  color: #d6006e;
-  font-weight: 700;
-  background-color: #ffe6f2;
-  border-radius: 5px;
-  padding-left: 10px;
-  transition: background 0.5s ease;
+.fb-button:hover {
+  background: #d88a0f;
 }
 
-/* 📱 Responsive */
-@media (max-width: 768px) {
-  .services-title {
-    font-size: 2rem;
+/* --------------------------------
+   RESPONSIVE
+-------------------------------- */
+@media (max-width: 992px) {
+  .services-container {
+    flex-direction: column;
   }
 
-  .service-item {
-    font-size: 1rem;
+  .services-sidebar,
+  .service-details {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .service-title {
+    font-size: 24px;
+  }
+
+  .service-description {
+    font-size: 15px;
   }
 }
