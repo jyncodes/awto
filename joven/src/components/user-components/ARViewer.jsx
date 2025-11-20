@@ -2,41 +2,33 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import * as cocoSsd from "@tensorflow-models/coco-ssd";
-import * as tf from "@tensorflow/tfjs";
+
+/**
+ * ARViewer.jsx (YOLOv8 Segmentation Version)
+ * Backend endpoint: http://localhost:8000/infer
+ */
+
+const YOLO_API_URL = "http://localhost:8000/infer"; // ⬅️ backend server
 
 const ARViewer = ({ src }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const [cocoModel, setCocoModel] = useState(null);
-  const [error, setError] = useState(false);
-  const [modelReady, setModelReady] = useState(false);
-  const [isModelPlaced, setIsModelPlaced] = useState(false);
-  const animationFrameRef = useRef(null);
 
-  const sceneRef = useRef(null);
+  const [error, setError] = useState(false);
+  const [isModelPlaced, setIsModelPlaced] = useState(false);
+
+  // three.js refs
   const rendererRef = useRef(null);
+  const sceneRef = useRef(null);
   const cameraRef = useRef(null);
   const controlsRef = useRef(null);
   const glbModelRef = useRef(null);
 
-  // ✅ Load TensorFlow COCO-SSD model
-  useEffect(() => {
-    const loadModel = async () => {
-      try {
-        await tf.ready();
-        const model = await cocoSsd.load();
-        setCocoModel(model);
-        console.log("✅ TensorFlow model loaded");
-      } catch (err) {
-        console.error("❌ Failed to load TensorFlow:", err);
-        setError(true);
-      }
-    };
-    loadModel();
-  }, []);
+  const animationRef = useRef(null);
 
-  // ✅ Start camera
+  // ---------------------------------------------------------
+  // CAMERA START
+  // ---------------------------------------------------------
   useEffect(() => {
     const startCamera = async () => {
       try {
@@ -44,6 +36,7 @@ const ARViewer = ({ src }) => {
           video: { facingMode: "environment", width: 1280, height: 720 },
           audio: false,
         });
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
@@ -53,34 +46,37 @@ const ARViewer = ({ src }) => {
         setError(true);
       }
     };
+
     startCamera();
 
     return () => {
       const tracks = videoRef.current?.srcObject?.getTracks();
-      tracks?.forEach((track) => track.stop());
-      cancelAnimationFrame(animationFrameRef.current);
+      tracks?.forEach((t) => t.stop());
+      cancelAnimationFrame(animationRef.current);
     };
   }, []);
 
-  // ✅ Initialize Three.js
+  // ---------------------------------------------------------
+  // THREE.js SCENE SETUP
+  // ---------------------------------------------------------
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // renderer
     const renderer = new THREE.WebGLRenderer({
       canvas,
       alpha: true,
       antialias: true,
-      preserveDrawingBuffer: true,
     });
-    renderer.setClearColor(0x000000, 0);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
     rendererRef.current = renderer;
 
+    // scene
     const scene = new THREE.Scene();
+    sceneRef.current = scene;
+
+    // camera
     const camera = new THREE.PerspectiveCamera(
       70,
       window.innerWidth / window.innerHeight,
@@ -88,34 +84,22 @@ const ARViewer = ({ src }) => {
       100
     );
     camera.position.set(0, 0, 3);
-    sceneRef.current = scene;
     cameraRef.current = camera;
 
-    // ✅ OrbitControls (rotate + zoom only)
+    // controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.enablePan = false;
     controls.enableZoom = true;
-    controls.zoomSpeed = 0.8;
-    controls.enableRotate = true;
-    controls.rotateSpeed = 0.6;
+    controls.enablePan = false;
     controlsRef.current = controls;
 
-    // ✅ Lighting setup
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x555555, 1.3);
-    hemiLight.position.set(0, 50, 0);
+    // lighting
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
     dirLight.position.set(5, 10, 5);
-    dirLight.castShadow = true;
     scene.add(hemiLight, dirLight);
 
-    // ✅ Environment reflections
-    const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    const envTexture = pmremGenerator.fromScene(new THREE.Scene()).texture;
-    scene.environment = envTexture;
-
-    // ✅ Load GLB model
+    // GLB loader
     const loader = new GLTFLoader();
     loader.load(
       src,
@@ -123,112 +107,116 @@ const ARViewer = ({ src }) => {
         const model = gltf.scene;
         model.scale.set(0.12, 0.12, 0.12);
         model.visible = false;
-
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            const baseColor = child.material.color
-              ? child.material.color
-              : new THREE.Color(0xffffff);
-            child.material = new THREE.MeshPhysicalMaterial({
-              color: baseColor,
-              metalness: 0.8,
-              roughness: 0.25,
-              reflectivity: 0.9,
-              clearcoat: 0.7,
-              clearcoatRoughness: 0.05,
-              envMap: envTexture,
-            });
-          }
-        });
-
-        scene.add(model);
         glbModelRef.current = model;
-        setModelReady(true);
-        console.log("✅ GLB model loaded successfully");
+        scene.add(model);
       },
       undefined,
       (err) => {
-        console.error("❌ Error loading GLB:", err);
+        console.error("❌ GLB load error:", err);
         setError(true);
       }
     );
 
-    // ✅ Resize handler
+    // resize handler
     const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (!cameraRef.current || !rendererRef.current) return;
+      cameraRef.current.aspect = window.innerWidth / window.innerHeight;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(window.innerWidth, window.innerHeight);
     };
     window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+
+    return () => window.removeEventListener("resize", handleResize);
   }, [src]);
 
-  // ✅ Detection + Render Loop (only places model once)
+  // ---------------------------------------------------------
+  // YOLO CALL + RENDER LOOP
+  // ---------------------------------------------------------
   useEffect(() => {
-    if (!cocoModel || !rendererRef.current || !controlsRef.current) return;
+    const detectLoop = async () => {
+      if (!videoRef.current || !rendererRef.current) {
+        animationRef.current = requestAnimationFrame(detectLoop);
+        return;
+      }
 
-    const renderer = rendererRef.current;
-    const scene = sceneRef.current;
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
+      // Send frame to YOLO server if model not yet placed
+      if (!isModelPlaced) {
+        const canvas = document.createElement("canvas");
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(videoRef.current, 0, 0);
 
-    const detectAndRender = async () => {
-      if (videoRef.current?.readyState >= 2 && cocoModel && !isModelPlaced) {
-        const predictions = await cocoModel.detect(videoRef.current);
-        const cars = predictions.filter(
-          (p) => ["car", "truck", "bus"].includes(p.class) && p.score > 0.5
+        const blob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/jpeg")
         );
 
-        const model = glbModelRef.current;
-        if (model && cars.length > 0) {
-          // ✅ Place it once at a fixed position
-          const car = cars[0];
-          const [x, y, w, h] = car.bbox;
-          const centerX = x + w / 2;
-          const centerY = y + h / 2;
+        const formData = new FormData();
+        formData.append("file", blob, "frame.jpg");
 
-          // Convert to normalized screen coords (but fixed)
-          const offsetX =
-            (centerX - videoRef.current.videoWidth / 2) /
-            videoRef.current.videoWidth;
-          const offsetY =
-            (centerY - videoRef.current.videoHeight / 2) /
-            videoRef.current.videoHeight;
+        try {
+          const res = await fetch(YOLO_API_URL, {
+            method: "POST",
+            body: formData,
+          });
 
-          model.visible = true;
-          model.position.set(offsetX * 1.5, -offsetY * 1.5, -2.5);
-          setIsModelPlaced(true); // ✅ stop repositioning
-          console.log("📍 Model placed in fixed position");
+          const data = await res.json();
+          if (data.detections && data.detections.length > 0) {
+            const wheel = data.detections[0]; // first detection
+
+            // bbox = [x1, y1, x2, y2]
+            const [x1, y1, x2, y2] = wheel.bbox;
+
+            const cx = (x1 + x2) / 2;
+            const cy = (y1 + y2) / 2;
+
+            const model = glbModelRef.current;
+            if (model) {
+              const normX =
+                (cx - videoRef.current.videoWidth / 2) /
+                videoRef.current.videoWidth;
+              const normY =
+                (cy - videoRef.current.videoHeight / 2) /
+                videoRef.current.videoHeight;
+
+              model.visible = true;
+              model.position.set(normX * 2, -normY * 2, -2.5);
+
+              setIsModelPlaced(true);
+            }
+          }
+        } catch (err) {
+          console.log("YOLO error:", err);
         }
       }
 
-      // Always render even if detection is done
-      controls.update();
-      renderer.render(scene, camera);
-      animationFrameRef.current = requestAnimationFrame(detectAndRender);
+      // Always render Three.js
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+      controlsRef.current.update();
+
+      animationRef.current = requestAnimationFrame(detectLoop);
     };
 
-    detectAndRender();
-    return () => cancelAnimationFrame(animationFrameRef.current);
-  }, [cocoModel, isModelPlaced]);
+    detectLoop();
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [isModelPlaced]);
 
+  // ---------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------
   if (error) {
     return (
       <div
         style={{
           height: "100vh",
+          background: "#000",
+          color: "#fff",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          background: "#000",
-          color: "#fff",
         }}
       >
-        ❌ AR Viewer Error: Check camera or model link.
+        ❌ AR Viewer Error — check camera or backend
       </div>
     );
   }
@@ -237,13 +225,11 @@ const ARViewer = ({ src }) => {
     <div
       style={{
         position: "relative",
-        width: "100%",
         height: "100vh",
-        overflow: "hidden",
+        width: "100%",
         background: "#000",
       }}
     >
-      {/* Camera Feed */}
       <video
         ref={videoRef}
         autoPlay
@@ -258,40 +244,32 @@ const ARViewer = ({ src }) => {
         }}
       />
 
-      {/* 3D Overlay */}
       <canvas
         ref={canvasRef}
         style={{
           position: "absolute",
           width: "100%",
           height: "100%",
-          top: 0,
-          left: 0,
           zIndex: 2,
-          pointerEvents: "auto",
-          touchAction: "none",
         }}
       />
 
-      {/* Status */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "10px",
-          width: "100%",
-          textAlign: "center",
-          color: "white",
-          fontSize: "16px",
-          textShadow: "0 0 5px black",
-          zIndex: 3,
-        }}
-      >
-        {cocoModel
-          ? modelReady
-            ? "🚗 Detected vehicle — you can rotate and zoom the wheel"
-            : "📦 Loading 3D model..."
-          : "🤖 Loading TensorFlow model..."}
-      </div>
+      {!isModelPlaced && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "20px",
+            width: "100%",
+            textAlign: "center",
+            color: "#fff",
+            fontSize: "18px",
+            textShadow: "0 0 5px black",
+            zIndex: 3,
+          }}
+        >
+          🤖 Detecting wheel using YOLO…
+        </div>
+      )}
     </div>
   );
 };

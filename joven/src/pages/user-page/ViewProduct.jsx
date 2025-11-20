@@ -13,8 +13,9 @@ import {
 import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
-import ARViewer from "../../components/user-components/ARViewer";
+
 import ModelViewer from "../../components/user-components/ModelViewer";
+import ARSmartViewer from "../../components/user-components/ARSmartViewer";
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -31,7 +32,8 @@ const ViewProduct = () => {
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
   const [showAR, setShowAR] = useState(false);
-  const [modelUrl, setModelUrl] = useState(null); // ✅ store final working model URL
+
+  const [modelUrl, setModelUrl] = useState(null);
   const arViewerRef = useRef(null);
 
   const getCollectionName = (productId) => {
@@ -41,7 +43,7 @@ const ViewProduct = () => {
     return null;
   };
 
-  // ✅ Fetch Firestore product data
+  // Fetch Firestore product
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -57,8 +59,8 @@ const ViewProduct = () => {
             const data = docSnap.data();
             setProduct({ ...data, id: docSnap.id });
 
-            const imageUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
-            setMainImage(imageUrl);
+            const imgUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
+            setMainImage(imgUrl);
           }
           return;
         }
@@ -69,22 +71,24 @@ const ViewProduct = () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setProduct({ ...data, id: docSnap.id });
-          const imageUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
-          setMainImage(imageUrl);
+
+          const imgUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
+          setMainImage(imgUrl);
         }
-      } catch (error) {
-        console.error("❌ Error fetching product:", error);
+      } catch (err) {
+        console.error("❌ Error fetching product:", err);
       }
     };
+
     fetchProduct();
   }, [id]);
 
-  // ✅ Check if model exists in Supabase (handles both .glb and .GLB + folder variations)
+  // Check Supabase GLB model
   useEffect(() => {
     const checkModel = async () => {
       if (!id) return;
 
-      const possiblePaths = [
+      const paths = [
         `${SUPABASE_BASE_URL}/${id}.glb`,
         `${SUPABASE_BASE_URL}/${id}.GLB`,
         `${SUPABASE_BASE_URL}/products_tires/${id}.glb`,
@@ -93,7 +97,7 @@ const ViewProduct = () => {
         `${SUPABASE_BASE_URL}/products_mags/${id}.GLB`,
       ];
 
-      for (const url of possiblePaths) {
+      for (const url of paths) {
         try {
           const res = await fetch(url, { method: "HEAD" });
           if (res.ok) {
@@ -105,13 +109,14 @@ const ViewProduct = () => {
         }
       }
 
-      console.warn(`⚠️ No GLB model found for ${id} in Supabase`);
+      console.warn(`⚠️ No GLB model found in Supabase for ${id}`);
       setModelUrl(null);
     };
 
     checkModel();
   }, [id]);
 
+  // Add to cart
   const handleAddToCart = async () => {
     const user = auth.currentUser;
     if (!user) return alert("You must be logged in to add to selections.");
@@ -127,7 +132,7 @@ const ViewProduct = () => {
       const existing = await getDocs(q);
 
       if (!existing.empty) {
-        return alert("Item is already in your selections.");
+        return alert("Item already in your selections.");
       }
 
       await addDoc(cartRef, {
@@ -141,14 +146,13 @@ const ViewProduct = () => {
         price: typeof product.price === "number" ? product.price : 0,
         createdAt: serverTimestamp(),
         vehicleLabel: vehicleLabel || null,
-        collection:
-          getCollectionName(product.productId || product.id) || "unknown",
+        collection: getCollectionName(product.productId || product.id),
       });
 
-      alert("✅ Added to My Selections!");
-    } catch (error) {
-      console.error("❌ Add to cart error:", error);
-      alert("Failed to add to My Selections. Please try again.");
+      alert("✔ Added to My Selections!");
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      alert("Failed to add. Try again.");
     }
   };
 
@@ -162,14 +166,14 @@ const ViewProduct = () => {
 
   const handleARClick = () => {
     if (!modelUrl) {
-      alert("⚠️ Model not available for AR visualization.");
+      alert("⚠ No 3D model available.");
       return;
     }
     setShowAR(true);
   };
 
   if (!product)
-    return <div className="view-product">Loading product details...</div>;
+    return <div className="view-product">Loading product…</div>;
 
   const displayName =
     product.size && product.model
@@ -186,17 +190,12 @@ const ViewProduct = () => {
 
       <div className="product-container">
         <div className="product-images">
-          {/* ✅ Always show 3D model if found */}
           {hasGLB ? (
             <div className="ar-viewer-container">
               {!showAR ? (
                 <ModelViewer modelUrl={modelUrl} />
               ) : (
-                <ARViewer
-                  src={modelUrl}
-                  alt={displayName}
-                  viewerRef={arViewerRef}
-                />
+                <ARSmartViewer src={modelUrl} viewerRef={arViewerRef} />
               )}
             </div>
           ) : (
@@ -225,7 +224,7 @@ const ViewProduct = () => {
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">
-              🚗 Showing fitment for: <strong>{vehicleLabel}</strong>
+              🚗 Fitment for: <strong>{vehicleLabel}</strong>
             </div>
           )}
 
@@ -236,7 +235,7 @@ const ViewProduct = () => {
 
           <details className="desc-section" open>
             <summary>Description</summary>
-            <p>{product.description || "No description available."}</p>
+            <p>{product.description || "No description."}</p>
           </details>
 
           <div className="button-row">
@@ -263,14 +262,6 @@ const ViewProduct = () => {
             <button
               className="exit-ar-button"
               onClick={() => setShowAR(false)}
-              style={{
-                marginTop: "1rem",
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                backgroundColor: "#eee",
-                border: "1px solid #ccc",
-                cursor: "pointer",
-              }}
             >
               Exit AR Mode
             </button>
