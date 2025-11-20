@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -26,7 +29,7 @@
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.7.0",
     "recharts": "^2.15.4",
-    "three": "^0.180.0"
+    "three": "^0.172.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
