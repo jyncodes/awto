@@ -43,30 +43,23 @@ const ViewProduct = () => {
     return null;
   };
 
-  // Fetch Firestore product
+  // FETCH PRODUCT FROM FIRESTORE
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const collectionName = getCollectionName(id);
+        let docSnap;
 
         if (!collectionName) {
           const tiresRef = doc(db, "products_tires", id);
           const magsRef = doc(db, "products_mags", id);
-          let docSnap = await getDoc(tiresRef);
+
+          docSnap = await getDoc(tiresRef);
           if (!docSnap.exists()) docSnap = await getDoc(magsRef);
-
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setProduct({ ...data, id: docSnap.id });
-
-            const imgUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
-            setMainImage(imgUrl);
-          }
-          return;
+        } else {
+          const docRef = doc(db, collectionName, id);
+          docSnap = await getDoc(docRef);
         }
-
-        const docRef = doc(db, collectionName, id);
-        const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -83,7 +76,7 @@ const ViewProduct = () => {
     fetchProduct();
   }, [id]);
 
-  // Check Supabase GLB model
+  // CHECK SUPABASE MODEL (.glb)
   useEffect(() => {
     const checkModel = async () => {
       if (!id) return;
@@ -109,17 +102,17 @@ const ViewProduct = () => {
         }
       }
 
-      console.warn(`⚠️ No GLB model found in Supabase for ${id}`);
+      console.warn(`⚠️ No GLB model found for ${id}`);
       setModelUrl(null);
     };
 
     checkModel();
   }, [id]);
 
-  // Add to cart
+  // ADD TO CART
   const handleAddToCart = async () => {
     const user = auth.currentUser;
-    if (!user) return alert("You must be logged in to add to selections.");
+    if (!user) return alert("You must be logged in to add selections.");
     if (!product?.id) return alert("Product data not ready.");
 
     try {
@@ -132,7 +125,7 @@ const ViewProduct = () => {
       const existing = await getDocs(q);
 
       if (!existing.empty) {
-        return alert("Item already in your selections.");
+        return alert("Item already in My Selections.");
       }
 
       await addDoc(cartRef, {
@@ -166,7 +159,7 @@ const ViewProduct = () => {
 
   const handleARClick = () => {
     if (!modelUrl) {
-      alert("⚠ No 3D model available.");
+      alert("⚠ No 3D model found.");
       return;
     }
     setShowAR(true);
@@ -189,6 +182,7 @@ const ViewProduct = () => {
       </button>
 
       <div className="product-container">
+        {/* Left Section: Model / Image */}
         <div className="product-images">
           {hasGLB ? (
             <div className="ar-viewer-container">
@@ -206,7 +200,7 @@ const ViewProduct = () => {
             />
           )}
 
-          {product.images && (
+          {product.images?.length > 0 && (
             <div className="thumbnail-row">
               {product.images.map((img, i) => (
                 <img
@@ -221,6 +215,7 @@ const ViewProduct = () => {
           )}
         </div>
 
+        {/* Right Section: Product Details */}
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">
@@ -235,7 +230,7 @@ const ViewProduct = () => {
 
           <details className="desc-section" open>
             <summary>Description</summary>
-            <p>{product.description || "No description."}</p>
+            <p>{product.description || "No description available."}</p>
           </details>
 
           <div className="button-row">

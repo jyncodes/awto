@@ -12,7 +12,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
  * - Debug overlay
  */
 
-const YOLO_API_URL = "https://your-yolo-server.onrender.com/infer";
+const YOLO_API_URL = "https://awto.onrender.com/infer";
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 const ARSmartViewer = ({ src }) => {
