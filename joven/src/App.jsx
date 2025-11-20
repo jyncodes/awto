@@ -9,6 +9,7 @@ import {
 
 // Public Pages
 import LandingPage from "./pages/LandingPage";
+import AboutUs from "./pages/user-page/AboutUs";
 import Register from "./pages/Register";
 import ViewProduct from "./pages/user-page/ViewProduct";
 import Verify from "./pages/Verify";
@@ -36,7 +37,7 @@ import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
 import ReceiptPage from './pages/user-page/ReceiptPage';
 import PaymentSuccess from "./pages/user-page/PaymentSuccess";
-import PaymentFailed from "./pages/user-page/PaymentFailed";   // ⭐ NEW
+import PaymentFailed from "./pages/user-page/PaymentFailed"; 
 import DevTools from './pages/user-page/DevTools';
 
 // Reservation Page
@@ -86,6 +87,10 @@ export default function App() {
 
         {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/about-us"          // ⭐ Added About Us Route
+          element={<AboutUs />}
+        />
         <Route
           path="/login"
           element={
@@ -157,7 +162,7 @@ export default function App() {
           }
         />
 
-        {/* ⭐ PAYMENT SUCCESS */}
+        {/* PAYMENT SUCCESS */}
         <Route
           path="/payment-success"
           element={
@@ -169,7 +174,7 @@ export default function App() {
           }
         />
 
-        {/* ⭐ PAYMENT FAILED (NEW) */}
+        {/* PAYMENT FAILED */}
         <Route
           path="/payment-failed"
           element={

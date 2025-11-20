@@ -71,7 +71,7 @@ const Manual = () => {
     brand && model ? Object.keys(vehicleData[brand][model] || {}) : [];
   const typeOptions = ["Tire", "Wheel"];
 
-  // === Size Options (handle all fitments properly) ===
+  // === Size Options ===
   const sizeOptions =
     brand && model && year && type
       ? (type === "Tire"
@@ -99,7 +99,7 @@ const Manual = () => {
             }))
       : null;
 
-  // === Shop Now Button ===
+  // === Shop Now ===
   const handleShopNow = (e) => {
     e.preventDefault();
 
@@ -132,16 +132,21 @@ const Manual = () => {
   };
 
   return (
-    <div className="fitment-container">
+    <div className="fitment-container premium-fitment">
       <h1 className="fitment-title">Manual Fitment Selector</h1>
 
       {loading ? (
-        <p>Loading fitment data...</p>
+        <p className="loading-text">Loading fitment data...</p>
       ) : (
-        <form onSubmit={handleShopNow}>
-          <div className="fitment-row">
+        <form onSubmit={handleShopNow} className="fitment-form">
+          <div className="fitment-row premium-row">
+
             {/* Brand */}
-            <select value={brand} onChange={(e) => setBrand(e.target.value)}>
+            <select
+              className="fitment-select"
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+            >
               <option value="">Select Brand</option>
               {brandOptions.map((b) => (
                 <option key={b} value={b}>
@@ -152,6 +157,7 @@ const Manual = () => {
 
             {/* Model */}
             <select
+              className="fitment-select"
               value={model}
               onChange={(e) => setModel(e.target.value)}
               disabled={!brand}
@@ -166,6 +172,7 @@ const Manual = () => {
 
             {/* Year */}
             <select
+              className="fitment-select"
               value={year}
               onChange={(e) => setYear(e.target.value)}
               disabled={!model}
@@ -180,6 +187,7 @@ const Manual = () => {
 
             {/* Type */}
             <select
+              className="fitment-select"
               value={type}
               onChange={(e) => setType(e.target.value)}
               disabled={!year}
@@ -194,6 +202,7 @@ const Manual = () => {
 
             {/* Size */}
             <select
+              className="fitment-select"
               value={size}
               onChange={(e) => setSize(e.target.value)}
               disabled={!type}
@@ -208,13 +217,17 @@ const Manual = () => {
 
             <button
               type="submit"
-              className="shop-now-btn"
+              className="shop-now-btn premium-btn"
               disabled={!brand || !model || !year || !type || !size}
             >
               Shop Now
             </button>
 
-            <button type="button" className="clear-btn" onClick={handleClear}>
+            <button
+              type="button"
+              className="clear-btn premium-clear"
+              onClick={handleClear}
+            >
               Clear
             </button>
           </div>
@@ -222,9 +235,9 @@ const Manual = () => {
       )}
 
       {selectedFitment && (
-        <div className="fitment-preview">
+        <div className="fitment-preview premium-preview">
           <h3>Selected Vehicle</h3>
-          <p>
+          <p className="vehicle-label">
             {brand} {model} ({year}) — {type} {size}
           </p>
 
