@@ -3,11 +3,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
-/**
- * Roboflow API version
- * Using your Publishable Key + Model Version
- */
-
+/* -----------------------------------------------
+   Roboflow API (your keys + your model)
+-------------------------------------------------- */
 const ROBOFLOW_API_URL =
   "https://detect.roboflow.com/dslr-w6mrp/2?api_key=rf_rWKRLxdKTlQmrGvVNvIBCkZYuod2";
 
@@ -28,12 +26,15 @@ const ARSmartViewer = ({ src }) => {
   const [isPlaced, setIsPlaced] = useState(false);
   const lastSentRef = useRef(0);
 
+  // NEW: timer for hiding model
+  const lastDetectionTimeRef = useRef(Date.now());
+
   const smoothing = 0.15;
-  const targetRef = useRef({ x: 0, y: 0, z: -2.5, scale: 0.12, angle: 0 });
-  const smoothedRef = useRef({ x: 0, y: 0, z: -2.5, scale: 0.12, angle: 0 });
+  const targetRef = useRef({ x: 0, y: 0, z: -2.5, scale: 0.12 });
+  const smoothedRef = useRef({ x: 0, y: 0, z: -2.5, scale: 0.12 });
 
   /* -----------------------------
-     CAMERA
+       CAMERA SETUP
   ----------------------------- */
   useEffect(() => {
     let mounted = true;
@@ -62,7 +63,7 @@ const ARSmartViewer = ({ src }) => {
   }, []);
 
   /* -----------------------------
-     THREE.js Scene
+       3D SCENE SETUP
   ----------------------------- */
   useEffect(() => {
     const canvas = threeCanvasRef.current;
@@ -93,11 +94,13 @@ const ARSmartViewer = ({ src }) => {
     controls.enabled = false;
     controlsRef.current = controls;
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.0));
+
     const dir = new THREE.DirectionalLight(0xffffff, 1.2);
     dir.position.set(3, 6, 3);
-    scene.add(hemi, dir);
+    scene.add(dir);
 
+    // Load GLB
     const loader = new GLTFLoader();
     loader.load(
       src,
@@ -113,14 +116,12 @@ const ARSmartViewer = ({ src }) => {
     );
 
     const resize = () => {
-      if (!cameraRef.current || !rendererRef.current) return;
-      cameraRef.current.aspect = window.innerWidth / window.innerHeight;
-      cameraRef.current.updateProjectionMatrix();
-      rendererRef.current.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     };
 
     window.addEventListener("resize", resize);
-
     return () => {
       window.removeEventListener("resize", resize);
       renderer.dispose();
@@ -128,7 +129,7 @@ const ARSmartViewer = ({ src }) => {
   }, [src]);
 
   /* -----------------------------
-     Send frame to Roboflow API
+      Send frame to Roboflow
   ----------------------------- */
   const sendFrame = async (frameCanvas) => {
     try {
@@ -145,9 +146,7 @@ const ARSmartViewer = ({ src }) => {
       });
 
       if (!r.ok) return null;
-
-      const json = await r.json();
-      return json;
+      return await r.json();
     } catch (err) {
       console.error("Roboflow error:", err);
       return null;
@@ -155,7 +154,7 @@ const ARSmartViewer = ({ src }) => {
   };
 
   /* -----------------------------
-     Main Loop
+        MAIN LOOP
   ----------------------------- */
   useEffect(() => {
     const loop = async () => {
@@ -167,7 +166,7 @@ const ARSmartViewer = ({ src }) => {
         return;
       }
 
-      // downscale to 512 for Roboflow
+      // For Roboflow → 512x512
       const w = 512;
       const h = 512;
 
@@ -184,29 +183,21 @@ const ARSmartViewer = ({ src }) => {
         const result = await sendFrame(frameCanvas);
 
         if (result?.predictions?.length > 0) {
-          // Pick the biggest wheel (most important for AR)
+          lastDetectionTimeRef.current = Date.now();
+
+          // Take largest wheel
           const det = result.predictions.sort(
             (a, b) => b.width * b.height - a.width * a.height
           )[0];
 
-          const x1 = det.x - det.width / 2;
-          const y1 = det.y - det.height / 2;
-          const x2 = det.x + det.width / 2;
-          const y2 = det.y + det.height / 2;
-
           const cx = det.x;
           const cy = det.y;
 
-          // Convert to real camera resolution
+          // Convert to real screen coordinates
           const scaleX = v.videoWidth / w;
           const scaleY = v.videoHeight / h;
 
-          const realX1 = x1 * scaleX;
-          const realY1 = y1 * scaleY;
-          const realX2 = x2 * scaleX;
-          const realY2 = y2 * scaleY;
-
-          const bboxWidth = Math.abs(realX2 - realX1);
+          const bboxWidth = det.width * scaleX;
           const relWidth = bboxWidth / v.videoWidth;
 
           const scale = clamp(relWidth / 0.25, 0.05, 1.5) * 0.4;
@@ -216,12 +207,23 @@ const ARSmartViewer = ({ src }) => {
 
           const z = -2.5 * (1 + (0.5 - relWidth));
 
-          targetRef.current = { x: ndcX * 2, y: ndcY * 1.6, z, scale, angle: 0 };
+          targetRef.current = { x: ndcX * 2, y: ndcY * 1.6, z, scale };
+
           setIsPlaced(true);
         }
       }
 
-      // Smoothing
+      /* -----------------------------
+            AUTO-HIDE AFTER 5 SECS
+      ----------------------------- */
+      if (Date.now() - lastDetectionTimeRef.current > 5000) {
+        setIsPlaced(false);
+        if (modelRef.current) modelRef.current.visible = false;
+      }
+
+      /* -----------------------------
+            SMOOTH MOVEMENT
+      ----------------------------- */
       const t = targetRef.current;
       const s = smoothedRef.current;
 
