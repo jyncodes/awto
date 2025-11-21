@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from "react";
 import {
   collection,
-  query,
-  where,
   addDoc,
   updateDoc,
   doc,
-  arrayUnion,
   serverTimestamp,
   onSnapshot,
-  getDocs,
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
@@ -21,13 +17,11 @@ const CarData = () => {
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [loading, setLoading] = useState(true);
-
   const [editDocId, setEditDocId] = useState(null);
 
   const [form, setForm] = useState({
     brand: "",
     model: "",
-    year: "",
     type: "",
     tireFitments: [],
     wheelFitments: [],
@@ -40,7 +34,8 @@ const CarData = () => {
     wheelDiameter: "",
     wheelWidth: "",
     boltPattern: "",
-    offset: "", // Added offset here
+    offset: "",
+    centerBore: "",
   });
 
   useEffect(() => {
@@ -49,19 +44,17 @@ const CarData = () => {
       (snapshot) => {
         const data = {};
         snapshot.forEach((docSnap) => {
-          const { brand, model, year, tireFitments = [], wheelFitments = [] } =
-            docSnap.data();
+          const { brand, model, tireFitments = [], wheelFitments = [] } = docSnap.data();
           if (!brand || !model) return;
           if (!data[brand]) data[brand] = {};
-          if (!data[brand][model]) data[brand][model] = {};
-          data[brand][model][year] = {
+          if (!data[brand][model]) data[brand][model] = [];
+          data[brand][model].push({
             tireFitments,
             wheelFitments,
             id: docSnap.id,
             brand,
             model,
-            year,
-          };
+          });
         });
         setVehicleData(data);
         setLoading(false);
@@ -87,12 +80,12 @@ const CarData = () => {
         tireFitments: [...prev.tireFitments, newFitment],
       }));
     } else {
-      const { wheelDiameter, wheelWidth, boltPattern, offset } = fitmentFields;
-      if (!wheelDiameter || !wheelWidth || !boltPattern || !offset)
+      const { wheelDiameter, wheelWidth, boltPattern, offset, centerBore } = fitmentFields;
+      if (!wheelDiameter || !wheelWidth || !boltPattern || !offset || !centerBore)
         return alert(
-          "⚠️ Fill Wheel Diameter, Wheel Width, Bolt Pattern, and Offset."
+          "⚠️ Fill Wheel Diameter, Wheel Width, Bolt Pattern, Offset, and Center Bore."
         );
-      const newFitment = { wheelDiameter, wheelWidth, boltPattern, offset };
+      const newFitment = { wheelDiameter, wheelWidth, boltPattern, offset, centerBore };
       setForm((prev) => ({
         ...prev,
         wheelFitments: [...prev.wheelFitments, newFitment],
@@ -107,6 +100,7 @@ const CarData = () => {
       wheelWidth: "",
       boltPattern: "",
       offset: "",
+      centerBore: "",
     });
   };
 
@@ -127,8 +121,8 @@ const CarData = () => {
   const handleUpload = async (e) => {
     e.preventDefault();
 
-    if (!form.brand || !form.model || !form.year)
-      return alert("⚠️ Complete Brand, Model, and Year fields.");
+    if (!form.brand || !form.model)
+      return alert("⚠️ Complete Brand and Model fields.");
     if (form.tireFitments.length === 0 && form.wheelFitments.length === 0)
       return alert("⚠️ Add at least one fitment.");
 
@@ -153,7 +147,6 @@ const CarData = () => {
       setForm({
         brand: "",
         model: "",
-        year: "",
         type: "",
         tireFitments: [],
         wheelFitments: [],
@@ -169,7 +162,6 @@ const CarData = () => {
     setForm({
       brand: data.brand,
       model: data.model,
-      year: data.year,
       type: "",
       tireFitments: data.tireFitments || [],
       wheelFitments: data.wheelFitments || [],
@@ -202,12 +194,10 @@ const CarData = () => {
   const handleTypeChange = (e) => setSelectedType(e.target.value);
 
   const brandOptions = Object.keys(vehicleData || {});
-  const modelOptions = selectedBrand
-    ? Object.keys(vehicleData[selectedBrand] || {})
-    : [];
+  const modelOptions = selectedBrand ? Object.keys(vehicleData[selectedBrand] || {}) : [];
   const typeOptions = ["Tire", "Wheel"];
 
-  const fitmentList = vehicleData?.[selectedBrand]?.[selectedModel] || {};
+  const fitmentList = vehicleData?.[selectedBrand]?.[selectedModel] || [];
 
   return (
     <div className="vehicles-container">
@@ -227,12 +217,6 @@ const CarData = () => {
               placeholder="Model"
               value={form.model}
               onChange={(e) => setForm({ ...form, model: e.target.value })}
-            />
-            <input
-              type="text"
-              placeholder="Year"
-              value={form.year}
-              onChange={(e) => setForm({ ...form, year: e.target.value })}
             />
             <select
               value={form.type}
@@ -307,6 +291,14 @@ const CarData = () => {
                   setFitmentFields({ ...fitmentFields, offset: e.target.value })
                 }
               />
+              <input
+                type="text"
+                placeholder="Center Bore"
+                value={fitmentFields.centerBore}
+                onChange={(e) =>
+                  setFitmentFields({ ...fitmentFields, centerBore: e.target.value })
+                }
+              />
             </div>
           )}
 
@@ -351,27 +343,20 @@ const CarData = () => {
               <table className="fitment-table">
                 <thead>
                   <tr>
-                    <th>Year</th>
                     <th>Tire Fitments</th>
                     <th>Wheel Fitments</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(fitmentList).map(([year, data]) => (
-                    <tr key={year}>
-                      <td>{year}</td>
+                  {fitmentList.map((data) => (
+                    <tr key={data.id}>
                       <td>{data.tireFitments?.length || 0}</td>
                       <td>{data.wheelFitments?.length || 0}</td>
                       <td>
                         <button
                           className="btn-edit"
-                          onClick={() =>
-                            handleEdit(
-                              { ...data, brand: selectedBrand, model: selectedModel, year },
-                              data.id
-                            )
-                          }
+                          onClick={() => handleEdit(data, data.id)}
                         >
                           ✏️ Edit
                         </button>

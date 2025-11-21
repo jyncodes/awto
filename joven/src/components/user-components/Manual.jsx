@@ -12,7 +12,6 @@ const Manual = () => {
 
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
-  const [year, setYear] = useState("");
   const [type, setType] = useState("");
   const [size, setSize] = useState("");
 
@@ -25,22 +24,18 @@ const Manual = () => {
 
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          const {
-            brand,
-            model,
-            year,
-            tireFitments = [],
-            wheelFitments = [],
-          } = data;
+          const { brand, model, tireFitments = [], wheelFitments = [] } = data;
 
-          if (!brand || !model || !year) return;
+          if (!brand || !model) return;
 
           if (!dataMap[brand]) dataMap[brand] = {};
-          if (!dataMap[brand][model]) dataMap[brand][model] = {};
-          dataMap[brand][model][year] = {
-            tireFitments: Array.isArray(tireFitments) ? tireFitments : [],
-            wheelFitments: Array.isArray(wheelFitments) ? wheelFitments : [],
+          if (!dataMap[brand][model]) dataMap[brand][model] = {
+            tireFitments: [],
+            wheelFitments: []
           };
+
+          dataMap[brand][model].tireFitments.push(...(Array.isArray(tireFitments) ? tireFitments : []));
+          dataMap[brand][model].wheelFitments.push(...(Array.isArray(wheelFitments) ? wheelFitments : []));
         });
 
         setVehicleData(dataMap);
@@ -59,7 +54,6 @@ const Manual = () => {
   const handleClear = () => {
     setBrand("");
     setModel("");
-    setYear("");
     setType("");
     setSize("");
   };
@@ -67,46 +61,33 @@ const Manual = () => {
   // === Dropdown Options ===
   const brandOptions = Object.keys(vehicleData);
   const modelOptions = brand ? Object.keys(vehicleData[brand] || {}) : [];
-  const yearOptions =
-    brand && model ? Object.keys(vehicleData[brand][model] || {}) : [];
   const typeOptions = ["Tire", "Wheel"];
 
   // === Size Options ===
   const sizeOptions =
-    brand && model && year && type
+    brand && model && type
       ? (type === "Tire"
-          ? vehicleData[brand][model][year]?.tireFitments.map((f, i) => {
+          ? vehicleData[brand][model]?.tireFitments.map((f, i) => {
               const label = `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`;
-              return { id: `${label}-${i}`, label };
+              return { id: `${label}-${i}`, label, fitment: f };
             })
-          : vehicleData[brand][model][year]?.wheelFitments.map((f, i) => {
-              // Include offset in the label for wheels
+          : vehicleData[brand][model]?.wheelFitments.map((f, i) => {
               const offsetLabel = f.offset ? ` Offset:${f.offset}` : "";
-              const label = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}${offsetLabel}`;
-              return { id: `${label}-${i}`, label };
+              const cbLabel = f.centerBore ? ` CB:${f.centerBore}` : "";
+              const label = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}${offsetLabel}${cbLabel}`;
+              return { id: `${label}-${i}`, label, fitment: f };
             })) || []
       : [];
 
   // === Selected Fitment ===
-  const selectedFitment =
-    brand && model && year && type && size
-      ? (type === "Tire"
-          ? vehicleData[brand][model][year]?.tireFitments.find((f) => {
-              const formatted = `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`;
-              return formatted === size;
-            })
-          : vehicleData[brand][model][year]?.wheelFitments.find((f) => {
-              const offsetLabel = f.offset ? ` Offset:${f.offset}` : "";
-              const formatted = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}${offsetLabel}`;
-              return formatted === size;
-            }))
-      : null;
+  const selectedFitmentObj = sizeOptions.find((s) => s.label === size);
+  const selectedFitment = selectedFitmentObj?.fitment || null;
 
   // === Shop Now ===
   const handleShopNow = (e) => {
     e.preventDefault();
 
-    if (!brand || !model || !year || !type || !size) {
+    if (!brand || !model || !type || !size) {
       alert("⚠️ Please select all fields before proceeding.");
       return;
     }
@@ -119,7 +100,7 @@ const Manual = () => {
     navigate("/user-dashboard", {
       state: {
         selectionType: "fitment",
-        vehicleLabel: `${brand} ${model} (${year}) - ${type} ${size}`,
+        vehicleLabel: `${brand} ${model} - ${type} ${size}`,
         fitment: {
           type: type.toLowerCase(),
           size,
@@ -173,27 +154,12 @@ const Manual = () => {
               ))}
             </select>
 
-            {/* Year */}
-            <select
-              className="fitment-select"
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-              disabled={!model}
-            >
-              <option value="">Select Year</option>
-              {yearOptions.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-
             {/* Type */}
             <select
               className="fitment-select"
               value={type}
               onChange={(e) => setType(e.target.value)}
-              disabled={!year}
+              disabled={!model}
             >
               <option value="">Select Type</option>
               {typeOptions.map((t) => (
@@ -221,7 +187,7 @@ const Manual = () => {
             <button
               type="submit"
               className="shop-now-btn premium-btn"
-              disabled={!brand || !model || !year || !type || !size}
+              disabled={!brand || !model || !type || !size}
             >
               Shop Now
             </button>
@@ -241,38 +207,24 @@ const Manual = () => {
         <div className="fitment-preview premium-preview">
           <h3>Selected Vehicle</h3>
           <p className="vehicle-label">
-            {brand} {model} ({year}) — {type} {size}
+            {brand} {model} — {type} {size}
           </p>
 
           <h4>Fitment Details</h4>
           <ul>
             {type === "Tire" ? (
               <>
-                {selectedFitment.tireWidth && (
-                  <li>Tire Width: {selectedFitment.tireWidth}</li>
-                )}
-                {selectedFitment.aspectRatio && (
-                  <li>Aspect Ratio: {selectedFitment.aspectRatio}</li>
-                )}
-                {selectedFitment.rimDiameter && (
-                  <li>Rim Diameter: {selectedFitment.rimDiameter}</li>
-                )}
+                {selectedFitment.tireWidth && <li>Tire Width: {selectedFitment.tireWidth}</li>}
+                {selectedFitment.aspectRatio && <li>Aspect Ratio: {selectedFitment.aspectRatio}</li>}
+                {selectedFitment.rimDiameter && <li>Rim Diameter: {selectedFitment.rimDiameter}</li>}
               </>
             ) : (
               <>
-                {selectedFitment.wheelDiameter && (
-                  <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>
-                )}
-                {selectedFitment.wheelWidth && (
-                  <li>Wheel Width: {selectedFitment.wheelWidth}</li>
-                )}
-                {selectedFitment.boltPattern && (
-                  <li>Bolt Pattern: {selectedFitment.boltPattern}</li>
-                )}
+                {selectedFitment.wheelDiameter && <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>}
+                {selectedFitment.wheelWidth && <li>Wheel Width: {selectedFitment.wheelWidth}</li>}
+                {selectedFitment.boltPattern && <li>Bolt Pattern: {selectedFitment.boltPattern}</li>}
                 {selectedFitment.offset && <li>Offset: {selectedFitment.offset}</li>}
-                {selectedFitment.centerBore && (
-                  <li>Center Bore: {selectedFitment.centerBore}</li>
-                )}
+                {selectedFitment.centerBore && <li>Center Bore: {selectedFitment.centerBore}</li>}
               </>
             )}
           </ul>
