@@ -37,7 +37,7 @@ import InvoicePage from './pages/user-page/InvoicePage';
 import PaymentPage from './pages/user-page/PaymentPage';
 import ReceiptPage from './pages/user-page/ReceiptPage';
 import PaymentSuccess from "./pages/user-page/PaymentSuccess";
-import PaymentFailed from "./pages/user-page/PaymentFailed"; 
+import PaymentFailed from "./pages/user-page/PaymentFailed";
 import DevTools from './pages/user-page/DevTools';
 
 // Reservation Page
@@ -53,6 +53,9 @@ import StaffReservation from "./pages/staff-page/StaffReservation";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import RedirectIfAuthenticated from "./routes/RedirectIfAuthenticated";
 import RequireVerifiedEmail from "./routes/RequireVerifiedEmail";
+
+// ⭐ AR Debugger (added for camera test)
+import ARCameraDebugger from "./ARCameraDebugger";
 
 // Wrapper to pass origin
 const WithOrigin = ({ children }) => {
@@ -87,10 +90,8 @@ export default function App() {
 
         {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<LandingPage />} />
-        <Route
-          path="/about-us"          // ⭐ Added About Us Route
-          element={<AboutUs />}
-        />
+        <Route path="/about-us" element={<AboutUs />} />
+
         <Route
           path="/login"
           element={
@@ -101,6 +102,7 @@ export default function App() {
             </WithOrigin>
           }
         />
+
         <Route
           path="/register"
           element={
@@ -111,11 +113,15 @@ export default function App() {
             </WithOrigin>
           }
         />
+
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
 
         {/* DevTools */}
         <Route path="/devtools" element={<DevTools />} />
+
+        {/* ⭐ AR Debug route */}
+        <Route path="/debug-ar" element={<ARCameraDebugger />} />
 
         {/* ================= USER ROUTES ================= */}
         <Route
@@ -162,7 +168,6 @@ export default function App() {
           }
         />
 
-        {/* PAYMENT SUCCESS */}
         <Route
           path="/payment-success"
           element={
@@ -174,7 +179,6 @@ export default function App() {
           }
         />
 
-        {/* PAYMENT FAILED */}
         <Route
           path="/payment-failed"
           element={
@@ -303,6 +307,7 @@ export default function App() {
           path="*"
           element={<div className="text-center p-10">404 - Page Not Found</div>}
         />
+
       </Routes>
     </Router>
   );
