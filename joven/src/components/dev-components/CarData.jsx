@@ -40,6 +40,7 @@ const CarData = () => {
     wheelDiameter: "",
     wheelWidth: "",
     boltPattern: "",
+    offset: "", // Added offset here
   });
 
   useEffect(() => {
@@ -86,10 +87,12 @@ const CarData = () => {
         tireFitments: [...prev.tireFitments, newFitment],
       }));
     } else {
-      const { wheelDiameter, wheelWidth, boltPattern } = fitmentFields;
-      if (!wheelDiameter || !wheelWidth || !boltPattern)
-        return alert("⚠️ Fill Wheel Diameter, Wheel Width, and Bolt Pattern.");
-      const newFitment = { wheelDiameter, wheelWidth, boltPattern };
+      const { wheelDiameter, wheelWidth, boltPattern, offset } = fitmentFields;
+      if (!wheelDiameter || !wheelWidth || !boltPattern || !offset)
+        return alert(
+          "⚠️ Fill Wheel Diameter, Wheel Width, Bolt Pattern, and Offset."
+        );
+      const newFitment = { wheelDiameter, wheelWidth, boltPattern, offset };
       setForm((prev) => ({
         ...prev,
         wheelFitments: [...prev.wheelFitments, newFitment],
@@ -103,6 +106,7 @@ const CarData = () => {
       wheelDiameter: "",
       wheelWidth: "",
       boltPattern: "",
+      offset: "",
     });
   };
 
@@ -166,7 +170,7 @@ const CarData = () => {
       brand: data.brand,
       model: data.model,
       year: data.year,
-      type: "", // optional to reset type
+      type: "",
       tireFitments: data.tireFitments || [],
       wheelFitments: data.wheelFitments || [],
     });
@@ -293,6 +297,14 @@ const CarData = () => {
                 value={fitmentFields.boltPattern}
                 onChange={(e) =>
                   setFitmentFields({ ...fitmentFields, boltPattern: e.target.value })
+                }
+              />
+              <input
+                type="text"
+                placeholder="Offset"
+                value={fitmentFields.offset}
+                onChange={(e) =>
+                  setFitmentFields({ ...fitmentFields, offset: e.target.value })
                 }
               />
             </div>
