@@ -4,15 +4,13 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 /**
- * ARSmartViewer.jsx
- * - Receives `src` from ViewProduct.jsx (Supabase GLB URL)
- * - Sends frames to YOLOv8 backend (http://127.0.0.1:8000/infer)
- * - Auto-place, auto-scale, auto-rotate using PCA angle
- * - Smooth transitions (EMA)
- * - Debug overlay
+ * Roboflow API version
+ * Using your Publishable Key + Model Version
  */
 
-const YOLO_API_URL = "https://awto.onrender.com/infer";
+const ROBOFLOW_API_URL =
+  "https://detect.roboflow.com/dslr-w6mrp/2?api_key=rf_rWKRLxdKTlQmrGvVNvIBCkZYuod2";
+
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 const ARSmartViewer = ({ src }) => {
@@ -30,16 +28,16 @@ const ARSmartViewer = ({ src }) => {
   const [isPlaced, setIsPlaced] = useState(false);
   const lastSentRef = useRef(0);
 
-  // smoothing
   const smoothing = 0.15;
   const targetRef = useRef({ x: 0, y: 0, z: -2.5, scale: 0.12, angle: 0 });
   const smoothedRef = useRef({ x: 0, y: 0, z: -2.5, scale: 0.12, angle: 0 });
 
-  // -----------------------------
-  // Camera
-  // -----------------------------
+  /* -----------------------------
+     CAMERA
+  ----------------------------- */
   useEffect(() => {
     let mounted = true;
+
     const startCam = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -63,9 +61,9 @@ const ARSmartViewer = ({ src }) => {
     };
   }, []);
 
-  // -----------------------------
-  // THREE.js Scene
-  // -----------------------------
+  /* -----------------------------
+     THREE.js Scene
+  ----------------------------- */
   useEffect(() => {
     const canvas = threeCanvasRef.current;
     if (!canvas) return;
@@ -76,7 +74,6 @@ const ARSmartViewer = ({ src }) => {
       antialias: true,
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio || 1);
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
@@ -101,7 +98,6 @@ const ARSmartViewer = ({ src }) => {
     dir.position.set(3, 6, 3);
     scene.add(hemi, dir);
 
-    // Load GLB Model (SRC comes from ViewProduct)
     const loader = new GLTFLoader();
     loader.load(
       src,
@@ -116,132 +112,51 @@ const ARSmartViewer = ({ src }) => {
       (e) => console.error("GLB load error:", e)
     );
 
-    const onResize = () => {
+    const resize = () => {
       if (!cameraRef.current || !rendererRef.current) return;
       cameraRef.current.aspect = window.innerWidth / window.innerHeight;
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(window.innerWidth, window.innerHeight);
     };
-    window.addEventListener("resize", onResize);
+
+    window.addEventListener("resize", resize);
 
     return () => {
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", resize);
       renderer.dispose();
     };
   }, [src]);
 
-  // -----------------------------
-  // Compute wheel rotation using PCA of Sobel edges
-  // -----------------------------
-  const computeOrientation = (imageData, bbox) => {
-    const [x1, y1, x2, y2] = bbox.map((v) => Math.round(v));
-    const w = x2 - x1;
-    const h = y2 - y1;
-    if (w < 5 || h < 5) return 0;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    ctx.putImageData(imageData, -x1, -y1);
-
-    const data = ctx.getImageData(0, 0, w, h).data;
-    const gray = new Float32Array(w * h);
-
-    for (let i = 0; i < w * h; i++) {
-      gray[i] =
-        0.299 * data[i * 4] +
-        0.587 * data[i * 4 + 1] +
-        0.114 * data[i * 4 + 2];
-    }
-
-    const gx = new Float32Array(w * h);
-    const gy = new Float32Array(w * h);
-
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
-        const i = y * w + x;
-
-        const sx =
-          -gray[i - w - 1] -
-          2 * gray[i - 1] -
-          gray[i + w - 1] +
-          gray[i - w + 1] +
-          2 * gray[i + 1] +
-          gray[i + w + 1];
-
-        const sy =
-          -gray[i - w - 1] -
-          2 * gray[i - w] -
-          gray[i - w + 1] +
-          gray[i + w - 1] +
-          2 * gray[i + w] +
-          gray[i + w + 1];
-
-        gx[i] = sx;
-        gy[i] = sy;
-      }
-    }
-
-    const edges = [];
-    for (let i = 0; i < w * h; i++) {
-      if (Math.hypot(gx[i], gy[i]) > 60) {
-        edges.push([i % w, Math.floor(i / w)]);
-      }
-    }
-
-    if (edges.length < 5) return 0;
-
-    let mx = 0,
-      my = 0;
-    edges.forEach(([x, y]) => {
-      mx += x;
-      my += y;
-    });
-    mx /= edges.length;
-    my /= edges.length;
-
-    let cxx = 0,
-      cyy = 0,
-      cxy = 0;
-
-    edges.forEach(([x, y]) => {
-      const dx = x - mx;
-      const dy = y - my;
-      cxx += dx * dx;
-      cyy += dy * dy;
-      cxy += dx * dy;
-    });
-
-    cxx /= edges.length;
-    cyy /= edges.length;
-    cxy /= edges.length;
-
-    return 0.5 * Math.atan2(2 * cxy, cxx - cyy);
-  };
-
-  // -----------------------------
-  // Send frame to YOLO
-  // -----------------------------
+  /* -----------------------------
+     Send frame to Roboflow API
+  ----------------------------- */
   const sendFrame = async (frameCanvas) => {
     try {
       const blob = await new Promise((res) =>
         frameCanvas.toBlob(res, "image/jpeg", 0.8)
       );
-      const fd = new FormData();
-      fd.append("file", blob, "frame.jpg");
 
-      const r = await fetch(YOLO_API_URL, { method: "POST", body: fd });
+      const formData = new FormData();
+      formData.append("file", blob, "frame.jpg");
+
+      const r = await fetch(ROBOFLOW_API_URL, {
+        method: "POST",
+        body: formData,
+      });
+
       if (!r.ok) return null;
-      return await r.json();
-    } catch {
+
+      const json = await r.json();
+      return json;
+    } catch (err) {
+      console.error("Roboflow error:", err);
       return null;
     }
   };
 
-  // -----------------------------
-  // Main Loop
-  // -----------------------------
+  /* -----------------------------
+     Main Loop
+  ----------------------------- */
   useEffect(() => {
     const loop = async () => {
       const v = videoRef.current;
@@ -252,8 +167,9 @@ const ARSmartViewer = ({ src }) => {
         return;
       }
 
-      const w = Math.max(320, v.videoWidth * 0.5);
-      const h = Math.max(240, v.videoHeight * 0.5);
+      // downscale to 512 for Roboflow
+      const w = 512;
+      const h = 512;
 
       const frameCanvas = document.createElement("canvas");
       frameCanvas.width = w;
@@ -262,48 +178,50 @@ const ARSmartViewer = ({ src }) => {
 
       const now = performance.now();
 
-      if (now - lastSentRef.current > 160) {
+      if (now - lastSentRef.current > 200) {
         lastSentRef.current = now;
+
         const result = await sendFrame(frameCanvas);
 
-        if (result && result.detections?.length > 0) {
-          const det = result.detections[0];
+        if (result?.predictions?.length > 0) {
+          // Pick the biggest wheel (most important for AR)
+          const det = result.predictions.sort(
+            (a, b) => b.width * b.height - a.width * a.height
+          )[0];
 
-          // rescaled bbox
-          const scaled = det.bbox.map((val, i) =>
-            i % 2 === 0 ? val * (v.videoWidth / w) : val * (v.videoHeight / h)
-          );
+          const x1 = det.x - det.width / 2;
+          const y1 = det.y - det.height / 2;
+          const x2 = det.x + det.width / 2;
+          const y2 = det.y + det.height / 2;
 
-          const [x1, y1, x2, y2] = scaled;
-          const cx = (x1 + x2) / 2;
-          const cy = (y1 + y2) / 2;
+          const cx = det.x;
+          const cy = det.y;
 
-          const fullCanvas = document.createElement("canvas");
-          fullCanvas.width = v.videoWidth;
-          fullCanvas.height = v.videoHeight;
-          fullCanvas.getContext("2d").drawImage(v, 0, 0);
-          const imageData = fullCanvas
-            .getContext("2d")
-            .getImageData(0, 0, v.videoWidth, v.videoHeight);
+          // Convert to real camera resolution
+          const scaleX = v.videoWidth / w;
+          const scaleY = v.videoHeight / h;
 
-          const angle = computeOrientation(imageData, scaled);
+          const realX1 = x1 * scaleX;
+          const realY1 = y1 * scaleY;
+          const realX2 = x2 * scaleX;
+          const realY2 = y2 * scaleY;
 
-          const bboxWidth = Math.abs(x2 - x1);
+          const bboxWidth = Math.abs(realX2 - realX1);
           const relWidth = bboxWidth / v.videoWidth;
 
           const scale = clamp(relWidth / 0.25, 0.05, 1.5) * 0.4;
 
-          const ndcX = (cx / v.videoWidth) * 2 - 1;
-          const ndcY = -((cy / v.videoHeight) * 2 - 1);
+          const ndcX = (cx / w) * 2 - 1;
+          const ndcY = -((cy / h) * 2 - 1);
 
           const z = -2.5 * (1 + (0.5 - relWidth));
 
-          targetRef.current = { x: ndcX * 2, y: ndcY * 1.6, z, scale, angle };
+          targetRef.current = { x: ndcX * 2, y: ndcY * 1.6, z, scale, angle: 0 };
           setIsPlaced(true);
         }
       }
 
-      // smoothing
+      // Smoothing
       const t = targetRef.current;
       const s = smoothedRef.current;
 
@@ -312,21 +230,17 @@ const ARSmartViewer = ({ src }) => {
       s.z += (t.z - s.z) * smoothing;
       s.scale += (t.scale - s.scale) * smoothing;
 
-      const da = (t.angle - s.angle + Math.PI) % (Math.PI * 2) - Math.PI;
-      s.angle += da * smoothing;
-
       if (modelRef.current) {
         modelRef.current.visible = isPlaced;
         modelRef.current.position.set(s.x, -s.y, s.z);
         modelRef.current.scale.set(s.scale, s.scale, s.scale);
-        modelRef.current.rotation.set(0, 0, -s.angle);
       }
 
-      // debug draw
+      // Debug overlay
       if (dbg) {
-        const ctx = dbg.getContext("2d");
         dbg.width = v.videoWidth;
         dbg.height = v.videoHeight;
+        const ctx = dbg.getContext("2d");
         ctx.clearRect(0, 0, dbg.width, dbg.height);
 
         if (isPlaced) {
@@ -335,28 +249,12 @@ const ARSmartViewer = ({ src }) => {
 
           ctx.strokeStyle = "lime";
           ctx.lineWidth = 2;
-
-          ctx.beginPath();
-          ctx.moveTo(cxScr - 10, cyScr);
-          ctx.lineTo(cxScr + 10, cyScr);
-          ctx.moveTo(cxScr, cyScr - 10);
-          ctx.lineTo(cxScr, cyScr + 10);
-          ctx.stroke();
-
-          ctx.fillStyle = "rgba(0,0,0,0.6)";
-          ctx.fillRect(10, 10, 180, 50);
-          ctx.fillStyle = "white";
-          ctx.font = "14px Arial";
-          ctx.fillText(`Scale: ${s.scale.toFixed(2)}`, 18, 30);
-          ctx.fillText(`Angle: ${(s.angle * 180 / Math.PI).toFixed(0)}°`, 18, 48);
+          ctx.strokeRect(cxScr - 20, cyScr - 20, 40, 40);
         }
       }
 
-      if (rendererRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
-        controlsRef.current.update();
-      }
-
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+      controlsRef.current.update();
       rafRef.current = requestAnimationFrame(loop);
     };
 
