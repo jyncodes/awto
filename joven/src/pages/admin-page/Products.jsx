@@ -14,7 +14,6 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import "../../styles/admin-styles/Products.css";
-import ResetCounterModal from "../../components/admin-components/ResetCounterModal";
 
 const PRODUCT_TYPE_PREFIXES = {
   Tire: "TI",
@@ -56,7 +55,6 @@ const Products = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showResetModal, setShowResetModal] = useState(false);
   const [nextProductId, setNextProductId] = useState("");
   const [currentView, setCurrentView] = useState("tires");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -370,9 +368,6 @@ const Products = () => {
         <button className="btn-add-mag" onClick={() => openAddModal("Mags")}>
           Add Mag
         </button>
-        <button className="btn-reset" onClick={() => setShowResetModal(true)}>
-          Reset Counter
-        </button>
 
         {/* New Services button - kept as the last button per your order */}
         <button
@@ -542,12 +537,8 @@ const Products = () => {
                 <label>Product ID</label>
                 <input
                   type="text"
-                  value={
-                    isEditMode
-                      ? formData.productId
-                      : nextProductId || "Generating..."
-                  }
-                  readOnly
+                  value={formData.productId || nextProductId}
+                  disabled
                 />
               </div>
 
@@ -576,30 +567,33 @@ const Products = () => {
               {formData.type === "Tire" ? (
                 <>
                   <div className="form-group">
-                    <label>Tire Width (mm)</label>
+                    <label>Tire Width</label>
                     <input
-                      type="number"
+                      type="text"
                       name="tireWidth"
                       value={formData.tireWidth}
                       onChange={handleInputChange}
+                      required
                     />
                   </div>
                   <div className="form-group">
                     <label>Aspect Ratio</label>
                     <input
-                      type="number"
+                      type="text"
                       name="aspectRatio"
                       value={formData.aspectRatio}
                       onChange={handleInputChange}
+                      required
                     />
                   </div>
                   <div className="form-group">
                     <label>Rim Diameter</label>
                     <input
-                      type="number"
+                      type="text"
                       name="rimDiameter"
                       value={formData.rimDiameter}
                       onChange={handleInputChange}
+                      required
                     />
                   </div>
                 </>
@@ -608,19 +602,21 @@ const Products = () => {
                   <div className="form-group">
                     <label>Wheel Diameter</label>
                     <input
-                      type="number"
+                      type="text"
                       name="wheelDiameter"
                       value={formData.wheelDiameter}
                       onChange={handleInputChange}
+                      required
                     />
                   </div>
                   <div className="form-group">
                     <label>Wheel Width</label>
                     <input
-                      type="number"
+                      type="text"
                       name="wheelWidth"
                       value={formData.wheelWidth}
                       onChange={handleInputChange}
+                      required
                     />
                   </div>
                   <div className="form-group">
@@ -653,49 +649,21 @@ const Products = () => {
                 </>
               )}
 
-            {/* ================= SUPPLIER SEARCH FIELD ================= */}
-            <div className="form-group">
-              <label>Supplier</label>
-              <div className="searchable-select">
-                <input
-                  type="text"
-                  placeholder="Search supplier..."
-                  value={formData.supplierName || ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFormData((prev) => ({
-                      ...prev,
-                      supplierName: value,
-                      supplierId: "", // reset supplierId while typing
-                    }));
-                  }}
-                  onFocus={() => setShowSupplierList(true)}
-                />
-                {showSupplierList && (
-                  <ul className="search-results">
-                    {suppliers
-                      .filter((s) =>
-                        s.name.toLowerCase().includes((formData.supplierName || "").toLowerCase())
-                      )
-                      .map((s) => (
-                        <li
-                          key={s.id}
-                          onClick={() => {
-                            setFormData((prev) => ({
-                              ...prev,
-                              supplierName: s.name,
-                              supplierId: s.id,
-                            }));
-                            setShowSupplierList(false);
-                          }}
-                        >
-                          {s.name}
-                        </li>
-                      ))}
-                  </ul>
-                )}
+              <div className="form-group">
+                <label>Supplier</label>
+                <select
+                  name="supplierId"
+                  value={formData.supplierId}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select Supplier</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
 
               <div className="form-group">
                 <label>Price</label>
@@ -704,27 +672,28 @@ const Products = () => {
                   name="price"
                   value={formData.price}
                   onChange={handleInputChange}
+                  required
                 />
               </div>
 
-              <div className="form-group full">
+              <div className="form-group full-span">
                 <label>Description</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                ></textarea>
+                />
               </div>
 
-              <div className="form-actions">
+              <div className="form-buttons">
                 <button type="submit" disabled={isSubmitting}>
-                  {isSubmitting
-                    ? "Saving..."
-                    : isEditMode
-                    ? "Update"
-                    : "Add Product"}
+                  {isEditMode ? "Update" : "Add"} Product
                 </button>
-                <button type="button" onClick={() => setIsModalOpen(false)}>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="btn-cancel"
+                >
                   Cancel
                 </button>
               </div>
@@ -733,59 +702,84 @@ const Products = () => {
         </div>
       )}
 
-      {/* ================= SERVICE MODAL ================= */}
+      {/* ================= SERVICES MODAL ================= */}
       {serviceModalOpen && (
         <div className="modal-overlay">
           <div className="form-modal-content">
             <h2>{editingService ? "Edit Service" : "Add Service"}</h2>
-            <div className="form-grid">
+            <form className="form-grid">
               <div className="form-group">
-                <label>Service Name</label>
+                <label>Name</label>
                 <input
+                  type="text"
                   name="name"
                   value={serviceForm.name}
                   onChange={handleServiceInput}
+                  required
                 />
               </div>
+
               <div className="form-group">
                 <label>Price</label>
                 <input
-                  name="price"
                   type="number"
+                  name="price"
                   value={serviceForm.price}
+                  onChange={handleServiceInput}
+                  required
+                />
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>Taxable</label>
+                <input
+                  type="checkbox"
+                  name="taxable"
+                  checked={serviceForm.taxable}
                   onChange={handleServiceInput}
                 />
               </div>
+
               <div className="form-group">
-                <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    name="active"
-                    checked={!!serviceForm.active}
-                    onChange={handleServiceInput}
-                  />
-                  Active
-                </label>
+                <label>Duration (minutes)</label>
+                <input
+                  type="number"
+                  name="durationMinutes"
+                  value={serviceForm.durationMinutes}
+                  onChange={handleServiceInput}
+                />
               </div>
 
-              <div className="form-actions">
-                <button onClick={saveService} disabled={isServiceSaving}>
-                  {isServiceSaving ? "Saving..." : editingService ? "Update" : "Add"}
+              <div className="form-group checkbox-group">
+                <label>Active</label>
+                <input
+                  type="checkbox"
+                  name="active"
+                  checked={serviceForm.active}
+                  onChange={handleServiceInput}
+                />
+              </div>
+
+              <div className="form-buttons">
+                <button
+                  type="button"
+                  onClick={saveService}
+                  disabled={isServiceSaving}
+                >
+                  {editingService ? "Update" : "Add"} Service
                 </button>
-                <button onClick={() => { setServiceModalOpen(false); setEditingService(null); }}>
+                <button
+                  type="button"
+                  onClick={() => setServiceModalOpen(false)}
+                  className="btn-cancel"
+                >
                   Cancel
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
-
-      {/* RESET COUNTER MODAL */}
-      <ResetCounterModal
-        isOpen={showResetModal}
-        onClose={() => setShowResetModal(false)}
-      />
     </div>
   );
 };

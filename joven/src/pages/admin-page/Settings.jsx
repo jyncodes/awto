@@ -21,6 +21,9 @@ import {
 } from "firebase/auth";
 import "../../styles/admin-styles/Settings.css";
 
+// ✅ ADDED IMPORT
+import ResetCounterModal from "../../components/admin-components/ResetCounterModal";
+
 const AdminSettings = () => {
   const [adminData, setAdminData] = useState({ name: "", email: "" });
   const [editName, setEditName] = useState("");
@@ -41,10 +44,13 @@ const AdminSettings = () => {
   const [staffLoading, setStaffLoading] = useState(false);
 
   // =============================
-  // DOWNPAYMENT SETTINGS STATE
+  // DOWNPAYMENT SETTINGS
   // =============================
   const [downpayment, setDownpayment] = useState("");
   const [savingDownpayment, setSavingDownpayment] = useState(false);
+
+  // ✅ ADDED STATE FOR RESET COUNTER MODAL
+  const [showResetModal, setShowResetModal] = useState(false);
 
   // =============================
   // FETCH ADMIN INFO + SETTINGS
@@ -125,7 +131,7 @@ const AdminSettings = () => {
   };
 
   // =============================
-  // UPDATE PASSWORD
+  // CHANGE PASSWORD
   // =============================
   const handlePasswordUpdate = async () => {
     if (!newPassword || !confirmPassword) {
@@ -165,7 +171,7 @@ const AdminSettings = () => {
   };
 
   // =============================
-  // STAFF MANAGEMENT FUNCTIONS
+  // STAFF FUNCTIONS
   // =============================
 
   const fetchStaffs = async () => {
@@ -215,7 +221,7 @@ const AdminSettings = () => {
 
       await fetchStaffs();
       setNewStaff({ name: "", email: "", password: "" });
-      alert("✅ Staff account created and email verification sent.");
+      alert("Staff account created and email verification sent.");
     } catch (error) {
       console.error("Error creating staff:", error);
       alert(error.message);
@@ -233,15 +239,15 @@ const AdminSettings = () => {
     try {
       await deleteDoc(doc(db, "users", uid));
       await fetchStaffs();
-      alert("✅ Staff deleted successfully.");
+      alert("Staff deleted successfully.");
     } catch (error) {
       console.error("Error deleting staff:", error);
-      alert("❌ Failed to delete staff.");
+      alert("Failed to delete staff.");
     }
   };
 
   // =============================
-  // SAVE DOWNPAYMENT SETTING
+  // SAVE DOWNPAYMENT
   // =============================
   const handleSaveDownpayment = async () => {
     if (downpayment === "" || isNaN(downpayment)) {
@@ -255,7 +261,7 @@ const AdminSettings = () => {
         downpayment: Number(downpayment),
       });
 
-      alert("✅ Downpayment updated successfully!");
+      alert("Downpayment updated successfully!");
     } catch (error) {
       console.error("Error saving downpayment:", error);
       alert("Failed to update downpayment.");
@@ -265,7 +271,7 @@ const AdminSettings = () => {
   };
 
   // =============================
-  // RENDER SECTION
+  // RENDER
   // =============================
   return (
     <div className="settings-container">
@@ -325,7 +331,7 @@ const AdminSettings = () => {
         </button>
       </div>
 
-      {/* =================== RESERVATION DOWNPAYMENT SETTINGS =================== */}
+      {/* =================== DOWNPAYMENT =================== */}
       <div className="settings-section">
         <h2>Reservation Downpayment</h2>
 
@@ -412,13 +418,34 @@ const AdminSettings = () => {
                         Delete
                       </button>
                     </div>
-                  </li> 
+                  </li>
                 ))}
               </ul>
             )}
           </div>
         </div>
       </div>
+
+      {/* ============================= */}
+      {/* ✅ RESET COUNTER BUTTON */}
+      {/* ============================= */}
+      <div className="settings-section">
+        <h2>System Maintenance</h2>
+        <button
+          className="settings-button danger"
+          onClick={() => setShowResetModal(true)}
+        >
+          Reset Counter
+        </button>
+      </div>
+
+      {/* ============================= */}
+      {/* ✅ RESET COUNTER MODAL */}
+      {/* ============================= */}
+      <ResetCounterModal
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+      />
     </div>
   );
 };

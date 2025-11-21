@@ -80,7 +80,9 @@ const Manual = () => {
               return { id: `${label}-${i}`, label };
             })
           : vehicleData[brand][model][year]?.wheelFitments.map((f, i) => {
-              const label = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}`;
+              // Include offset in the label for wheels
+              const offsetLabel = f.offset ? ` Offset:${f.offset}` : "";
+              const label = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}${offsetLabel}`;
               return { id: `${label}-${i}`, label };
             })) || []
       : [];
@@ -94,7 +96,8 @@ const Manual = () => {
               return formatted === size;
             })
           : vehicleData[brand][model][year]?.wheelFitments.find((f) => {
-              const formatted = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}`;
+              const offsetLabel = f.offset ? ` Offset:${f.offset}` : "";
+              const formatted = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}${offsetLabel}`;
               return formatted === size;
             }))
       : null;
@@ -266,9 +269,7 @@ const Manual = () => {
                 {selectedFitment.boltPattern && (
                   <li>Bolt Pattern: {selectedFitment.boltPattern}</li>
                 )}
-                {selectedFitment.offset && (
-                  <li>Offset: {selectedFitment.offset}</li>
-                )}
+                {selectedFitment.offset && <li>Offset: {selectedFitment.offset}</li>}
                 {selectedFitment.centerBore && (
                   <li>Center Bore: {selectedFitment.centerBore}</li>
                 )}
