@@ -55,7 +55,6 @@ const ARSmartViewer = ({ src }) => {
 
         const v = videoRef.current;
 
-        // required for mobile (Chrome + Safari)
         v.setAttribute("playsinline", "true");
         v.setAttribute("webkit-playsinline", "true");
         v.setAttribute("autoplay", "true");
@@ -66,7 +65,6 @@ const ARSmartViewer = ({ src }) => {
         v.crossOrigin = "anonymous";
 
         v.srcObject = stream;
-
         await v.play();
 
         console.log("[AR] Camera ready:", v.videoWidth, "x", v.videoHeight);
@@ -127,7 +125,6 @@ const ARSmartViewer = ({ src }) => {
     dl.position.set(4, 6, 3);
     scene.add(dl);
 
-    // load GLB
     const loader = new GLTFLoader();
     loader.load(
       src,
@@ -164,7 +161,7 @@ const ARSmartViewer = ({ src }) => {
   }, [src]);
 
   /* --------------------------------------------------
-        BUILD FRAME (ROTATED + SAFE)
+        FIXED BUILD FRAME (NO ROTATION)
   -------------------------------------------------- */
   const buildFrame = (video) => {
     const SIZE = 640;
@@ -181,25 +178,23 @@ const ARSmartViewer = ({ src }) => {
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
-    if (vh > vw) {
-      // portrait → rotate
-      ctx.save();
-      ctx.translate(SIZE / 2, SIZE / 2);
-      ctx.rotate(-Math.PI / 2);
+    // ⭐ ALWAYS crop to landscape, never rotate
+    const aspect = vw / vh;
 
-      const scale = Math.max(SIZE / vw, SIZE / vh);
-      const w = vw * scale;
-      const h = vh * scale;
+    let drawW, drawH;
 
-      ctx.drawImage(video, -w / 2, -h / 2, w, h);
-      ctx.restore();
+    if (aspect > 1) {
+      drawW = SIZE;
+      drawH = SIZE / aspect;
     } else {
-      // landscape
-      const scale = Math.max(SIZE / vw, SIZE / vh);
-      const w = vw * scale;
-      const h = vh * scale;
-      ctx.drawImage(video, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
+      drawH = SIZE;
+      drawW = SIZE * aspect;
     }
+
+    const offsetX = (SIZE - drawW) / 2;
+    const offsetY = (SIZE - drawH) / 2;
+
+    ctx.drawImage(video, offsetX, offsetY, drawW, drawH);
 
     // BLACK FRAME CHECK
     const sample = ctx.getImageData(0, 0, 10, 10).data;
@@ -254,7 +249,6 @@ const ARSmartViewer = ({ src }) => {
 
         const frame = buildFrame(video);
 
-        // debug canvas
         const dbg = debugCanvasRef.current;
         if (dbg) {
           dbg.width = 200;
@@ -283,9 +277,8 @@ const ARSmartViewer = ({ src }) => {
           const ndcY = -((cy / 640) * 2 - 1);
 
           const scale = clamp(bw / 200, 0.05, 2.0);
-          const z = -2;
 
-          target.current = { x: ndcX * 1.5, y: ndcY * 1.5, z, scale };
+          target.current = { x: ndcX * 1.5, y: ndcY * 1.5, z: -2, scale };
 
           lastDetectionRef.current = Date.now();
           setIsPlaced(true);
@@ -299,7 +292,6 @@ const ARSmartViewer = ({ src }) => {
         }
       }
 
-      // smooth motion
       const s = smooth.current;
       const t = target.current;
       s.x += (t.x - s.x) * smoothing;
@@ -327,7 +319,6 @@ const ARSmartViewer = ({ src }) => {
   return (
     <div style={{ position: "relative", height: "100vh", width: "100%" }}>
       
-      {/* Camera */}
       <video
         ref={videoRef}
         autoPlay
@@ -344,7 +335,6 @@ const ARSmartViewer = ({ src }) => {
         }}
       />
 
-      {/* 3D canvas */}
       <canvas
         ref={threeCanvasRef}
         style={{
@@ -355,7 +345,6 @@ const ARSmartViewer = ({ src }) => {
         }}
       />
 
-      {/* Debug frame */}
       <canvas
         ref={debugCanvasRef}
         style={{
