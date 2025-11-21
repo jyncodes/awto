@@ -285,7 +285,6 @@ const Inventory = ({ role }) => {
           <option value="modified-latest">Latest Modified</option>
         </select>
 
-        {/* ✅ Restock button only for Admin */}
         {role === "admin" && (
           <button onClick={openRestockModal} className="restock-btn">
             Restock
@@ -318,7 +317,10 @@ const Inventory = ({ role }) => {
                     ? `${product.brand} ${product.model} ${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`
                     : `${product.brand} ${product.model} ${product.wheelDiameter}x${product.wheelWidth}`;
                 const total = Number(product.stock || 0) * Number(product.price || 0);
-                const status = Number(product.stock) <= 5 ? "Out of Stock" : "In Stock";
+
+                // ✅ FIXED STATUS: If stock <= 3 → "Out of Stock"
+                const status = Number(product.stock || 0) <= 3 ? "Out of Stock" : "In Stock";
+
                 const date = product.updatedAt?.toDate?.().toLocaleString() || "—";
 
                 return (
@@ -337,17 +339,11 @@ const Inventory = ({ role }) => {
                     <td className="actions-cell">
                       {(role === "admin" || role === "staff") && (
                         <>
-                          <button
-                            className="btn-edit"
-                            onClick={() => openEditModal(product)}
-                          >
+                          <button className="btn-edit" onClick={() => openEditModal(product)}>
                             Edit
                           </button>
-                          {Number(product.stock) <= 5 && role === "admin" && (
-                            <button
-                              className="btn-contact"
-                              onClick={() => handleContactSupplier(product)}
-                            >
+                          {Number(product.stock) <= 3 && role === "admin" && (
+                            <button className="btn-contact" onClick={() => handleContactSupplier(product)}>
                               Contact Supplier
                             </button>
                           )}
@@ -368,7 +364,6 @@ const Inventory = ({ role }) => {
         </table>
       </div>
 
-      {/* Restock Modal */}
       {isRestockOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
