@@ -3,11 +3,8 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
-/* Roboflow serverless endpoint (use your inference key) */
-const ROBOFLOW_BASE = "https://serverless.roboflow.com";
-const ROBOFLOW_MODEL = "dslr-w6mrp/2";
-const ROBOFLOW_KEY = "y9iNRghfr0ZBlKhhW9LE"; // your private inference key (keep secret)
-const ROBOFLOW_URL = `${ROBOFLOW_BASE}/${ROBOFLOW_MODEL}?api_key=${ROBOFLOW_KEY}&format=json`;
+const ROBOFLOW_URL =
+  "https://serverless.roboflow.com/dslr-w6mrp/2?api_key=y9iNRghfr0ZBlKhhW9LE&format=json";
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -24,7 +21,8 @@ const ARSmartViewer = ({ src }) => {
   const rafRef = useRef(null);
   const lastSentRef = useRef(0);
   const lastDetectionRef = useRef(0);
-  const sendDelayRef = useRef(350); // ms between sends, will grow on errors (simple backoff)
+
+  const sendDelayRef = useRef(400); // reduce load
 
   const [cameraReady, setCameraReady] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
@@ -33,40 +31,41 @@ const ARSmartViewer = ({ src }) => {
 
   const target = useRef({ x: 0, y: 0, z: -2.5, scale: 0.2 });
   const smooth = useRef({ x: 0, y: 0, z: -2.5, scale: 0.2 });
-  const smoothing = 0.18;
+  const smoothing = 0.15;
 
-  /* --------- Camera --------- */
+  /* ----------------------------------------------
+      CAMERA (FORCE LANDSCAPE OUTPUT)
+  ------------------------------------------------*/
   useEffect(() => {
     let active = true;
+
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
           audio: false,
         });
+
         if (!active) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
+
         const v = videoRef.current;
         v.srcObject = stream;
 
-        // wait loadedmetadata so videoWidth/videoHeight are available
         await new Promise((resolve) => {
-          const onLoaded = () => {
-            v.removeEventListener("loadedmetadata", onLoaded);
+          const loaded = () => {
+            v.removeEventListener("loadedmetadata", loaded);
             resolve();
           };
-          v.addEventListener("loadedmetadata", onLoaded);
-          if (v.readyState >= 1) {
-            v.removeEventListener("loadedmetadata", onLoaded);
-            resolve();
-          }
+          v.addEventListener("loadedmetadata", loaded);
         });
 
         await v.play();
         setCameraReady(true);
-        console.log("[AR] Camera ready:", v.videoWidth, "x", v.videoHeight);
+
+        console.log(`[AR] Camera ready: ${v.videoWidth}x${v.videoHeight}`);
       } catch (err) {
         console.error("[AR] Camera error:", err);
       }
@@ -79,31 +78,44 @@ const ARSmartViewer = ({ src }) => {
     };
   }, []);
 
-  /* --------- Three + GLB --------- */
+  /* ----------------------------------------------
+      Three.js + GLB
+  ------------------------------------------------*/
   useEffect(() => {
     const canvas = threeCanvasRef.current;
     if (!canvas) return;
 
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+      powerPreference: "low-power",
+    });
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setSize(window.innerWidth, window.innerHeight);
     rendererRef.current = renderer;
 
-    // context lost handler (log it)
     renderer.domElement.addEventListener("webglcontextlost", (e) => {
-      console.warn("[AR] WebGL context lost", e);
+      e.preventDefault();
+      console.warn("[AR] ⚠ WebGL context lost");
     });
 
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 100);
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.01,
+      100
+    );
     camera.position.set(0, 0, 3);
     cameraRef.current = camera;
 
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.0));
-    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
-    dir.position.set(3, 6, 3);
+    const dir = new THREE.DirectionalLight(0xffffff, 1.1);
+    dir.position.set(4, 6, 3);
     scene.add(dir);
 
     const loader = new GLTFLoader();
@@ -111,198 +123,169 @@ const ARSmartViewer = ({ src }) => {
       src,
       (gltf) => {
         const model = gltf.scene;
-        // try to autoscale and center
+
         try {
           const bbox = new THREE.Box3().setFromObject(model);
           const size = new THREE.Vector3();
           bbox.getSize(size);
-          const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const desired = 1.0;
-          const scu = (desired / maxDim) * 0.6;
-          model.scale.setScalar(scu);
+
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const scale = (1.0 / maxDim) * 0.6;
+
+          model.scale.setScalar(scale);
 
           const center = new THREE.Vector3();
           bbox.getCenter(center);
-          model.position.sub(center.multiplyScalar(scu));
+          model.position.sub(center.multiplyScalar(scale));
         } catch (e) {
-          console.warn("[AR] auto-scale failed:", e);
-          model.scale.set(0.15, 0.15, 0.15);
+          console.warn("[AR] autoscale failed");
+          model.scale.setScalar(0.15);
         }
 
         model.visible = false;
         modelRef.current = model;
         scene.add(model);
         setModelLoaded(true);
-        console.log("[AR] GLB MODEL LOADED:", src);
       },
       undefined,
       (err) => {
-        console.error("[AR] GLB load error:", err);
-        setModelLoaded(false);
+        console.error("[AR] GLB error:", err);
       }
     );
 
-    const onResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    const resize = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(w, h);
     };
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", resize);
 
     return () => {
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", resize);
       renderer.dispose();
     };
   }, [src]);
 
-  /* --------- sendFrame (serverless Roboflow) --------- */
-  const sendFrame = async (frameCanvas) => {
-    // frameCanvas must be a valid canvas element
-    try {
-      const base64 = frameCanvas.toDataURL("image/jpeg", 0.8);
-      const payload = base64.split(",")[1]; // strip data prefix
+  /* ----------------------------------------------
+      Send Frame (FIXED TO ALWAYS 640×640)
+  ------------------------------------------------*/
+  const sendFrame = async (video) => {
+    const SIZE = 640;
 
-      // POST to serverless endpoint — body is base64 string.
-      const resp = await fetch(ROBOFLOW_URL, {
+    const frame = document.createElement("canvas");
+    frame.width = SIZE;
+    frame.height = SIZE;
+
+    const ctx = frame.getContext("2d");
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+
+    // force landscape for YOLO
+    const aspect = vw / vh;
+
+    let drawW = SIZE;
+    let drawH = Math.round(SIZE / aspect);
+
+    if (drawH < SIZE) {
+      drawH = SIZE;
+      drawW = Math.round(SIZE * aspect);
+    }
+
+    ctx.drawImage(video, (SIZE - drawW) / 2, (SIZE - drawH) / 2, drawW, drawH);
+
+    try {
+      const base64 = frame.toDataURL("image/jpeg", 0.8).split(",")[1];
+
+      const res = await fetch(ROBOFLOW_URL, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: payload,
+        body: base64,
       });
 
-      if (!resp.ok) {
-        console.warn("[AR] Roboflow error:", resp.status);
-        // adjust backoff on 5xx / 4xx to avoid spamming their API
-        if (resp.status >= 500) sendDelayRef.current = Math.min(2000, sendDelayRef.current * 1.5);
-        if (resp.status === 402 || resp.status === 403) {
-          // rate/permission issues: pause a little longer
-          sendDelayRef.current = Math.min(5000, sendDelayRef.current * 2);
-        }
-        return null;
-      }
+      if (!res.ok) return null;
 
-      // successful -> reset delay
-      sendDelayRef.current = 350;
-      const json = await resp.json();
-      return json;
+      return await res.json();
     } catch (err) {
-      console.error("[AR] sendFrame() network error:", err);
-      // increase delay a bit
-      sendDelayRef.current = Math.min(2000, sendDelayRef.current * 1.5);
+      console.error("[AR] sendFrame error:", err);
       return null;
     }
   };
 
-  /* --------- Main loop --------- */
+  /* ----------------------------------------------
+      RENDER LOOP (STABLE)
+  ------------------------------------------------*/
   useEffect(() => {
     const loop = async () => {
-      const v = videoRef.current;
-      const dbg = debugCanvasRef.current;
-
-      // wait camera + model ready
-      if (!v || !cameraReady || !modelLoaded) {
+      const video = videoRef.current;
+      if (!video || !cameraReady || !modelLoaded) {
         rafRef.current = requestAnimationFrame(loop);
         return;
       }
-
-      // ensure video providing dimensions
-      if (v.readyState < 2 || v.videoWidth === 0) {
-        rafRef.current = requestAnimationFrame(loop);
-        return;
-      }
-
-      // build a downscaled frame (keep aspect)
-      const targetW = 640;
-      const targetH = Math.round((targetW * v.videoHeight) / v.videoWidth);
-      const frame = document.createElement("canvas");
-      frame.width = targetW;
-      frame.height = targetH;
-      frame.getContext("2d").drawImage(v, 0, 0, targetW, targetH);
 
       const now = performance.now();
+
+      // YOLO request limit
       if (now - lastSentRef.current > sendDelayRef.current) {
         lastSentRef.current = now;
-        const json = await sendFrame(frame);
+
+        const json = await sendFrame(video);
 
         if (json?.predictions?.length > 0) {
-          // defensive: filter predictions with bbox
-          const valid = (json.predictions || []).filter((p) => p && p.bbox && typeof p.bbox.x === "number");
-          console.log("[AR] Roboflow predictions:", valid);
-          if (valid.length > 0) {
-            // choose largest by area
-            const det = valid
-              .slice()
-              .sort((a, b) => (b.bbox.width * b.bbox.height) - (a.bbox.width * a.bbox.height))[0];
+          const det = json.predictions.sort(
+            (a, b) =>
+              b.bbox.width * b.bbox.height - a.bbox.width * a.bbox.height
+          )[0];
 
-            const cx = det.bbox.x;
-            const cy = det.bbox.y;
-            const bw = det.bbox.width;
+          const cx = det.bbox.x / 640;
+          const cy = det.bbox.y / 640;
+          const bw = det.bbox.width / 640;
 
-            // convert to NDC -1..1
-            const ndcX = (cx / targetW) * 2 - 1;
-            const ndcY = -((cy / targetH) * 2 - 1);
+          const ndcX = cx * 2 - 1;
+          const ndcY = -(cy * 2 - 1);
 
-            const relWidth = bw / targetW;
-            const scale = clamp(relWidth / 0.25, 0.05, 2.0) * 0.5;
-            const z = -2.2 * (1 + (0.5 - relWidth));
+          const scale = clamp(bw / 0.25, 0.05, 2.0) * 0.45;
+          const z = -2.2 * (1 + (0.5 - bw));
 
-            target.current = { x: ndcX * 2, y: ndcY * 1.6, z, scale };
+          target.current = { x: ndcX * 2, y: ndcY * 1.7, z, scale };
 
-            setIsPlaced(true);
-            setNoWheel(false);
-            lastDetectionRef.current = Date.now();
-          } else {
-            console.log("[AR] Roboflow returned predictions but none valid.");
-          }
+          lastDetectionRef.current = Date.now();
+          setIsPlaced(true);
+          setNoWheel(false);
         } else {
-          // no detections — don't spam console, but occasionally log
-          // (only log every few seconds)
-          if (Math.random() < 0.02) console.debug("[AR] no predictions this frame");
+          // occasionally log only once every 4 seconds
+          if (now - lastDetectionRef.current > 4000) {
+            console.debug("[AR] No predictions");
+          }
         }
       }
 
-      // auto-hide after 5s no detection
-      if (lastDetectionRef.current > 0 && Date.now() - lastDetectionRef.current > 5000) {
+      // hide model after 5 seconds
+      if (Date.now() - lastDetectionRef.current > 5000) {
+        if (modelRef.current) modelRef.current.visible = false;
         setIsPlaced(false);
         setNoWheel(true);
-        if (modelRef.current) modelRef.current.visible = false;
       }
 
       // smoothing
-      const t = target.current;
       const s = smooth.current;
+      const t = target.current;
       s.x += (t.x - s.x) * smoothing;
       s.y += (t.y - s.y) * smoothing;
       s.z += (t.z - s.z) * smoothing;
       s.scale += (t.scale - s.scale) * smoothing;
 
-      // update model transform + visible only when both placed & loaded
       if (modelRef.current) {
         modelRef.current.visible = isPlaced && modelLoaded;
         modelRef.current.position.set(s.x, -s.y, s.z);
-        modelRef.current.scale.set(s.scale, s.scale, s.scale);
+        modelRef.current.scale.setScalar(s.scale);
       }
 
-      // debug overlay (simple cross)
-      if (dbg) {
-        dbg.width = v.videoWidth;
-        dbg.height = v.videoHeight;
-        const ctx = dbg.getContext("2d");
-        ctx.clearRect(0, 0, dbg.width, dbg.height);
-        if (isPlaced) {
-          const cxScr = (s.x / 2 + 0.5) * dbg.width;
-          const cyScr = (-s.y / 1.6 + 0.5) * dbg.height;
-          ctx.strokeStyle = "lime";
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(cxScr - 12, cyScr);
-          ctx.lineTo(cxScr + 12, cyScr);
-          ctx.moveTo(cxScr, cyScr - 12);
-          ctx.lineTo(cxScr, cyScr + 12);
-          ctx.stroke();
-        }
-      }
-
-      // render
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
@@ -312,12 +295,14 @@ const ARSmartViewer = ({ src }) => {
 
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-    // cameraReady & modelLoaded are used inside: keep them in deps to restart loop after ready states
-  }, [cameraReady, modelLoaded]);
+  }, [cameraReady, modelLoaded, isPlaced]);
 
-  /* --------- UI --------- */
+  /* ----------------------------------------------
+      UI
+  ------------------------------------------------*/
   return (
     <div style={{ position: "relative", height: "100vh", width: "100%" }}>
+      {/* ---- VIDEO ---- */}
       <video
         ref={videoRef}
         playsInline
@@ -327,11 +312,12 @@ const ARSmartViewer = ({ src }) => {
           width: "100%",
           height: "100%",
           objectFit: "cover",
+          transform: "rotate(0deg)",
           zIndex: 1,
-          background: "black",
         }}
       />
 
+      {/* ---- 3D ---- */}
       <canvas
         ref={threeCanvasRef}
         style={{
@@ -342,38 +328,68 @@ const ARSmartViewer = ({ src }) => {
         }}
       />
 
-      <canvas
-        ref={debugCanvasRef}
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          pointerEvents: "none",
-          zIndex: 3,
-        }}
-      />
-
-      {/* Status / hints */}
+      {/* ---- UI ---- */}
       {!cameraReady && (
-        <div style={{ position: "absolute", top: 12, left: 12, color: "white", background: "rgba(0,0,0,0.5)", padding: 8, borderRadius: 6, zIndex: 5 }}>
-          Waiting for camera...
+        <div
+          style={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            color: "white",
+            background: "rgba(0,0,0,0.5)",
+            padding: 8,
+            borderRadius: 8,
+            zIndex: 5,
+          }}
+        >
+          Initializing camera...
         </div>
       )}
 
       {!modelLoaded && (
-        <div style={{ position: "absolute", top: 12, right: 12, color: "white", background: "rgba(0,0,0,0.5)", padding: 8, borderRadius: 6, zIndex: 5 }}>
-          Loading 3D model...
+        <div
+          style={{
+            position: "absolute",
+            top: 16,
+            right: 16,
+            color: "white",
+            background: "rgba(0,0,0,0.5)",
+            padding: 8,
+            borderRadius: 8,
+            zIndex: 5,
+          }}
+        >
+          Loading 3D wheel...
         </div>
       )}
 
       {!isPlaced && !noWheel && cameraReady && modelLoaded && (
-        <div style={{ position: "absolute", bottom: 20, width: "100%", textAlign: "center", color: "white", zIndex: 5 }}>
-          Scanning for wheels...
+        <div
+          style={{
+            position: "absolute",
+            bottom: 20,
+            width: "100%",
+            textAlign: "center",
+            color: "white",
+            zIndex: 5,
+          }}
+        >
+          Scanning for wheel...
         </div>
       )}
 
       {noWheel && (
-        <div style={{ position: "absolute", bottom: 20, width: "100%", textAlign: "center", color: "orange", fontWeight: 700, zIndex: 5 }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 20,
+            width: "100%",
+            textAlign: "center",
+            color: "orange",
+            fontWeight: "bold",
+            zIndex: 5,
+          }}
+        >
           ❌ No wheels detected
         </div>
       )}
