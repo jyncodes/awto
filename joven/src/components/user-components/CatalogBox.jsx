@@ -19,7 +19,7 @@ const CatalogBox = ({ filters }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  // 🔹 Fetch all products
+  // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -34,6 +34,39 @@ const CatalogBox = ({ filters }) => {
           const snapshot = await getDocs(ref);
           snapshot.forEach((doc) => {
             const data = doc.data();
+
+            // ✅ CLEAN WHEEL FORMAT: 17x8 • 5x114.3 • +40 • CB73.1
+            const wheelSize =
+              data.wheelDiameter && data.wheelWidth
+                ? `${data.wheelDiameter}x${data.wheelWidth}`
+                : null;
+
+            const wheelSpecs =
+              data.boltPattern || data.offset || data.centerBore
+                ? [
+                    data.boltPattern || "",
+                    data.offset || "",
+                    data.centerBore ? `CB${data.centerBore}` : "",
+                  ]
+                    .filter((v) => v !== "")
+                    .join(" • ")
+                : "";
+
+            // FINAL combined size
+            const fullWheelSize =
+              wheelSize && wheelSpecs
+                ? `${wheelSize} • ${wheelSpecs}`
+                : wheelSize || wheelSpecs || null;
+
+            // Tires formatting unchanged
+            const tireSize =
+              data.size ||
+              (data.tireWidth && data.rimDiameter
+                ? data.aspectRatio
+                  ? `${data.tireWidth}/${data.aspectRatio}R${data.rimDiameter}`
+                  : `${data.tireWidth}R${data.rimDiameter}`
+                : null);
+
             allProducts.push({
               id: doc.id,
               category: name,
@@ -42,13 +75,9 @@ const CatalogBox = ({ filters }) => {
               brand: data.brand || "Unbranded",
               model: data.model || "",
               price: data.price ? Number(data.price) : 0,
-              size:
-                data.size ||
-                (data.tireWidth && data.rimDiameter
-                  ? data.aspectRatio
-                    ? `${data.tireWidth}/${data.aspectRatio}R${data.rimDiameter}`
-                    : `${data.tireWidth}R${data.rimDiameter}`
-                  : "Unknown"),
+
+              // 🔥 MAIN CHANGE HERE
+              size: fullWheelSize || tireSize || "Unknown",
             });
           });
         }
@@ -62,13 +91,13 @@ const CatalogBox = ({ filters }) => {
     fetchProducts();
   }, []);
 
-  // 🔹 Check if Supabase image exists before showing it (with cache-bypass)
+  // Check images
   useEffect(() => {
     const checkImages = async () => {
       const newValidImages = {};
       await Promise.all(
         products.map(async (product) => {
-          const timestamp = Date.now(); // prevent caching
+          const timestamp = Date.now();
           const pngUrl = `${SUPABASE_BASE_URL}/${product.id}.png?t=${timestamp}`;
           const jpegUrl = `${SUPABASE_BASE_URL}/${product.id}.jpeg?t=${timestamp}`;
 
@@ -85,7 +114,7 @@ const CatalogBox = ({ filters }) => {
               return;
             }
 
-            newValidImages[product.id] = null; // deleted or missing
+            newValidImages[product.id] = null;
           } catch {
             newValidImages[product.id] = null;
           }
@@ -97,7 +126,7 @@ const CatalogBox = ({ filters }) => {
     if (products.length > 0) checkImages();
   }, [products]);
 
-  // 🔹 Parse fitment size for matching
+  // Parse fitment
   const parseFitmentSize = (sizeStr) => {
     if (!sizeStr) return null;
     let match = sizeStr.match(/^(\d{3})\/(\d{2,3})R(\d{2}(?:\.\d)?)$/i);
@@ -109,7 +138,7 @@ const CatalogBox = ({ filters }) => {
     return null;
   };
 
-  // 🔹 Apply filters, sorting, and fitment
+  // Filtering
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
@@ -156,20 +185,24 @@ const CatalogBox = ({ filters }) => {
           );
         }
 
+        // Wheel fitment with center bore
         if (
           fitment.type?.toLowerCase() === "wheel" &&
           ["wheel", "mags"].includes(product.type?.toLowerCase())
         ) {
           return (
             (!fitment.rimDiameter ||
-              product.rimDiameter?.toString() ===
+              product.wheelDiameter?.toString() ===
                 fitment.rimDiameter?.toString()) &&
             (!fitment.boltPattern ||
               product.boltPattern?.toString().toLowerCase() ===
                 fitment.boltPattern?.toString().toLowerCase()) &&
             (!fitment.offset ||
               product.offset?.toString().toLowerCase() ===
-                fitment.offset?.toString().toLowerCase())
+                fitment.offset?.toString().toLowerCase()) &&
+            (!fitment.centerBore ||
+              product.centerBore?.toString() ===
+                fitment.centerBore?.toString())
           );
         }
 
@@ -195,7 +228,7 @@ const CatalogBox = ({ filters }) => {
     }
   }, [products, filters, fitment, fitmentSizes, sortOption]);
 
-  // 🔹 Pagination
+  // Pagination
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(
     startIdx,
@@ -203,7 +236,7 @@ const CatalogBox = ({ filters }) => {
   );
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
-  // 🔹 View product
+  // View
   const handleView = (category, id) =>
     navigate(`/view-product/${id}`, { state: { ...location.state, category } });
 
@@ -255,10 +288,14 @@ const CatalogBox = ({ filters }) => {
                     (e.target.src = "https://placehold.co/150x150?text=No+Image")
                   }
                 />
+
                 <h4 className="product-name">{product.brand}</h4>
+
+                {/* ✅ FINAL CLEAN FORMAT */}
                 <p className="product-model-size">
-                  {product.size} {product.model}
+                  {product.model} • {product.size}
                 </p>
+
                 <p className="product-price">
                   ₱{product.price?.toLocaleString() || "N/A"}
                 </p>
