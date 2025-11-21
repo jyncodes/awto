@@ -11,8 +11,6 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const ARSmartViewer = ({ src }) => {
   const videoRef = useRef(null);
   const threeCanvasRef = useRef(null);
-  const debugCanvasRef = useRef(null);
-
   const rendererRef = useRef(null);
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
@@ -22,20 +20,20 @@ const ARSmartViewer = ({ src }) => {
   const lastSentRef = useRef(0);
   const lastDetectionRef = useRef(0);
 
-  const sendDelayRef = useRef(400); // reduce load
+  const sendDelayRef = useRef(500);
 
   const [cameraReady, setCameraReady] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
   const [isPlaced, setIsPlaced] = useState(false);
   const [noWheel, setNoWheel] = useState(false);
 
-  const target = useRef({ x: 0, y: 0, z: -2.5, scale: 0.2 });
-  const smooth = useRef({ x: 0, y: 0, z: -2.5, scale: 0.2 });
-  const smoothing = 0.15;
+  const target = useRef({ x: 0, y: 0, z: -2.5, scale: 0.25 });
+  const smooth = useRef({ x: 0, y: 0, z: -2.5, scale: 0.25 });
+  const smoothing = 0.18;
 
-  /* ----------------------------------------------
-      CAMERA (FORCE LANDSCAPE OUTPUT)
-  ------------------------------------------------*/
+  /* --------------------------------------------------
+        CAMERA
+  -------------------------------------------------- */
   useEffect(() => {
     let active = true;
 
@@ -78,9 +76,9 @@ const ARSmartViewer = ({ src }) => {
     };
   }, []);
 
-  /* ----------------------------------------------
-      Three.js + GLB
-  ------------------------------------------------*/
+  /* --------------------------------------------------
+        THREE.JS + GLB
+  -------------------------------------------------- */
   useEffect(() => {
     const canvas = threeCanvasRef.current;
     if (!canvas) return;
@@ -92,14 +90,20 @@ const ARSmartViewer = ({ src }) => {
       powerPreference: "low-power",
     });
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    // FIX #1 — Avoid context loss by disabling high DPI
+    renderer.setPixelRatio(1); 
     renderer.setSize(window.innerWidth, window.innerHeight);
-    rendererRef.current = renderer;
 
-    renderer.domElement.addEventListener("webglcontextlost", (e) => {
-      e.preventDefault();
-      console.warn("[AR] ⚠ WebGL context lost");
-    });
+    renderer.domElement.addEventListener(
+      "webglcontextlost",
+      (e) => {
+        e.preventDefault();
+        console.warn("⚠ WebGL context lost (auto prevented)");
+      },
+      { passive: true } // FIX #2
+    );
+
+    rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
     sceneRef.current = scene;
@@ -114,79 +118,64 @@ const ARSmartViewer = ({ src }) => {
     cameraRef.current = camera;
 
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.0));
-    const dir = new THREE.DirectionalLight(0xffffff, 1.1);
-    dir.position.set(4, 6, 3);
-    scene.add(dir);
+    const dl = new THREE.DirectionalLight(0xffffff, 1.0);
+    dl.position.set(4, 6, 3);
+    scene.add(dl);
 
     const loader = new GLTFLoader();
     loader.load(
       src,
       (gltf) => {
-        const model = gltf.scene;
+        const m = gltf.scene;
 
         try {
-          const bbox = new THREE.Box3().setFromObject(model);
+          const box = new THREE.Box3().setFromObject(m);
           const size = new THREE.Vector3();
-          bbox.getSize(size);
+          box.getSize(size);
 
-          const maxDim = Math.max(size.x, size.y, size.z);
-          const scale = (1.0 / maxDim) * 0.6;
+          const maxSize = Math.max(size.x, size.y, size.z);
+          const scale = (1.0 / maxSize) * 0.55;
 
-          model.scale.setScalar(scale);
+          m.scale.setScalar(scale);
 
           const center = new THREE.Vector3();
-          bbox.getCenter(center);
-          model.position.sub(center.multiplyScalar(scale));
+          box.getCenter(center);
+          m.position.sub(center.multiplyScalar(scale));
         } catch (e) {
-          console.warn("[AR] autoscale failed");
-          model.scale.setScalar(0.15);
+          m.scale.setScalar(0.15);
         }
 
-        model.visible = false;
-        modelRef.current = model;
-        scene.add(model);
+        m.visible = false;
+        modelRef.current = m;
+        scene.add(m);
         setModelLoaded(true);
       },
       undefined,
-      (err) => {
-        console.error("[AR] GLB error:", err);
-      }
+      (err) => console.error("[AR] Model load error:", err)
     );
 
-    const resize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    };
-    window.addEventListener("resize", resize);
-
     return () => {
-      window.removeEventListener("resize", resize);
       renderer.dispose();
     };
   }, [src]);
 
-  /* ----------------------------------------------
-      Send Frame (FIXED TO ALWAYS 640×640)
-  ------------------------------------------------*/
-  const sendFrame = async (video) => {
+  /* --------------------------------------------------
+      SEND FRAME (SAFE PARSING)
+  -------------------------------------------------- */
+  const sendToYOLO = async (video) => {
     const SIZE = 640;
 
-    const frame = document.createElement("canvas");
-    frame.width = SIZE;
-    frame.height = SIZE;
+    const c = document.createElement("canvas");
+    c.width = SIZE;
+    c.height = SIZE;
 
-    const ctx = frame.getContext("2d");
+    const ctx = c.getContext("2d");
+
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, SIZE, SIZE);
 
     const vw = video.videoWidth;
     const vh = video.videoHeight;
-
-    // force landscape for YOLO
     const aspect = vw / vh;
 
     let drawW = SIZE;
@@ -200,7 +189,7 @@ const ARSmartViewer = ({ src }) => {
     ctx.drawImage(video, (SIZE - drawW) / 2, (SIZE - drawH) / 2, drawW, drawH);
 
     try {
-      const base64 = frame.toDataURL("image/jpeg", 0.8).split(",")[1];
+      const base64 = c.toDataURL("image/jpeg", 0.8).split(",")[1];
 
       const res = await fetch(ROBOFLOW_URL, {
         method: "POST",
@@ -212,17 +201,18 @@ const ARSmartViewer = ({ src }) => {
 
       return await res.json();
     } catch (err) {
-      console.error("[AR] sendFrame error:", err);
+      console.error("[AR] YOLO send error:", err);
       return null;
     }
   };
 
-  /* ----------------------------------------------
-      RENDER LOOP (STABLE)
-  ------------------------------------------------*/
+  /* --------------------------------------------------
+      LOOP — NO CRASH EVER
+  -------------------------------------------------- */
   useEffect(() => {
     const loop = async () => {
       const video = videoRef.current;
+
       if (!video || !cameraReady || !modelLoaded) {
         rafRef.current = requestAnimationFrame(loop);
         return;
@@ -230,14 +220,16 @@ const ARSmartViewer = ({ src }) => {
 
       const now = performance.now();
 
-      // YOLO request limit
       if (now - lastSentRef.current > sendDelayRef.current) {
         lastSentRef.current = now;
 
-        const json = await sendFrame(video);
+        const json = await sendToYOLO(video);
 
-        if (json?.predictions?.length > 0) {
-          const det = json.predictions.sort(
+        const preds = (json?.predictions || [])
+          .filter((p) => p && p.bbox && typeof p.bbox.x === "number"); // FIX #3
+
+        if (preds.length > 0) {
+          const det = preds.sort(
             (a, b) =>
               b.bbox.width * b.bbox.height - a.bbox.width * a.bbox.height
           )[0];
@@ -258,37 +250,30 @@ const ARSmartViewer = ({ src }) => {
           setIsPlaced(true);
           setNoWheel(false);
         } else {
-          // occasionally log only once every 4 seconds
-          if (now - lastDetectionRef.current > 4000) {
-            console.debug("[AR] No predictions");
+          if (Date.now() - lastDetectionRef.current > 3000) {
+            setIsPlaced(false);
+            setNoWheel(true);
+            modelRef.current.visible = false;
           }
         }
       }
 
-      // hide model after 5 seconds
-      if (Date.now() - lastDetectionRef.current > 5000) {
-        if (modelRef.current) modelRef.current.visible = false;
-        setIsPlaced(false);
-        setNoWheel(true);
-      }
-
-      // smoothing
+      // Smooth motion
       const s = smooth.current;
       const t = target.current;
+
       s.x += (t.x - s.x) * smoothing;
       s.y += (t.y - s.y) * smoothing;
       s.z += (t.z - s.z) * smoothing;
       s.scale += (t.scale - s.scale) * smoothing;
 
       if (modelRef.current) {
-        modelRef.current.visible = isPlaced && modelLoaded;
+        modelRef.current.visible = isPlaced;
         modelRef.current.position.set(s.x, -s.y, s.z);
         modelRef.current.scale.setScalar(s.scale);
       }
 
-      if (rendererRef.current && sceneRef.current && cameraRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
-      }
+      rendererRef.current?.render(sceneRef.current, cameraRef.current);
 
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -297,12 +282,11 @@ const ARSmartViewer = ({ src }) => {
     return () => cancelAnimationFrame(rafRef.current);
   }, [cameraReady, modelLoaded, isPlaced]);
 
-  /* ----------------------------------------------
+  /* --------------------------------------------------
       UI
-  ------------------------------------------------*/
+  -------------------------------------------------- */
   return (
     <div style={{ position: "relative", height: "100vh", width: "100%" }}>
-      {/* ---- VIDEO ---- */}
       <video
         ref={videoRef}
         playsInline
@@ -312,12 +296,10 @@ const ARSmartViewer = ({ src }) => {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          transform: "rotate(0deg)",
           zIndex: 1,
         }}
       />
 
-      {/* ---- 3D ---- */}
       <canvas
         ref={threeCanvasRef}
         style={{
@@ -328,7 +310,6 @@ const ARSmartViewer = ({ src }) => {
         }}
       />
 
-      {/* ---- UI ---- */}
       {!cameraReady && (
         <div
           style={{
@@ -337,12 +318,12 @@ const ARSmartViewer = ({ src }) => {
             left: 16,
             color: "white",
             background: "rgba(0,0,0,0.5)",
-            padding: 8,
-            borderRadius: 8,
-            zIndex: 5,
+            padding: "8px 12px",
+            borderRadius: 6,
+            zIndex: 3,
           }}
         >
-          Initializing camera...
+          Initializing camera…
         </div>
       )}
 
@@ -354,12 +335,12 @@ const ARSmartViewer = ({ src }) => {
             right: 16,
             color: "white",
             background: "rgba(0,0,0,0.5)",
-            padding: 8,
-            borderRadius: 8,
-            zIndex: 5,
+            padding: "8px 12px",
+            borderRadius: 6,
+            zIndex: 3,
           }}
         >
-          Loading 3D wheel...
+          Loading wheel model…
         </div>
       )}
 
@@ -369,12 +350,12 @@ const ARSmartViewer = ({ src }) => {
             position: "absolute",
             bottom: 20,
             width: "100%",
-            textAlign: "center",
             color: "white",
-            zIndex: 5,
+            textAlign: "center",
+            zIndex: 3,
           }}
         >
-          Scanning for wheel...
+          Scanning for wheel…
         </div>
       )}
 
@@ -384,10 +365,10 @@ const ARSmartViewer = ({ src }) => {
             position: "absolute",
             bottom: 20,
             width: "100%",
-            textAlign: "center",
             color: "orange",
             fontWeight: "bold",
-            zIndex: 5,
+            textAlign: "center",
+            zIndex: 3,
           }}
         >
           ❌ No wheels detected
