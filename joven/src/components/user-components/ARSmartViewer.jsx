@@ -2,15 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
+/* Use correct Roboflow endpoint for YOLOv11 */
 const ROBOFLOW_API_URL =
-  "https://detect.roboflow.com/dslr-w6mrp/2?api_key=y9iNRghfr0ZBlKhhW9LE";
+  "https://serverless.roboflow.com/dslr-w6mrp/2?api_key=y9iNRghfr0ZBlKhhW9LE";
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 const ARSmartViewer = ({ src }) => {
   const videoRef = useRef(null);
   const threeCanvasRef = useRef(null);
-  const debugCanvasRef = useRef(null);
 
   const rendererRef = useRef(null);
   const sceneRef = useRef(null);
@@ -99,7 +99,6 @@ const ARSmartViewer = ({ src }) => {
       (gltf) => {
         const model = gltf.scene;
 
-        // auto-scale
         try {
           const box = new THREE.Box3().setFromObject(model);
           const size = new THREE.Vector3();
@@ -127,32 +126,41 @@ const ARSmartViewer = ({ src }) => {
   }, [src]);
 
   /* -------------------------
-     SEND FRAME TO ROBOFLOW
+     SEND FRAME SAFELY
   ------------------------- */
   const sendFrame = async (canvas) => {
-    try {
-      const blob = await new Promise((res) =>
-        canvas.toBlob(res, "image/jpeg", 0.8)
-      );
+  try {
+    const base64 = canvas.toDataURL("image/jpeg", 0.8);
+    const image = base64.split(",")[1]; // remove data:image/jpeg;base64,
 
-      const form = new FormData();
-      form.append("file", blob, "frame.jpg");
+    const url =
+      "https://serverless.roboflow.com/dslr-w6mrp/2" +
+      "?api_key=y9iNRghfr0ZBlKhhW9LE" +
+      "&format=json";
 
-      const r = await fetch(ROBOFLOW_API_URL, {
-        method: "POST",
-        body: form,
-      });
+    const r = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: image,
+    });
 
-      if (!r.ok) return null;
-
-      return await r.json();
-    } catch {
+    if (!r.ok) {
+      console.warn("[AR] Roboflow error:", r.status);
       return null;
     }
-  };
+
+    return await r.json();
+  } catch (err) {
+    console.error("[AR] sendFrame() ERROR:", err);
+    return null;
+  }
+};
+
 
   /* -------------------------
-     MAIN LOOP
+     MAIN LOOP (CRASH-PROOF)
   ------------------------- */
   useEffect(() => {
     const loop = async () => {
@@ -176,29 +184,35 @@ const ARSmartViewer = ({ src }) => {
         const json = await sendFrame(frame);
 
         if (json?.predictions?.length > 0) {
-          const det = json.predictions.sort(
-            (a, b) =>
-              b.bbox.width * b.bbox.height - a.bbox.width * a.bbox.height
-          )[0];
+          // FILTER OUT ANY PREDICTION WITHOUT bbox (FIXES CRASH)
+          const valid = json.predictions.filter((p) => p.bbox);
 
-          const cx = det.bbox.x;
-          const cy = det.bbox.y;
+          if (valid.length > 0) {
+            const det = valid.sort(
+              (a, b) =>
+                b.bbox.width * b.bbox.height -
+                a.bbox.width * a.bbox.height
+            )[0];
 
-          const ndcX = (cx / W) * 2 - 1;
-          const ndcY = -((cy / H) * 2 - 1);
+            const cx = det.bbox.x;
+            const cy = det.bbox.y;
 
-          const rel = det.bbox.width / W;
+            const ndcX = (cx / W) * 2 - 1;
+            const ndcY = -((cy / H) * 2 - 1);
 
-          target.current = {
-            x: ndcX * 2,
-            y: ndcY * 1.7,
-            z: -2.2 * (1 + (0.5 - rel)),
-            scale: clamp(rel / 0.25, 0.1, 2.0),
-          };
+            const rel = det.bbox.width / W;
 
-          setIsPlaced(true);
-          setNoWheel(false);
-          lastDetectionRef.current = Date.now();
+            target.current = {
+              x: ndcX * 2,
+              y: ndcY * 1.7,
+              z: -2.2 * (1 + (0.5 - rel)),
+              scale: clamp(rel / 0.25, 0.1, 2.0),
+            };
+
+            setIsPlaced(true);
+            setNoWheel(false);
+            lastDetectionRef.current = Date.now();
+          }
         }
       }
 
@@ -208,7 +222,7 @@ const ARSmartViewer = ({ src }) => {
         if (modelRef.current) modelRef.current.visible = false;
       }
 
-      // smooth movement
+      // SMOOTH MOVEMENT
       const t = target.current;
       const s = smooth.current;
       s.x += (t.x - s.x) * smoothing;
@@ -222,7 +236,6 @@ const ARSmartViewer = ({ src }) => {
         modelRef.current.scale.setScalar(s.scale);
       }
 
-      // render
       rendererRef.current.render(sceneRef.current, cameraRef.current);
 
       rafRef.current = requestAnimationFrame(loop);
