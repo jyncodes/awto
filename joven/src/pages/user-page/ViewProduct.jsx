@@ -13,9 +13,10 @@ import {
 import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
-
+import ARViewer from "../../components/user-components/ARViewer";
 import ModelViewer from "../../components/user-components/ModelViewer";
 import ARViewer from "../../components/user-components/ARViewer";
+
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -40,7 +41,6 @@ const ViewProduct = () => {
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
   const [showAR, setShowAR] = useState(false);
-
   const [modelUrl, setModelUrl] = useState(null);
   const arViewerRef = useRef(null);
 
@@ -60,34 +60,28 @@ const ViewProduct = () => {
     return null;
   };
 
-  const parseSize = (s) => {
-    if (!s || typeof s !== "string") return null;
-    const m = s.match(/^(\d{2,3})\/?(\d{2,3})?R?(\d{2}(?:\.\d)?)$/i);
-    if (!m) return null;
-    return {
-      tireWidth: m[1] || "",
-      aspectRatio: m[2] || "",
-      rimDiameter: m[3] || "",
-    };
-  };
-
-  // FETCH PRODUCT
+  // FETCH PRODUCT FROM FIRESTORE
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const collectionName = getCollectionName(id);
-        let docSnap;
 
         if (!collectionName) {
           const tiresRef = doc(db, "products_tires", id);
           const magsRef = doc(db, "products_mags", id);
-
-          docSnap = await getDoc(tiresRef);
+          let docSnap = await getDoc(tiresRef);
           if (!docSnap.exists()) docSnap = await getDoc(magsRef);
-        } else {
-          const docRef = doc(db, collectionName, id);
-          docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setProduct({ ...data, id: docSnap.id });
+            setMainImage(`${SUPABASE_IMAGE_URL}/${id}.jpg`);
+          }
+          return;
         }
+
+        const docRef = doc(db, collectionName, id);
+        const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -95,30 +89,19 @@ const ViewProduct = () => {
 
           const imgUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
           setMainImage(imgUrl);
-
-          // default quantity
-          const colName = getCollectionName(docSnap.id);
-          const isTire =
-            colName === "products_tires" ||
-            (data.type && data.type.toLowerCase().includes("tire"));
-          setQuantity(isTire ? 4 : 1);
-
-          // default price/stock
-          setSelectedPrice(typeof data.price === "number" ? data.price : null);
-          setSelectedStock(typeof data.stock === "number" ? data.stock : null);
         }
-      } catch (err) {
-        console.error("❌ Error fetching product:", err);
+      } catch (error) {
+        console.error("❌ Error fetching product:", error);
       }
     };
-
     fetchProduct();
   }, [id]);
 
-  // LOAD MODEL
+  // CHECK SUPABASE MODEL (.glb)
   useEffect(() => {
     const checkModel = async () => {
       if (!id) return;
+
       const paths = [
         `${SUPABASE_BASE_URL}/${id}.glb`,
         `${SUPABASE_BASE_URL}/${id}.GLB`,
@@ -128,7 +111,7 @@ const ViewProduct = () => {
         `${SUPABASE_BASE_URL}/products_mags/${id}.GLB`,
       ];
 
-      for (const url of paths) {
+      for (const url of possiblePaths) {
         try {
           const res = await fetch(url, { method: "HEAD" });
           if (res.ok) {
@@ -138,6 +121,7 @@ const ViewProduct = () => {
         } catch {}
       }
 
+      console.warn(`⚠️ No GLB model found for ${id}`);
       setModelUrl(null);
     };
 
@@ -201,10 +185,9 @@ const ViewProduct = () => {
     fetchSizeDoc();
   }, [selectedSize, product]);
 
-  // ADD TO CART
   const handleAddToCart = async () => {
     const user = auth.currentUser;
-    if (!user) return alert("You must be logged in.");
+    if (!user) return alert("You must be logged in to add selections.");
     if (!product?.id) return alert("Product data not ready.");
     if (!selectedSize) return alert("Select a size.");
     if (!selectedPrice) return alert("Price not available.");
@@ -219,7 +202,9 @@ const ViewProduct = () => {
       );
       const existing = await getDocs(q);
 
-      if (!existing.empty) return alert("Item already in My Selections.");
+      if (!existing.empty) {
+        return alert("Item already in My Selections.");
+      }
 
       await addDoc(cartRef, {
         userId: user.uid,
@@ -234,13 +219,13 @@ const ViewProduct = () => {
         totalPrice: selectedPrice * quantity,
         createdAt: serverTimestamp(),
         vehicleLabel: vehicleLabel || null,
-        collection: getCollectionName(product.id),
+        collection: getCollectionName(product.productId || product.id),
       });
 
-      alert("✔ Added to My Selections!");
-    } catch (err) {
-      console.error("Add to cart error:", err);
-      alert("Failed to add. Try again.");
+      alert("✅ Added to My Selections!");
+    } catch (error) {
+      console.error("❌ Add to cart error:", error);
+      alert("Failed to add to My Selections. Please try again.");
     }
   };
 
@@ -260,13 +245,16 @@ const ViewProduct = () => {
     });
   };
 
-  const decreaseQty = () => setQuantity((q) => Math.max(1, q - 1));
-  const increaseQty = () => {
-    const max = typeof selectedStock === "number" ? selectedStock : 99;
-    setQuantity((q) => Math.min(max, q + 1));
+  const handleARClick = () => {
+    if (!modelUrl) {
+      alert("⚠ No 3D model found.");
+      return;
+    }
+    setShowAR(true);
   };
 
-  if (!product) return <div className="view-product">Loading product…</div>;
+  if (!product)
+    return <div className="view-product">Loading product…</div>;
 
   const colName =
     getCollectionName(product.id) ||
@@ -286,9 +274,33 @@ const ViewProduct = () => {
 
       <div className="product-container">
         <div className="product-images">
-          {modelUrl ? (
-            <div className="ar-viewer-container">
-              {!showAR ? <ModelViewer modelUrl={modelUrl} /> : <ARViewer src={modelUrl} />}
+        {hasGLB ? (
+          <div className="ar-viewer-container">
+            {!showAR ? (
+              <ModelViewer modelUrl={modelUrl} />
+            ) : (
+              <ARViewer src={modelUrl} />
+            )}
+          </div>
+        ) : (
+          <img
+            src={mainImage || "https://placehold.co/300x300?text=No+Image"}
+            alt="Main"
+            className="main-image"
+          />
+        )}
+
+          {product.images?.length > 0 && (
+            <div className="thumbnail-row">
+              {product.images.map((img, i) => (
+                <img
+                  key={i}
+                  src={img}
+                  alt={`Thumbnail ${i + 1}`}
+                  className={`thumbnail ${mainImage === img ? "active" : ""}`}
+                  onClick={() => setMainImage(img)}
+                />
+              ))}
             </div>
           ) : (
             <img src={mainImage || "https://placehold.co/300x300?text=No+Image"} alt="Main" className="main-image" />
@@ -298,7 +310,7 @@ const ViewProduct = () => {
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">
-              🚗 Fitment for: <strong>{vehicleLabel}</strong>
+              🚗 Showing fitment for: <strong>{vehicleLabel}</strong>
             </div>
           )}
 
@@ -368,7 +380,10 @@ const ViewProduct = () => {
           </div>
 
           {showAR && (
-            <button className="exit-ar-button" onClick={() => setShowAR(false)}>
+            <button
+              className="exit-ar-button"
+              onClick={() => setShowAR(false)}
+            >
               Exit AR Mode
             </button>
           )}
