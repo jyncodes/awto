@@ -29,13 +29,18 @@ const Manual = () => {
           if (!brand || !model) return;
 
           if (!dataMap[brand]) dataMap[brand] = {};
-          if (!dataMap[brand][model]) dataMap[brand][model] = {
-            tireFitments: [],
-            wheelFitments: []
-          };
+          if (!dataMap[brand][model])
+            dataMap[brand][model] = {
+              tireFitments: [],
+              wheelFitments: [],
+            };
 
-          dataMap[brand][model].tireFitments.push(...(Array.isArray(tireFitments) ? tireFitments : []));
-          dataMap[brand][model].wheelFitments.push(...(Array.isArray(wheelFitments) ? wheelFitments : []));
+          dataMap[brand][model].tireFitments.push(
+            ...(Array.isArray(tireFitments) ? tireFitments : [])
+          );
+          dataMap[brand][model].wheelFitments.push(
+            ...(Array.isArray(wheelFitments) ? wheelFitments : [])
+          );
         });
 
         setVehicleData(dataMap);
@@ -66,17 +71,16 @@ const Manual = () => {
   // === Size Options ===
   const sizeOptions =
     brand && model && type
-      ? (type === "Tire"
-          ? vehicleData[brand][model]?.tireFitments.map((f, i) => {
-              const label = `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`;
-              return { id: `${label}-${i}`, label, fitment: f };
-            })
-          : vehicleData[brand][model]?.wheelFitments.map((f, i) => {
-              const offsetLabel = f.offset ? ` Offset:${f.offset}` : "";
-              const cbLabel = f.centerBore ? ` CB:${f.centerBore}` : "";
-              const label = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}${offsetLabel}${cbLabel}`;
-              return { id: `${label}-${i}`, label, fitment: f };
-            })) || []
+      ? type === "Tire"
+        ? vehicleData[brand][model]?.tireFitments.map((f, i) => {
+            const label = `${f.tireWidth}/${f.aspectRatio}R${f.rimDiameter}`;
+            return { id: `${label}-${i}`, label, fitment: f };
+          })
+        : vehicleData[brand][model]?.wheelFitments.map((f, i) => {
+            // UPDATED: Removed offset + center bore from label
+            const label = `${f.wheelDiameter}x${f.wheelWidth} ${f.boltPattern}`;
+            return { id: `${label}-${i}`, label, fitment: f };
+          })
       : [];
 
   // === Selected Fitment ===
@@ -105,11 +109,13 @@ const Manual = () => {
           type: type.toLowerCase(),
           size,
           rimDiameter:
-            selectedFitment.rimDiameter || selectedFitment.wheelDiameter || "",
-          width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
+            selectedFitment.rimDiameter ||
+            selectedFitment.wheelDiameter ||
+            "",
+          width:
+            selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
           boltPattern: selectedFitment.boltPattern || "",
-          offset: selectedFitment.offset || "",
-          centerBore: selectedFitment.centerBore || "",
+          // UPDATED: removed offset + center bore
         },
       },
     });
@@ -124,7 +130,6 @@ const Manual = () => {
       ) : (
         <form onSubmit={handleShopNow} className="fitment-form">
           <div className="fitment-row premium-row">
-
             {/* Brand */}
             <select
               className="fitment-select"
@@ -214,17 +219,29 @@ const Manual = () => {
           <ul>
             {type === "Tire" ? (
               <>
-                {selectedFitment.tireWidth && <li>Tire Width: {selectedFitment.tireWidth}</li>}
-                {selectedFitment.aspectRatio && <li>Aspect Ratio: {selectedFitment.aspectRatio}</li>}
-                {selectedFitment.rimDiameter && <li>Rim Diameter: {selectedFitment.rimDiameter}</li>}
+                {selectedFitment.tireWidth && (
+                  <li>Tire Width: {selectedFitment.tireWidth}</li>
+                )}
+                {selectedFitment.aspectRatio && (
+                  <li>Aspect Ratio: {selectedFitment.aspectRatio}</li>
+                )}
+                {selectedFitment.rimDiameter && (
+                  <li>Rim Diameter: {selectedFitment.rimDiameter}</li>
+                )}
               </>
             ) : (
               <>
-                {selectedFitment.wheelDiameter && <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>}
-                {selectedFitment.wheelWidth && <li>Wheel Width: {selectedFitment.wheelWidth}</li>}
-                {selectedFitment.boltPattern && <li>Bolt Pattern: {selectedFitment.boltPattern}</li>}
-                {selectedFitment.offset && <li>Offset: {selectedFitment.offset}</li>}
-                {selectedFitment.centerBore && <li>Center Bore: {selectedFitment.centerBore}</li>}
+                {selectedFitment.wheelDiameter && (
+                  <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>
+                )}
+                {selectedFitment.wheelWidth && (
+                  <li>Wheel Width: {selectedFitment.wheelWidth}</li>
+                )}
+                {selectedFitment.boltPattern && (
+                  <li>Bolt Pattern: {selectedFitment.boltPattern}</li>
+                )}
+
+                {/* UPDATED: Removed offset + center bore */}
               </>
             )}
           </ul>

@@ -35,7 +35,6 @@ const CatalogBox = ({ filters }) => {
           snapshot.forEach((doc) => {
             const data = doc.data();
 
-            // ✅ CLEAN WHEEL FORMAT: 17x8 • 5x114.3 • +40 • CB73.1
             const wheelSize =
               data.wheelDiameter && data.wheelWidth
                 ? `${data.wheelDiameter}x${data.wheelWidth}`
@@ -49,16 +48,14 @@ const CatalogBox = ({ filters }) => {
                     data.centerBore ? `CB${data.centerBore}` : "",
                   ]
                     .filter((v) => v !== "")
-                    .join(" • ")
+                    .join(" ")
                 : "";
 
-            // FINAL combined size
             const fullWheelSize =
               wheelSize && wheelSpecs
-                ? `${wheelSize} • ${wheelSpecs}`
+                ? `${wheelSize} ${wheelSpecs}`
                 : wheelSize || wheelSpecs || null;
 
-            // Tires formatting unchanged
             const tireSize =
               data.size ||
               (data.tireWidth && data.rimDiameter
@@ -75,8 +72,6 @@ const CatalogBox = ({ filters }) => {
               brand: data.brand || "Unbranded",
               model: data.model || "",
               price: data.price ? Number(data.price) : 0,
-
-              // 🔥 MAIN CHANGE HERE
               size: fullWheelSize || tireSize || "Unknown",
             });
           });
@@ -126,7 +121,6 @@ const CatalogBox = ({ filters }) => {
     if (products.length > 0) checkImages();
   }, [products]);
 
-  // Parse fitment
   const parseFitmentSize = (sizeStr) => {
     if (!sizeStr) return null;
     let match = sizeStr.match(/^(\d{3})\/(\d{2,3})R(\d{2}(?:\.\d)?)$/i);
@@ -185,7 +179,6 @@ const CatalogBox = ({ filters }) => {
           );
         }
 
-        // Wheel fitment with center bore
         if (
           fitment.type?.toLowerCase() === "wheel" &&
           ["wheel", "mags"].includes(product.type?.toLowerCase())
@@ -228,7 +221,6 @@ const CatalogBox = ({ filters }) => {
     }
   }, [products, filters, fitment, fitmentSizes, sortOption]);
 
-  // Pagination
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(
     startIdx,
@@ -236,7 +228,6 @@ const CatalogBox = ({ filters }) => {
   );
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
-  // View
   const handleView = (category, id) =>
     navigate(`/view-product/${id}`, { state: { ...location.state, category } });
 
@@ -289,12 +280,14 @@ const CatalogBox = ({ filters }) => {
                   }
                 />
 
+                {/* ✔ BRAND */}
                 <h4 className="product-name">{product.brand}</h4>
 
-                {/* ✅ FINAL CLEAN FORMAT */}
-                <p className="product-model-size">
-                  {product.model} • {product.size}
-                </p>
+                {/* ✔ MODEL */}
+                <p className="product-model">{product.model}</p>
+
+                {/* ✔ SIZE (below model) */}
+                <p className="product-size">{product.size}</p>
 
                 <p className="product-price">
                   ₱{product.price?.toLocaleString() || "N/A"}

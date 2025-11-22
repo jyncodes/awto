@@ -1,5 +1,5 @@
 import React from "react";
-import ARSmartViewer from "../../components/user-components/ARSmartViewer";
+import ARSmartViewer from "./components/user-components/ARSmartViewer";
 
 export default function DebugAR() {
   return (

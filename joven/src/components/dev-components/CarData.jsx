@@ -34,8 +34,6 @@ const CarData = () => {
     wheelDiameter: "",
     wheelWidth: "",
     boltPattern: "",
-    offset: "",
-    centerBore: "",
   });
 
   useEffect(() => {
@@ -44,7 +42,8 @@ const CarData = () => {
       (snapshot) => {
         const data = {};
         snapshot.forEach((docSnap) => {
-          const { brand, model, tireFitments = [], wheelFitments = [] } = docSnap.data();
+          const { brand, model, tireFitments = [], wheelFitments = [] } =
+            docSnap.data();
           if (!brand || !model) return;
           if (!data[brand]) data[brand] = {};
           if (!data[brand][model]) data[brand][model] = [];
@@ -80,12 +79,11 @@ const CarData = () => {
         tireFitments: [...prev.tireFitments, newFitment],
       }));
     } else {
-      const { wheelDiameter, wheelWidth, boltPattern, offset, centerBore } = fitmentFields;
-      if (!wheelDiameter || !wheelWidth || !boltPattern || !offset || !centerBore)
-        return alert(
-          "⚠️ Fill Wheel Diameter, Wheel Width, Bolt Pattern, Offset, and Center Bore."
-        );
-      const newFitment = { wheelDiameter, wheelWidth, boltPattern, offset, centerBore };
+      const { wheelDiameter, wheelWidth, boltPattern } = fitmentFields;
+      if (!wheelDiameter || !wheelWidth || !boltPattern)
+        return alert("⚠️ Fill Wheel Diameter, Wheel Width, and Bolt Pattern.");
+
+      const newFitment = { wheelDiameter, wheelWidth, boltPattern };
       setForm((prev) => ({
         ...prev,
         wheelFitments: [...prev.wheelFitments, newFitment],
@@ -99,8 +97,6 @@ const CarData = () => {
       wheelDiameter: "",
       wheelWidth: "",
       boltPattern: "",
-      offset: "",
-      centerBore: "",
     });
   };
 
@@ -194,10 +190,13 @@ const CarData = () => {
   const handleTypeChange = (e) => setSelectedType(e.target.value);
 
   const brandOptions = Object.keys(vehicleData || {});
-  const modelOptions = selectedBrand ? Object.keys(vehicleData[selectedBrand] || {}) : [];
+  const modelOptions = selectedBrand
+    ? Object.keys(vehicleData[selectedBrand] || {})
+    : [];
   const typeOptions = ["Tire", "Wheel"];
 
-  const fitmentList = vehicleData?.[selectedBrand]?.[selectedModel] || [];
+  const fitmentList =
+    vehicleData?.[selectedBrand]?.[selectedModel] || [];
 
   return (
     <div className="vehicles-container">
@@ -243,7 +242,10 @@ const CarData = () => {
                 placeholder="Aspect Ratio"
                 value={fitmentFields.aspectRatio}
                 onChange={(e) =>
-                  setFitmentFields({ ...fitmentFields, aspectRatio: e.target.value })
+                  setFitmentFields({
+                    ...fitmentFields,
+                    aspectRatio: e.target.value,
+                  })
                 }
               />
               <input
@@ -251,7 +253,10 @@ const CarData = () => {
                 placeholder="Rim Diameter"
                 value={fitmentFields.rimDiameter}
                 onChange={(e) =>
-                  setFitmentFields({ ...fitmentFields, rimDiameter: e.target.value })
+                  setFitmentFields({
+                    ...fitmentFields,
+                    rimDiameter: e.target.value,
+                  })
                 }
               />
             </div>
@@ -264,7 +269,10 @@ const CarData = () => {
                 placeholder="Wheel Diameter"
                 value={fitmentFields.wheelDiameter}
                 onChange={(e) =>
-                  setFitmentFields({ ...fitmentFields, wheelDiameter: e.target.value })
+                  setFitmentFields({
+                    ...fitmentFields,
+                    wheelDiameter: e.target.value,
+                  })
                 }
               />
               <input
@@ -272,7 +280,10 @@ const CarData = () => {
                 placeholder="Wheel Width"
                 value={fitmentFields.wheelWidth}
                 onChange={(e) =>
-                  setFitmentFields({ ...fitmentFields, wheelWidth: e.target.value })
+                  setFitmentFields({
+                    ...fitmentFields,
+                    wheelWidth: e.target.value,
+                  })
                 }
               />
               <input
@@ -280,30 +291,21 @@ const CarData = () => {
                 placeholder="Bolt Pattern"
                 value={fitmentFields.boltPattern}
                 onChange={(e) =>
-                  setFitmentFields({ ...fitmentFields, boltPattern: e.target.value })
-                }
-              />
-              <input
-                type="text"
-                placeholder="Offset"
-                value={fitmentFields.offset}
-                onChange={(e) =>
-                  setFitmentFields({ ...fitmentFields, offset: e.target.value })
-                }
-              />
-              <input
-                type="text"
-                placeholder="Center Bore"
-                value={fitmentFields.centerBore}
-                onChange={(e) =>
-                  setFitmentFields({ ...fitmentFields, centerBore: e.target.value })
+                  setFitmentFields({
+                    ...fitmentFields,
+                    boltPattern: e.target.value,
+                  })
                 }
               />
             </div>
           )}
 
           <div className="form-buttons">
-            <button type="button" className="btn-secondary" onClick={handleAddFitment}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handleAddFitment}
+            >
               ➕ Add Fitment
             </button>
             <button type="submit" className="btn-primary">
