@@ -19,6 +19,7 @@ const ARSmartViewer = ({ src }) => {
   const baseModelRef = useRef(null); // original loaded model (used to clone)
   const leftModelRef = useRef(null);
   const rightModelRef = useRef(null);
+  const baseScaleRef = useRef(1); // store computed base scale
 
   const rafRef = useRef(null);
   const lastSentRef = useRef(0);
@@ -42,7 +43,6 @@ const ARSmartViewer = ({ src }) => {
   /* ---------------- CAMERA ---------------- */
   useEffect(() => {
     let active = true;
-
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -103,7 +103,8 @@ const ARSmartViewer = ({ src }) => {
       0.1,
       100
     );
-    camera.position.set(0, 0, 3);
+    // move camera a bit back so models don't dominate view
+    camera.position.set(0, 0, 4);
     cameraRef.current = camera;
 
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
@@ -133,23 +134,24 @@ const ARSmartViewer = ({ src }) => {
           box.getSize(size);
           const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
-          // start with small scale to avoid "huge" models
-          let scale = (1 / maxDim) * 0.22;
-          scale = clamp(scale, 0.03, 0.4);
+          // compute base scale (smaller by default)
+          let baseScale = (1 / maxDim) * 0.22;
+          baseScale = clamp(baseScale, 0.02, 0.4);
+          baseScaleRef.current = baseScale;
 
-          m.scale.setScalar(scale);
+          m.scale.setScalar(baseScale);
 
-          // recenter model geometry
+          // recenter model geometry (move pivot to center)
           const center = new THREE.Vector3();
           box.getCenter(center);
-          // subtract center scaled to move pivot to origin
-          m.position.sub(center.multiplyScalar(scale));
+          m.position.sub(center.multiplyScalar(baseScale));
 
           // reset rotation
           m.rotation.set(0, 0, 0);
         } catch (err) {
           // fallback
           m.scale.setScalar(0.12);
+          baseScaleRef.current = 0.12;
         }
 
         m.visible = false;
@@ -161,7 +163,10 @@ const ARSmartViewer = ({ src }) => {
         const left = m.clone(true);
         const right = m.clone(true);
 
-        // ensure unique matrices and lights don't clash
+        // ensure clones update and have independent matrices
+        left.matrixAutoUpdate = true;
+        right.matrixAutoUpdate = true;
+
         left.visible = false;
         right.visible = false;
 
@@ -172,7 +177,7 @@ const ARSmartViewer = ({ src }) => {
         scene.add(right);
 
         setModelLoaded(true);
-        console.log("[AR] Model loaded and clones created!");
+        console.log("[AR] Model loaded and clones created! baseScale:", baseScaleRef.current);
       },
       undefined,
       (err) => console.error("[AR] Model load error:", err)
@@ -276,68 +281,59 @@ const ARSmartViewer = ({ src }) => {
         const bestLeftRight = [];
 
         if (preds.length > 0) {
-          // If there's >=2, decide left/right by x coordinate relative to frame center (320)
           if (preds.length >= 2) {
-            const firstTwo = preds.slice(0, 4); // consider top few then pick distinct
-            // choose two most spatially separated or two largest
-            // simple approach: pick two largest then order by x
+            const firstTwo = preds.slice(0, 4);
             const top2 = firstTwo.slice(0, 2);
-            top2.sort((a, b) => a.x - b.x); // order left->right by x
+            top2.sort((a, b) => a.x - b.x);
             bestLeftRight.push(...top2);
           } else {
-            // single detection — put it in center (we'll show leftModel only)
             bestLeftRight.push(preds[0]);
           }
         }
 
         if (bestLeftRight.length > 0) {
-          // Map detections to models (if two -> left/right)
           if (bestLeftRight.length === 2) {
             const leftDet = bestLeftRight[0];
             const rightDet = bestLeftRight[1];
 
-            // Compute NDC coordinates (frame size 640)
             const leftNdcX = (leftDet.x / 640) * 2 - 1;
             const leftNdcY = -((leftDet.y / 640) * 2 - 1);
             const rightNdcX = (rightDet.x / 640) * 2 - 1;
             const rightNdcY = -((rightDet.y / 640) * 2 - 1);
 
-            // Scale / depth mapping: use bbox width (wider -> closer)
-            const leftScale = clamp(leftDet.width / 220, 0.04, 0.4);
-            const rightScale = clamp(rightDet.width / 220, 0.04, 0.4);
+            // detection-driven scale (multiplies baseScale)
+            const leftScaleRel = clamp(leftDet.width / 220, 0.04, 0.35);
+            const rightScaleRel = clamp(rightDet.width / 220, 0.04, 0.35);
 
-            // depth: larger box => smaller z (closer to camera)
+            // compute final z (depth) mapping
             const leftZ = -clamp(2.8 - leftDet.width / 300, 1.0, 4.0);
             const rightZ = -clamp(2.8 - rightDet.width / 300, 1.0, 4.0);
 
-            // rotation mimic: use height/width ratio to derive slight tilt
             const leftTilt = clamp((leftDet.height / leftDet.width - 1) * 0.8, -0.6, 0.6);
             const rightTilt = clamp((rightDet.height / rightDet.width - 1) * 0.8, -0.6, 0.6);
 
-            targetLeft.current = { x: leftNdcX * 1.5, y: leftNdcY * 1.2, z: leftZ, scale: leftScale, rot: leftTilt };
-            targetRight.current = { x: rightNdcX * 1.5, y: rightNdcY * 1.2, z: rightZ, scale: rightScale, rot: rightTilt };
+            // NOTE: store *relative* scale; we'll multiply by baseScaleRef when applying
+            targetLeft.current = { x: leftNdcX * 1.5, y: leftNdcY * 1.2, z: leftZ, scale: leftScaleRel, rot: leftTilt };
+            targetRight.current = { x: rightNdcX * 1.5, y: rightNdcY * 1.2, z: rightZ, scale: rightScaleRel, rot: rightTilt };
 
             lastDetectionRef.current = Date.now();
             setIsPlaced(true);
             setNoWheel(false);
           } else {
-            // single detection -> show left model only (center)
             const d = bestLeftRight[0];
             const ndcX = (d.x / 640) * 2 - 1;
             const ndcY = -((d.y / 640) * 2 - 1);
-            const scale = clamp(d.width / 220, 0.04, 0.4);
+            const scaleRel = clamp(d.width / 220, 0.04, 0.35);
             const z = -clamp(2.8 - d.width / 300, 1.0, 4.0);
             const tilt = clamp((d.height / d.width - 1) * 0.8, -0.6, 0.6);
 
-            targetLeft.current = { x: ndcX * 1.5, y: ndcY * 1.2, z, scale, rot: tilt };
-            // hide right model
+            targetLeft.current = { x: ndcX * 1.5, y: ndcY * 1.2, z, scale: scaleRel, rot: tilt };
             targetRight.current = { ...targetRight.current, scale: 0.001 };
             lastDetectionRef.current = Date.now();
             setIsPlaced(true);
             setNoWheel(false);
           }
         } else {
-          // no detections
           if (Date.now() - lastDetectionRef.current > 3000) {
             setIsPlaced(false);
             setNoWheel(true);
@@ -360,10 +356,12 @@ const ARSmartViewer = ({ src }) => {
         s.scale = lerp(s.scale, t.scale, smoothing);
         s.rot = lerp(s.rot, t.rot || 0, smoothing);
 
-        // visible when scale is reasonable and isPlaced
-        leftModelRef.current.visible = isPlaced && s.scale > 0.005;
+        // final applied scale = baseScale * relativeScale
+        const appliedLeftScale = (baseScaleRef.current || 0.12) * clamp(s.scale, 0.01, 2.0);
+
+        leftModelRef.current.visible = isPlaced && appliedLeftScale > 0.001;
         leftModelRef.current.position.set(s.x, -s.y, s.z);
-        leftModelRef.current.scale.setScalar(s.scale);
+        leftModelRef.current.scale.setScalar(appliedLeftScale);
         leftModelRef.current.rotation.set(0, 0, s.rot);
       }
 
@@ -377,9 +375,11 @@ const ARSmartViewer = ({ src }) => {
         s2.scale = lerp(s2.scale, t2.scale, smoothing);
         s2.rot = lerp(s2.rot, t2.rot || 0, smoothing);
 
-        rightModelRef.current.visible = isPlaced && s2.scale > 0.005;
+        const appliedRightScale = (baseScaleRef.current || 0.12) * clamp(s2.scale, 0.01, 2.0);
+
+        rightModelRef.current.visible = isPlaced && appliedRightScale > 0.001;
         rightModelRef.current.position.set(s2.x, -s2.y, s2.z);
-        rightModelRef.current.scale.setScalar(s2.scale);
+        rightModelRef.current.scale.setScalar(appliedRightScale);
         rightModelRef.current.rotation.set(0, 0, s2.rot);
       }
 
@@ -387,7 +387,6 @@ const ARSmartViewer = ({ src }) => {
       try {
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       } catch (err) {
-        // catch context lost / render exceptions
         console.warn("[AR] render error:", err);
       }
 
