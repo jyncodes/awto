@@ -32,9 +32,7 @@ const ARSmartViewer = ({ src }) => {
   const smooth = useRef({ x: 0, y: 0, z: -2.5, scale: 0.2 });
   const smoothing = 0.18;
 
-  /* --------------------------------------------------
-        CAMERA
-  -------------------------------------------------- */
+  /* ---------------- CAMERA ---------------- */
   useEffect(() => {
     let active = true;
 
@@ -52,7 +50,6 @@ const ARSmartViewer = ({ src }) => {
         if (!active) return;
 
         const v = videoRef.current;
-
         v.setAttribute("playsinline", "");
         v.setAttribute("autoplay", "");
         v.setAttribute("muted", "true");
@@ -75,9 +72,7 @@ const ARSmartViewer = ({ src }) => {
     };
   }, []);
 
-  /* --------------------------------------------------
-        THREE INITIALIZATION
-  -------------------------------------------------- */
+  /* ---------------- THREE INITIALIZE ---------------- */
   useEffect(() => {
     const canvas = threeCanvasRef.current;
     if (!canvas) return;
@@ -109,6 +104,7 @@ const ARSmartViewer = ({ src }) => {
     dir.position.set(4, 6, 3);
     scene.add(dir);
 
+    /* ---- LOAD GLB ---- */
     const loader = new GLTFLoader();
     loader.load(
       src,
@@ -119,20 +115,27 @@ const ARSmartViewer = ({ src }) => {
           const box = new THREE.Box3().setFromObject(m);
           const size = new THREE.Vector3();
           box.getSize(size);
+
           const maxDim = Math.max(size.x, size.y, size.z);
 
-          const scale = (1 / maxDim) * 0.55;
+          // ⭐ NEW SAFER SCALE (won't go huge)
+          let scale = (1 / maxDim) * 0.25;
+          scale = clamp(scale, 0.05, 0.25);
+
           m.scale.setScalar(scale);
 
+          // recenter model
           const center = new THREE.Vector3();
           box.getCenter(center);
           m.position.sub(center.multiplyScalar(scale));
+
+          // reset weird wheel rotations
+          m.rotation.set(0, 0, 0);
         } catch {
           m.scale.setScalar(0.15);
         }
 
         m.visible = false;
-
         modelRef.current = m;
         scene.add(m);
 
@@ -146,9 +149,7 @@ const ARSmartViewer = ({ src }) => {
     return () => renderer.dispose();
   }, [src]);
 
-  /* --------------------------------------------------
-        BUILD FRAME (NO ROTATE)
-  -------------------------------------------------- */
+  /* ---------------- BUILD FRAME ---------------- */
   const buildFrame = (video) => {
     const SIZE = 640;
     const c = document.createElement("canvas");
@@ -163,10 +164,9 @@ const ARSmartViewer = ({ src }) => {
 
     const vw = video.videoWidth;
     const vh = video.videoHeight;
-
     const aspect = vw / vh;
-    let dw, dh;
 
+    let dw, dh;
     if (aspect > 1) {
       dw = SIZE;
       dh = SIZE / aspect;
@@ -175,17 +175,11 @@ const ARSmartViewer = ({ src }) => {
       dw = SIZE * aspect;
     }
 
-    const ox = (SIZE - dw) / 2;
-    const oy = (SIZE - dh) / 2;
-
-    ctx.drawImage(video, ox, oy, dw, dh);
-
+    ctx.drawImage(video, (SIZE - dw) / 2, (SIZE - dh) / 2, dw, dh);
     return c;
   };
 
-  /* --------------------------------------------------
-        SEND TO YOLO
-  -------------------------------------------------- */
+  /* ---------------- SEND TO YOLO ---------------- */
   const sendToYOLO = async (canvas) => {
     try {
       const base64 = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
@@ -204,9 +198,7 @@ const ARSmartViewer = ({ src }) => {
     }
   };
 
-  /* --------------------------------------------------
-        MAIN LOOP
-  -------------------------------------------------- */
+  /* ---------------- MAIN LOOP ---------------- */
   useEffect(() => {
     const loop = async () => {
       const video = videoRef.current;
@@ -224,45 +216,31 @@ const ARSmartViewer = ({ src }) => {
         const frame = buildFrame(video);
 
         if (debugCanvasRef.current) {
-          const ctx = debugCanvasRef.current.getContext("2d");
-          ctx.drawImage(frame, 0, 0, 200, 200);
+          debugCanvasRef.current
+            .getContext("2d")
+            .drawImage(frame, 0, 0, 200, 200);
         }
 
         const json = await sendToYOLO(frame);
 
-        // ⭐ FIX ROBOTFLOW FORMAT → convert to bbox
-        const converted = (json?.predictions || []).map((p) => ({
-          bbox: {
-            x: p.x,
-            y: p.y,
-            width: p.width,
-            height: p.height,
-          },
+        const preds = (json?.predictions || []).map((p) => ({
+          bbox: { x: p.x, y: p.y, width: p.width, height: p.height },
         }));
 
-        const preds = converted.filter((p) => p.bbox.width > 0);
+        const best = preds.sort(
+          (a, b) =>
+            b.bbox.width * b.bbox.height - a.bbox.width * a.bbox.height
+        )[0];
 
-        if (preds.length > 0) {
-          const det = preds.sort(
-            (a, b) =>
-              b.bbox.width * b.bbox.height - a.bbox.width * a.bbox.height
-          )[0];
+        if (best) {
+          const { x, y, width } = best.bbox;
 
-          const cx = det.bbox.x;
-          const cy = det.bbox.y;
-          const bw = det.bbox.width;
+          const ndcX = (x / 640) * 2 - 1;
+          const ndcY = -((y / 640) * 2 - 1);
 
-          const ndcX = (cx / 640) * 2 - 1;
-          const ndcY = -((cy / 640) * 2 - 1);
+          const scale = clamp(width / 200, 0.05, 0.3); // ⭐ also lowered max scale
 
-          const scale = clamp(bw / 200, 0.05, 2.0);
-
-          target.current = {
-            x: ndcX * 1.5,
-            y: ndcY * 1.5,
-            z: -2,
-            scale,
-          };
+          target.current = { x: ndcX * 1.5, y: ndcY * 1.5, z: -2, scale };
 
           lastDetectionRef.current = Date.now();
           setIsPlaced(true);
@@ -276,7 +254,7 @@ const ARSmartViewer = ({ src }) => {
         }
       }
 
-      // SMOOTH MOTION
+      // smooth movement
       const s = smooth.current;
       const t = target.current;
 
@@ -300,9 +278,7 @@ const ARSmartViewer = ({ src }) => {
     return () => cancelAnimationFrame(rafRef.current);
   }, [cameraReady, modelLoaded, isPlaced]);
 
-  /* --------------------------------------------------
-        UI
-  -------------------------------------------------- */
+  /* ---------------- UI ---------------- */
   return (
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       <video
@@ -329,7 +305,6 @@ const ARSmartViewer = ({ src }) => {
         }}
       />
 
-      {/* Debug Canvas */}
       <canvas
         ref={debugCanvasRef}
         width={200}
@@ -343,9 +318,7 @@ const ARSmartViewer = ({ src }) => {
         }}
       />
 
-      {!cameraReady && (
-        <div style={msgStyle}>Initializing camera...</div>
-      )}
+      {!cameraReady && <div style={msgStyle}>Initializing camera...</div>}
 
       {!modelLoaded && (
         <div style={{ ...msgStyle, right: 10, left: "auto" }}>
