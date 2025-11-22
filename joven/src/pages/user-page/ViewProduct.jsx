@@ -15,7 +15,8 @@ import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
 
 import ModelViewer from "../../components/user-components/ModelViewer";
-import ARSmartViewer from "../../components/user-components/ARSmartViewer";
+import ARViewer from "../../components/user-components/ARViewer";
+
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -184,21 +185,21 @@ const ViewProduct = () => {
       <div className="product-container">
         {/* Left Section: Model / Image */}
         <div className="product-images">
-          {hasGLB ? (
-            <div className="ar-viewer-container">
-              {!showAR ? (
-                <ModelViewer modelUrl={modelUrl} />
-              ) : (
-                <ARSmartViewer src={modelUrl} viewerRef={arViewerRef} />
-              )}
-            </div>
-          ) : (
-            <img
-              src={mainImage || "https://placehold.co/300x300?text=No+Image"}
-              alt="Main"
-              className="main-image"
-            />
-          )}
+        {hasGLB ? (
+          <div className="ar-viewer-container">
+            {!showAR ? (
+              <ModelViewer modelUrl={modelUrl} />
+            ) : (
+              <ARViewer src={modelUrl} />
+            )}
+          </div>
+        ) : (
+          <img
+            src={mainImage || "https://placehold.co/300x300?text=No+Image"}
+            alt="Main"
+            className="main-image"
+          />
+        )}
 
           {product.images?.length > 0 && (
             <div className="thumbnail-row">
