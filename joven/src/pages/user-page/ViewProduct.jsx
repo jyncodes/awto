@@ -26,13 +26,50 @@ const ViewProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { vehicleLabel = "", size: fitmentSizes = [] } = location.state || {};
+
+  // Read merged sizes from CatalogBox/Manual
+  const {
+    sizes = [],
+    brand: passedBrand = "",
+    model: passedModel = "",
+    vehicleLabel = "",
+    fitment = {},
+  } = location.state || {};
 
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
   const [showAR, setShowAR] = useState(false);
   const [modelUrl, setModelUrl] = useState(null);
   const arViewerRef = useRef(null);
+
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedPrice, setSelectedPrice] = useState(null);
+  const [selectedStock, setSelectedStock] = useState(null);
+  const [selectedDocId, setSelectedDocId] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+
+  const increaseQty = () => {
+    if (selectedStock && quantity < selectedStock) {
+      setQuantity(quantity + 1);
+    }
+  };
+
+  const decreaseQty = () => {
+    if (quantity > 1) setQuantity(quantity - 1);
+  };
+
+  const parseSize = (size) => {
+    if (!size) return null;
+    const regex = /^(\d{3})\/(\d{2})R?(\d{2})$/;
+    const match = size.match(regex);
+    if (!match) return null;
+
+    return {
+      tireWidth: parseInt(match[1]),
+      aspectRatio: parseInt(match[2]),
+      rimDiameter: parseInt(match[3]),
+    };
+  };
 
   const getCollectionName = (productId) => {
     if (!productId) return null;
@@ -41,7 +78,7 @@ const ViewProduct = () => {
     return null;
   };
 
-  // Fetch product
+  // FETCH PRODUCT
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -67,7 +104,9 @@ const ViewProduct = () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setProduct({ ...data, id: docSnap.id });
-          setMainImage(`${SUPABASE_IMAGE_URL}/${id}.jpg`);
+
+          const imgUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
+          setMainImage(imgUrl);
         }
       } catch (error) {
         console.error("❌ Error fetching product:", error);
@@ -76,12 +115,12 @@ const ViewProduct = () => {
     fetchProduct();
   }, [id]);
 
-  // Check model exists
+  // CHECK GLB MODEL
   useEffect(() => {
     const checkModel = async () => {
       if (!id) return;
 
-      const possiblePaths = [
+      const paths = [
         `${SUPABASE_BASE_URL}/${id}.glb`,
         `${SUPABASE_BASE_URL}/${id}.GLB`,
         `${SUPABASE_BASE_URL}/products_tires/${id}.glb`,
@@ -90,90 +129,144 @@ const ViewProduct = () => {
         `${SUPABASE_BASE_URL}/products_mags/${id}.GLB`,
       ];
 
-      for (const url of possiblePaths) {
+      for (const url of paths) {
         try {
           const res = await fetch(url, { method: "HEAD" });
           if (res.ok) {
             setModelUrl(url);
             return;
           }
-        } catch {
-          continue;
-        }
+        } catch {}
       }
 
-      console.warn(`⚠️ No GLB model found for ${id} in Supabase`);
       setModelUrl(null);
     };
 
     checkModel();
   }, [id]);
 
+  // FETCH SIZE DOCUMENT
+  useEffect(() => {
+    if (!selectedSize || !product) return;
+
+    const fetchSizeDoc = async () => {
+      try {
+        const colName =
+          getCollectionName(product.id) ||
+          (product.type?.toLowerCase().includes("tire")
+            ? "products_tires"
+            : "products_mags");
+        if (!colName) return;
+
+        const colRef = collection(db, colName);
+
+        let q = query(
+          colRef,
+          where("size", "==", selectedSize),
+          where("brand", "==", passedBrand || product.brand || ""),
+          where("model", "==", passedModel || product.model || "")
+        );
+
+        let snap = await getDocs(q);
+
+        if (snap.empty) {
+          const parsed = parseSize(selectedSize);
+          if (parsed) {
+            const q2 = query(
+              colRef,
+              where("tireWidth", "==", parsed.tireWidth),
+              where("rimDiameter", "==", parsed.rimDiameter),
+              where("brand", "==", passedBrand || product.brand || ""),
+              where("model", "==", passedModel || product.model || "")
+            );
+            snap = await getDocs(q2);
+          }
+        }
+
+        if (!snap.empty) {
+          const docSnap = snap.docs[0];
+          const data = docSnap.data();
+
+          setSelectedPrice(data.price || null);
+          setSelectedStock(data.stock || null);
+          setSelectedDocId(docSnap.id);
+
+          if (data.stock && quantity > data.stock) {
+            setQuantity(data.stock);
+          }
+        } else {
+          setSelectedPrice(product.price || null);
+          setSelectedStock(product.stock || null);
+          setSelectedDocId(null);
+        }
+      } catch (err) {
+        console.error("Error fetching size doc:", err);
+      }
+    };
+
+    fetchSizeDoc();
+  }, [selectedSize, product]);
+
   const handleAddToCart = async () => {
     const user = auth.currentUser;
-    if (!user) return alert("You must be logged in to add to selections.");
-    if (!product?.id) return alert("Product data not ready.");
+    if (!user) return alert("You must be logged in.");
+    if (!selectedSize) return alert("Select a size.");
 
     try {
       const cartRef = collection(db, "cartSelections");
+
       const q = query(
         cartRef,
         where("userId", "==", user.uid),
-        where("productId", "==", product.id)
+        where("productId", "==", product.id),
+        where("selectedSize", "==", selectedSize)
       );
+
       const existing = await getDocs(q);
 
       if (!existing.empty) {
-        return alert("Item is already in your selections.");
+        return alert("Item already in My Selections.");
       }
 
       await addDoc(cartRef, {
         userId: user.uid,
         productId: product.id,
-        productName:
-          product.name ||
-          `${product.size || ""} ${product.model || ""}`.trim() ||
-          "Unnamed Product",
-        brand: product.brand || "Unknown",
-        price: typeof product.price === "number" ? product.price : 0,
+        productName: `${product.brand} ${product.model} (${selectedSize})`,
+        selectedSize,
+        pricePerItem: selectedPrice,
+        quantity,
+        totalPrice: selectedPrice * quantity,
         createdAt: serverTimestamp(),
-        vehicleLabel: vehicleLabel || null,
-        collection:
-          getCollectionName(product.productId || product.id) || "unknown",
       });
 
-      alert("✅ Added to My Selections!");
-    } catch (error) {
-      console.error("❌ Add to cart error:", error);
-      alert("Failed to add to My Selections. Please try again.");
+      alert("Added to My Selections!");
+    } catch (e) {
+      console.error(e);
+      alert("Failed to add.");
     }
   };
 
   const handleReserveClick = () => {
-    if (product?.id) {
-      navigate(`/reservation/${product.id}`, {
-        state: { vehicleLabel, fitmentSizes, product },
-      });
-    }
-  };
+    if (!selectedSize) return alert("Select a size first.");
 
-  const handleARClick = () => {
-    if (!modelUrl) {
-      alert("⚠️ Model not available for AR visualization.");
-      return;
-    }
-    setShowAR(true);
+    navigate(`/reservation/${product.id}`, {
+      state: {
+        vehicleLabel,
+        selectedSize,
+        product,
+        selectedDocId,
+        pricePerItem: selectedPrice,
+        quantity,
+      },
+    });
   };
 
   if (!product)
-    return <div className="view-product">Loading product details...</div>;
+    return <div className="view-product">Loading product…</div>;
 
-  const displayName =
-    product.size && product.model
-      ? `${product.size} ${product.model}`
-      : product.name || "No Name";
-
-  const hasGLB = !!modelUrl;
+  const isTire =
+    getCollectionName(product.id) === "products_tires" ||
+    product.type?.toLowerCase().includes("tire");
 
   return (
     <div className="view-product">
@@ -183,46 +276,22 @@ const ViewProduct = () => {
 
       <div className="product-container">
         <div className="product-images">
-
-          {/* 🔧 FIXED AR + MODEL VIEWER TO PREVENT REMOUNT */}
-          {hasGLB ? (
+          {modelUrl ? (
             <div className="ar-viewer-container">
-
-              {/* ModelViewer stays mounted */}
-              <div style={{ display: showAR ? "none" : "block" }}>
+              {!showAR ? (
                 <ModelViewer modelUrl={modelUrl} />
-              </div>
-
-              {/* ARViewer stays mounted */}
-              <div style={{ display: showAR ? "block" : "none" }}>
-                <ARViewer
-                  src={modelUrl}
-                  alt={displayName}
-                  viewerRef={arViewerRef}
-                />
-              </div>
-
+              ) : (
+                <ARViewer src={modelUrl} />
+              )}
             </div>
           ) : (
             <img
-              src={mainImage || "https://placehold.co/300x300?text=No+Image"}
+              src={
+                mainImage || "https://placehold.co/300x300?text=No+Image"
+              }
               alt="Main"
               className="main-image"
             />
-          )}
-
-          {product.images && (
-            <div className="thumbnail-row">
-              {product.images.map((img, i) => (
-                <img
-                  key={i}
-                  src={img}
-                  alt={`Thumbnail ${i + 1}`}
-                  className={`thumbnail ${mainImage === img ? "active" : ""}`}
-                  onClick={() => setMainImage(img)}
-                />
-              ))}
-            </div>
           )}
         </div>
 
@@ -233,52 +302,66 @@ const ViewProduct = () => {
             </div>
           )}
 
-          <span className="tag">NEW</span>
-          <h2 className="brand-logo">{product.brand || "No Brand"}</h2>
-          <h1 className="product-name">{displayName}</h1>
-          <p className="price">₱{product.price?.toLocaleString() || "N/A"}</p>
+          <h2>
+            {(passedBrand || product.brand) +
+              " " +
+              (passedModel || product.model)}
+          </h2>
 
-          <details className="desc-section" open>
-            <summary>Description</summary>
-            <p>{product.description || "No description available."}</p>
-          </details>
+          <p className="price">
+            {selectedPrice
+              ? `₱${selectedPrice.toLocaleString()}`
+              : `₱${product.price?.toLocaleString()}`}
+          </p>
+
+          <div>
+            <label>Quantity</label>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={decreaseQty}>-</button>
+              <div>{quantity}</div>
+              <button onClick={increaseQty}>+</button>
+            </div>
+          </div>
+
+          {sizes.length > 0 && (
+            <div className="size-selector">
+              <label>Select Size</label>
+              <select
+                value={selectedSize}
+                onChange={(e) => setSelectedSize(e.target.value)}
+              >
+                <option value="">Choose Size</option>
+                {sizes.map((s, i) => (
+                  <option key={i} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div style={{ fontWeight: 700, marginTop: 10 }}>
+            Total:{" "}
+            {selectedPrice
+              ? `₱${(selectedPrice * quantity).toLocaleString()}`
+              : "N/A"}
+          </div>
 
           <div className="button-row">
-            {hasGLB && (
-              <button className="ar-button" onClick={handleARClick}>
+            {modelUrl && (
+              <button onClick={() => setShowAR(true)}>
                 Visualize it in your vehicle
               </button>
             )}
 
-            <button className="reserve-button" onClick={handleReserveClick}>
-              Reserve Now
+            <button onClick={handleReserveClick}>
+              {isTire ? "Reserve Tires" : "Reserve Wheel"}
             </button>
 
-            <button
-              className="icon-button"
-              onClick={handleAddToCart}
-              title="Add to My Selections"
-            >
+            <button onClick={handleAddToCart}>
               <FiShoppingCart size={24} />
             </button>
           </div>
-
-          {showAR && (
-            <button
-              className="exit-ar-button"
-              onClick={() => setShowAR(false)}
-              style={{
-                marginTop: "1rem",
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                backgroundColor: "#eee",
-                border: "1px solid #ccc",
-                cursor: "pointer",
-              }}
-            >
-              Exit AR Mode
-            </button>
-          )}
         </div>
       </div>
     </div>
