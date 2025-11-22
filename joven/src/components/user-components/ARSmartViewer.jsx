@@ -9,6 +9,9 @@ const ROBOFLOW_URL =
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 const ARSmartViewer = ({ src }) => {
+  // if no src provided, fallback to uploaded test.glb path
+  const effectiveSrc = src || "/mnt/data/test.glb";
+
   const videoRef = useRef(null);
   const threeCanvasRef = useRef(null);
   const debugCanvasRef = useRef(null);
@@ -123,7 +126,7 @@ const ARSmartViewer = ({ src }) => {
     /* ---- LOAD GLB ---- */
     const loader = new GLTFLoader();
     loader.load(
-      src,
+      effectiveSrc,
       (gltf) => {
         const m = gltf.scene;
 
@@ -134,9 +137,12 @@ const ARSmartViewer = ({ src }) => {
           box.getSize(size);
           const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
-          // compute base scale (smaller by default)
-          let baseScale = (1 / maxDim) * 0.22;
-          baseScale = clamp(baseScale, 0.02, 0.4);
+          // ====== IMPORTANT FIX: normalize to realistic wheel diameter ======
+          // Choose a target diameter in scene units (approx wheel diameter)
+          const TARGET_DIAMETER = 0.8; // adjust if you want larger/smaller wheels
+          let baseScale = TARGET_DIAMETER / maxDim; // exact normalization
+          // keep baseScale in a safe range
+          baseScale = clamp(baseScale, 0.01, 1.0);
           baseScaleRef.current = baseScale;
 
           m.scale.setScalar(baseScale);
@@ -177,7 +183,10 @@ const ARSmartViewer = ({ src }) => {
         scene.add(right);
 
         setModelLoaded(true);
-        console.log("[AR] Model loaded and clones created! baseScale:", baseScaleRef.current);
+        console.log(
+          "[AR] Model loaded and clones created! baseScale:",
+          baseScaleRef.current
+        );
       },
       undefined,
       (err) => console.error("[AR] Model load error:", err)
@@ -191,7 +200,7 @@ const ARSmartViewer = ({ src }) => {
         renderer.dispose();
       } catch {}
     };
-  }, [src]);
+  }, [effectiveSrc]);
 
   /* ---------------- BUILD FRAME ---------------- */
   const buildFrame = (video) => {
@@ -260,7 +269,9 @@ const ARSmartViewer = ({ src }) => {
         const frame = buildFrame(video);
 
         if (debugCanvasRef.current) {
-          debugCanvasRef.current.getContext("2d").drawImage(frame, 0, 0, 200, 200);
+          debugCanvasRef.current
+            .getContext("2d")
+            .drawImage(frame, 0, 0, 200, 200);
         }
 
         const json = await sendToYOLO(frame);
@@ -309,12 +320,32 @@ const ARSmartViewer = ({ src }) => {
             const leftZ = -clamp(2.8 - leftDet.width / 300, 1.0, 4.0);
             const rightZ = -clamp(2.8 - rightDet.width / 300, 1.0, 4.0);
 
-            const leftTilt = clamp((leftDet.height / leftDet.width - 1) * 0.8, -0.6, 0.6);
-            const rightTilt = clamp((rightDet.height / rightDet.width - 1) * 0.8, -0.6, 0.6);
+            const leftTilt = clamp(
+              (leftDet.height / leftDet.width - 1) * 0.8,
+              -0.6,
+              0.6
+            );
+            const rightTilt = clamp(
+              (rightDet.height / rightDet.width - 1) * 0.8,
+              -0.6,
+              0.6
+            );
 
             // NOTE: store *relative* scale; we'll multiply by baseScaleRef when applying
-            targetLeft.current = { x: leftNdcX * 1.5, y: leftNdcY * 1.2, z: leftZ, scale: leftScaleRel, rot: leftTilt };
-            targetRight.current = { x: rightNdcX * 1.5, y: rightNdcY * 1.2, z: rightZ, scale: rightScaleRel, rot: rightTilt };
+            targetLeft.current = {
+              x: leftNdcX * 1.5,
+              y: leftNdcY * 1.2,
+              z: leftZ,
+              scale: leftScaleRel,
+              rot: leftTilt,
+            };
+            targetRight.current = {
+              x: rightNdcX * 1.5,
+              y: rightNdcY * 1.2,
+              z: rightZ,
+              scale: rightScaleRel,
+              rot: rightTilt,
+            };
 
             lastDetectionRef.current = Date.now();
             setIsPlaced(true);
@@ -327,7 +358,13 @@ const ARSmartViewer = ({ src }) => {
             const z = -clamp(2.8 - d.width / 300, 1.0, 4.0);
             const tilt = clamp((d.height / d.width - 1) * 0.8, -0.6, 0.6);
 
-            targetLeft.current = { x: ndcX * 1.5, y: ndcY * 1.2, z, scale: scaleRel, rot: tilt };
+            targetLeft.current = {
+              x: ndcX * 1.5,
+              y: ndcY * 1.2,
+              z,
+              scale: scaleRel,
+              rot: tilt,
+            };
             targetRight.current = { ...targetRight.current, scale: 0.001 };
             lastDetectionRef.current = Date.now();
             setIsPlaced(true);
@@ -357,7 +394,8 @@ const ARSmartViewer = ({ src }) => {
         s.rot = lerp(s.rot, t.rot || 0, smoothing);
 
         // final applied scale = baseScale * relativeScale
-        const appliedLeftScale = (baseScaleRef.current || 0.12) * clamp(s.scale, 0.01, 2.0);
+        const appliedLeftScale =
+          (baseScaleRef.current || 0.12) * clamp(s.scale, 0.01, 2.0);
 
         leftModelRef.current.visible = isPlaced && appliedLeftScale > 0.001;
         leftModelRef.current.position.set(s.x, -s.y, s.z);
@@ -375,7 +413,8 @@ const ARSmartViewer = ({ src }) => {
         s2.scale = lerp(s2.scale, t2.scale, smoothing);
         s2.rot = lerp(s2.rot, t2.rot || 0, smoothing);
 
-        const appliedRightScale = (baseScaleRef.current || 0.12) * clamp(s2.scale, 0.01, 2.0);
+        const appliedRightScale =
+          (baseScaleRef.current || 0.12) * clamp(s2.scale, 0.01, 2.0);
 
         rightModelRef.current.visible = isPlaced && appliedRightScale > 0.001;
         rightModelRef.current.position.set(s2.x, -s2.y, s2.z);
