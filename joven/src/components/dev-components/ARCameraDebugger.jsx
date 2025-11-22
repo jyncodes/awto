@@ -10,17 +10,16 @@ export default function ARCameraDebugger() {
 
   useEffect(() => {
     const detectOrientation = () => {
-      if (window.matchMedia("(orientation: portrait)").matches) {
-        setOrientation("Portrait");
-      } else {
-        setOrientation("Landscape");
-      }
+      setOrientation(
+        window.matchMedia("(orientation: portrait)").matches
+          ? "Portrait"
+          : "Landscape"
+      );
     };
-
     detectOrientation();
     window.addEventListener("orientationchange", detectOrientation);
-
-    return () => window.removeEventListener("orientationchange", detectOrientation);
+    return () =>
+      window.removeEventListener("orientationchange", detectOrientation);
   }, []);
 
   useEffect(() => {
@@ -46,8 +45,6 @@ export default function ARCameraDebugger() {
         await v.play();
 
         setCameraOK(true);
-
-        // Start debugging loop
         debugLoop();
       } catch (e) {
         console.error("Camera Error:", e);
@@ -65,20 +62,17 @@ export default function ARCameraDebugger() {
     c.width = 300;
     c.height = 300;
 
-    // Try drawing
     try {
       ctx.drawImage(v, 0, 0, 300, 300);
 
       const pixels = ctx.getImageData(0, 0, 10, 10).data;
       let black = true;
-
       for (let i = 0; i < pixels.length; i += 4) {
         if (pixels[i] !== 0 || pixels[i + 1] !== 0 || pixels[i + 2] !== 0) {
           black = false;
           break;
         }
       }
-
       setCanvasOK(!black);
     } catch (err) {
       console.error("DRAW ERROR:", err);
@@ -94,12 +88,11 @@ export default function ARCameraDebugger() {
 
       <p>📱 Orientation: <b>{orientation}</b></p>
 
-      <p>📷 Camera:  
-        {cameraOK ? <b style={{ color: "lime" }}>OK</b> : <b style={{ color: "red" }}>NOT WORKING</b>}
-      </p>
+      <p>📷 Camera: {cameraOK ? <b style={{ color: "lime" }}>OK</b> : <b style={{ color: "red" }}>NOT WORKING</b>}</p>
 
-      <p>🎨 Canvas Read:  
-        {canvasOK ? <b style={{ color: "lime" }}>SUCCESS ✔</b> : <b style={{ color: "red" }}>BLACK FRAME ❌</b>}
+      <p>🎨 Canvas Read: {canvasOK ?
+        <b style={{ color: "lime" }}>SUCCESS ✔</b> :
+        <b style={{ color: "red" }}>BLACK FRAME ❌</b>}
       </p>
 
       <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
@@ -126,8 +119,7 @@ export default function ARCameraDebugger() {
       </div>
 
       <p style={{ marginTop: 20, color: "#aaa" }}>
-        If Canvas Read = ❌ BLACK FRAME → Android Chrome is blocking canvas from reading camera.  
-        If Canvas Read = ✔ SUCCESS → Your AR code will work.
+        If Canvas Read = ❌ BLACK FRAME → Android Chrome blocks drawing camera to canvas.
       </p>
     </div>
   );
