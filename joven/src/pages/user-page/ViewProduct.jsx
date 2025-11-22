@@ -15,8 +15,6 @@ import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
 import ARViewer from "../../components/user-components/ARViewer";
 import ModelViewer from "../../components/user-components/ModelViewer";
-import ARViewer from "../../components/user-components/ARViewer";
-
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -44,14 +42,34 @@ const ViewProduct = () => {
   const [modelUrl, setModelUrl] = useState(null);
   const arViewerRef = useRef(null);
 
-  // User-selected size and derived data
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedPrice, setSelectedPrice] = useState(null);
   const [selectedStock, setSelectedStock] = useState(null);
   const [selectedDocId, setSelectedDocId] = useState(null);
-
-  // quantity: default 4 for tires, 1 for mags
   const [quantity, setQuantity] = useState(1);
+
+  const increaseQty = () => {
+    if (selectedStock && quantity < selectedStock) {
+      setQuantity(quantity + 1);
+    }
+  };
+
+  const decreaseQty = () => {
+    if (quantity > 1) setQuantity(quantity - 1);
+  };
+
+  const parseSize = (size) => {
+    if (!size) return null;
+    const regex = /^(\d{3})\/(\d{2})R?(\d{2})$/;
+    const match = size.match(regex);
+    if (!match) return null;
+
+    return {
+      tireWidth: parseInt(match[1]),
+      aspectRatio: parseInt(match[2]),
+      rimDiameter: parseInt(match[3]),
+    };
+  };
 
   const getCollectionName = (productId) => {
     if (!productId) return null;
@@ -60,7 +78,7 @@ const ViewProduct = () => {
     return null;
   };
 
-  // FETCH PRODUCT FROM FIRESTORE
+  // FETCH PRODUCT
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -97,7 +115,7 @@ const ViewProduct = () => {
     fetchProduct();
   }, [id]);
 
-  // CHECK SUPABASE MODEL (.glb)
+  // CHECK GLB MODEL
   useEffect(() => {
     const checkModel = async () => {
       if (!id) return;
@@ -111,7 +129,7 @@ const ViewProduct = () => {
         `${SUPABASE_BASE_URL}/products_mags/${id}.GLB`,
       ];
 
-      for (const url of possiblePaths) {
+      for (const url of paths) {
         try {
           const res = await fetch(url, { method: "HEAD" });
           if (res.ok) {
@@ -121,14 +139,13 @@ const ViewProduct = () => {
         } catch {}
       }
 
-      console.warn(`⚠️ No GLB model found for ${id}`);
       setModelUrl(null);
     };
 
     checkModel();
   }, [id]);
 
-  // UPDATE SELECTED SIZE PRICE/STOCK
+  // FETCH SIZE DOCUMENT
   useEffect(() => {
     if (!selectedSize || !product) return;
 
@@ -136,7 +153,7 @@ const ViewProduct = () => {
       try {
         const colName =
           getCollectionName(product.id) ||
-          (product.type && product.type.toLowerCase().includes("tire")
+          (product.type?.toLowerCase().includes("tire")
             ? "products_tires"
             : "products_mags");
         if (!colName) return;
@@ -149,9 +166,10 @@ const ViewProduct = () => {
           where("brand", "==", passedBrand || product.brand || ""),
           where("model", "==", passedModel || product.model || "")
         );
-        let snapshot = await getDocs(q);
 
-        if (snapshot.empty) {
+        let snap = await getDocs(q);
+
+        if (snap.empty) {
           const parsed = parseSize(selectedSize);
           if (parsed) {
             const q2 = query(
@@ -161,20 +179,24 @@ const ViewProduct = () => {
               where("brand", "==", passedBrand || product.brand || ""),
               where("model", "==", passedModel || product.model || "")
             );
-            snapshot = await getDocs(q2);
+            snap = await getDocs(q2);
           }
         }
 
-        if (!snapshot.empty) {
-          const docSnap = snapshot.docs[0];
+        if (!snap.empty) {
+          const docSnap = snap.docs[0];
           const data = docSnap.data();
-          setSelectedPrice(typeof data.price === "number" ? data.price : null);
-          setSelectedStock(typeof data.stock === "number" ? data.stock : null);
+
+          setSelectedPrice(data.price || null);
+          setSelectedStock(data.stock || null);
           setSelectedDocId(docSnap.id);
-          if (typeof data.stock === "number" && quantity > data.stock) setQuantity(data.stock || 1);
+
+          if (data.stock && quantity > data.stock) {
+            setQuantity(data.stock);
+          }
         } else {
-          setSelectedPrice(typeof product.price === "number" ? product.price : null);
-          setSelectedStock(typeof product.stock === "number" ? product.stock : null);
+          setSelectedPrice(product.price || null);
+          setSelectedStock(product.stock || null);
           setSelectedDocId(null);
         }
       } catch (err) {
@@ -187,19 +209,19 @@ const ViewProduct = () => {
 
   const handleAddToCart = async () => {
     const user = auth.currentUser;
-    if (!user) return alert("You must be logged in to add selections.");
-    if (!product?.id) return alert("Product data not ready.");
+    if (!user) return alert("You must be logged in.");
     if (!selectedSize) return alert("Select a size.");
-    if (!selectedPrice) return alert("Price not available.");
 
     try {
       const cartRef = collection(db, "cartSelections");
+
       const q = query(
         cartRef,
         where("userId", "==", user.uid),
         where("productId", "==", product.id),
         where("selectedSize", "==", selectedSize)
       );
+
       const existing = await getDocs(q);
 
       if (!existing.empty) {
@@ -209,29 +231,23 @@ const ViewProduct = () => {
       await addDoc(cartRef, {
         userId: user.uid,
         productId: product.id,
-        productName: `${passedBrand} ${passedModel} (${selectedSize})`,
-        brand: passedBrand || product.brand || "Unknown",
-        model: passedModel || product.model || "",
+        productName: `${product.brand} ${product.model} (${selectedSize})`,
         selectedSize,
-        selectedDocId: selectedDocId || null,
         pricePerItem: selectedPrice,
         quantity,
         totalPrice: selectedPrice * quantity,
         createdAt: serverTimestamp(),
-        vehicleLabel: vehicleLabel || null,
-        collection: getCollectionName(product.productId || product.id),
       });
 
-      alert("✅ Added to My Selections!");
-    } catch (error) {
-      console.error("❌ Add to cart error:", error);
-      alert("Failed to add to My Selections. Please try again.");
+      alert("Added to My Selections!");
+    } catch (e) {
+      console.error(e);
+      alert("Failed to add.");
     }
   };
 
   const handleReserveClick = () => {
     if (!selectedSize) return alert("Select a size first.");
-    if (!selectedPrice) return alert("Price not available.");
 
     navigate(`/reservation/${product.id}`, {
       state: {
@@ -245,26 +261,12 @@ const ViewProduct = () => {
     });
   };
 
-  const handleARClick = () => {
-    if (!modelUrl) {
-      alert("⚠ No 3D model found.");
-      return;
-    }
-    setShowAR(true);
-  };
-
   if (!product)
     return <div className="view-product">Loading product…</div>;
 
-  const colName =
-    getCollectionName(product.id) ||
-    (product.type && product.type.toLowerCase().includes("tire")
-      ? "products_tires"
-      : "products_mags");
-  const isTire = colName === "products_tires";
-
-  const topTitle = `${passedBrand || product.brand || ""} ${passedModel || product.model || ""}`.trim();
-  const topSubtitle = selectedSize ? `${selectedSize}` : "";
+  const isTire =
+    getCollectionName(product.id) === "products_tires" ||
+    product.type?.toLowerCase().includes("tire");
 
   return (
     <div className="view-product">
@@ -274,36 +276,22 @@ const ViewProduct = () => {
 
       <div className="product-container">
         <div className="product-images">
-        {hasGLB ? (
-          <div className="ar-viewer-container">
-            {!showAR ? (
-              <ModelViewer modelUrl={modelUrl} />
-            ) : (
-              <ARViewer src={modelUrl} />
-            )}
-          </div>
-        ) : (
-          <img
-            src={mainImage || "https://placehold.co/300x300?text=No+Image"}
-            alt="Main"
-            className="main-image"
-          />
-        )}
-
-          {product.images?.length > 0 && (
-            <div className="thumbnail-row">
-              {product.images.map((img, i) => (
-                <img
-                  key={i}
-                  src={img}
-                  alt={`Thumbnail ${i + 1}`}
-                  className={`thumbnail ${mainImage === img ? "active" : ""}`}
-                  onClick={() => setMainImage(img)}
-                />
-              ))}
+          {modelUrl ? (
+            <div className="ar-viewer-container">
+              {!showAR ? (
+                <ModelViewer modelUrl={modelUrl} />
+              ) : (
+                <ARViewer src={modelUrl} />
+              )}
             </div>
           ) : (
-            <img src={mainImage || "https://placehold.co/300x300?text=No+Image"} alt="Main" className="main-image" />
+            <img
+              src={
+                mainImage || "https://placehold.co/300x300?text=No+Image"
+              }
+              alt="Main"
+              className="main-image"
+            />
           )}
         </div>
 
@@ -314,36 +302,35 @@ const ViewProduct = () => {
             </div>
           )}
 
-          <span className="tag">NEW</span>
-
-          <div style={{ marginBottom: "0.4rem" }}>
-            <h2 className="brand-logo" style={{ margin: 0 }}>{topTitle}</h2>
-            {topSubtitle && <div style={{ color: "#333", fontWeight: 600 }}>{topSubtitle}</div>}
-          </div>
+          <h2>
+            {(passedBrand || product.brand) +
+              " " +
+              (passedModel || product.model)}
+          </h2>
 
           <p className="price">
-            {selectedPrice ? `₱${selectedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/Tire` : `₱${(product.price || 0).toLocaleString()}/Tire`}
+            {selectedPrice
+              ? `₱${selectedPrice.toLocaleString()}`
+              : `₱${product.price?.toLocaleString()}`}
           </p>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={{ display: "block", fontSize: 14 }}>Quantity</label>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button onClick={decreaseQty} className="qty-btn">-</button>
-                <div style={{ minWidth: 36, textAlign: "center" }}>{quantity}</div>
-                <button onClick={increaseQty} className="qty-btn">+</button>
-              </div>
-              {typeof selectedStock === "number" && (
-                <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Stock: {selectedStock}</div>
-              )}
+          <div>
+            <label>Quantity</label>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={decreaseQty}>-</button>
+              <div>{quantity}</div>
+              <button onClick={increaseQty}>+</button>
             </div>
           </div>
 
           {sizes.length > 0 && (
-            <div className="size-selector" style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 6 }}>Select Size:</label>
-              <select value={selectedSize} onChange={(e) => setSelectedSize(e.target.value)}>
-                <option value="">Choose a size</option>
+            <div className="size-selector">
+              <label>Select Size</label>
+              <select
+                value={selectedSize}
+                onChange={(e) => setSelectedSize(e.target.value)}
+              >
+                <option value="">Choose Size</option>
                 {sizes.map((s, i) => (
                   <option key={i} value={s}>
                     {s}
@@ -353,40 +340,28 @@ const ViewProduct = () => {
             </div>
           )}
 
-          <div style={{ margin: "12px 0", fontWeight: 700 }}>
-            Total ({quantity} {isTire ? "tires" : "item(s)"}):{" "}
-            {selectedPrice ? `₱${(selectedPrice * quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "N/A"}
+          <div style={{ fontWeight: 700, marginTop: 10 }}>
+            Total:{" "}
+            {selectedPrice
+              ? `₱${(selectedPrice * quantity).toLocaleString()}`
+              : "N/A"}
           </div>
 
-          <details className="desc-section" open>
-            <summary>Description</summary>
-            <p>{product.description || "No description available."}</p>
-          </details>
-
-          <div className="button-row" style={{ marginTop: 12 }}>
+          <div className="button-row">
             {modelUrl && (
-              <button className="ar-button" onClick={() => setShowAR(true)}>
+              <button onClick={() => setShowAR(true)}>
                 Visualize it in your vehicle
               </button>
             )}
 
-            <button className="reserve-button" onClick={handleReserveClick}>
-              {isTire ? `Reserve ${quantity} Tires Now` : "Reserve Wheel Now"}
+            <button onClick={handleReserveClick}>
+              {isTire ? "Reserve Tires" : "Reserve Wheel"}
             </button>
 
-            <button className="icon-button" onClick={handleAddToCart} title="Add to My Selections">
+            <button onClick={handleAddToCart}>
               <FiShoppingCart size={24} />
             </button>
           </div>
-
-          {showAR && (
-            <button
-              className="exit-ar-button"
-              onClick={() => setShowAR(false)}
-            >
-              Exit AR Mode
-            </button>
-          )}
         </div>
       </div>
     </div>
