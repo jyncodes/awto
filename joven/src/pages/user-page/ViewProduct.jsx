@@ -13,10 +13,8 @@ import {
 import { FiShoppingCart } from "react-icons/fi";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
-
-import ModelViewer from "../../components/user-components/ModelViewer";
 import ARViewer from "../../components/user-components/ARViewer";
-
+import ModelViewer from "../../components/user-components/ModelViewer";
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -33,7 +31,6 @@ const ViewProduct = () => {
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
   const [showAR, setShowAR] = useState(false);
-
   const [modelUrl, setModelUrl] = useState(null);
   const arViewerRef = useRef(null);
 
@@ -44,45 +41,47 @@ const ViewProduct = () => {
     return null;
   };
 
-  // FETCH PRODUCT FROM FIRESTORE
+  // Fetch product
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const collectionName = getCollectionName(id);
-        let docSnap;
 
         if (!collectionName) {
           const tiresRef = doc(db, "products_tires", id);
           const magsRef = doc(db, "products_mags", id);
-
-          docSnap = await getDoc(tiresRef);
+          let docSnap = await getDoc(tiresRef);
           if (!docSnap.exists()) docSnap = await getDoc(magsRef);
-        } else {
-          const docRef = doc(db, collectionName, id);
-          docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setProduct({ ...data, id: docSnap.id });
+            setMainImage(`${SUPABASE_IMAGE_URL}/${id}.jpg`);
+          }
+          return;
         }
+
+        const docRef = doc(db, collectionName, id);
+        const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
           setProduct({ ...data, id: docSnap.id });
-
-          const imgUrl = `${SUPABASE_IMAGE_URL}/${id}.jpg`;
-          setMainImage(imgUrl);
+          setMainImage(`${SUPABASE_IMAGE_URL}/${id}.jpg`);
         }
-      } catch (err) {
-        console.error("❌ Error fetching product:", err);
+      } catch (error) {
+        console.error("❌ Error fetching product:", error);
       }
     };
-
     fetchProduct();
   }, [id]);
 
-  // CHECK SUPABASE MODEL (.glb)
+  // Check model exists
   useEffect(() => {
     const checkModel = async () => {
       if (!id) return;
 
-      const paths = [
+      const possiblePaths = [
         `${SUPABASE_BASE_URL}/${id}.glb`,
         `${SUPABASE_BASE_URL}/${id}.GLB`,
         `${SUPABASE_BASE_URL}/products_tires/${id}.glb`,
@@ -91,7 +90,7 @@ const ViewProduct = () => {
         `${SUPABASE_BASE_URL}/products_mags/${id}.GLB`,
       ];
 
-      for (const url of paths) {
+      for (const url of possiblePaths) {
         try {
           const res = await fetch(url, { method: "HEAD" });
           if (res.ok) {
@@ -103,17 +102,16 @@ const ViewProduct = () => {
         }
       }
 
-      console.warn(`⚠️ No GLB model found for ${id}`);
+      console.warn(`⚠️ No GLB model found for ${id} in Supabase`);
       setModelUrl(null);
     };
 
     checkModel();
   }, [id]);
 
-  // ADD TO CART
   const handleAddToCart = async () => {
     const user = auth.currentUser;
-    if (!user) return alert("You must be logged in to add selections.");
+    if (!user) return alert("You must be logged in to add to selections.");
     if (!product?.id) return alert("Product data not ready.");
 
     try {
@@ -126,7 +124,7 @@ const ViewProduct = () => {
       const existing = await getDocs(q);
 
       if (!existing.empty) {
-        return alert("Item already in My Selections.");
+        return alert("Item is already in your selections.");
       }
 
       await addDoc(cartRef, {
@@ -140,13 +138,14 @@ const ViewProduct = () => {
         price: typeof product.price === "number" ? product.price : 0,
         createdAt: serverTimestamp(),
         vehicleLabel: vehicleLabel || null,
-        collection: getCollectionName(product.productId || product.id),
+        collection:
+          getCollectionName(product.productId || product.id) || "unknown",
       });
 
-      alert("✔ Added to My Selections!");
-    } catch (err) {
-      console.error("Add to cart error:", err);
-      alert("Failed to add. Try again.");
+      alert("✅ Added to My Selections!");
+    } catch (error) {
+      console.error("❌ Add to cart error:", error);
+      alert("Failed to add to My Selections. Please try again.");
     }
   };
 
@@ -160,14 +159,14 @@ const ViewProduct = () => {
 
   const handleARClick = () => {
     if (!modelUrl) {
-      alert("⚠ No 3D model found.");
+      alert("⚠️ Model not available for AR visualization.");
       return;
     }
     setShowAR(true);
   };
 
   if (!product)
-    return <div className="view-product">Loading product…</div>;
+    return <div className="view-product">Loading product details...</div>;
 
   const displayName =
     product.size && product.model
@@ -183,25 +182,36 @@ const ViewProduct = () => {
       </button>
 
       <div className="product-container">
-        {/* Left Section: Model / Image */}
         <div className="product-images">
-        {hasGLB ? (
-          <div className="ar-viewer-container">
-            {!showAR ? (
-              <ModelViewer modelUrl={modelUrl} />
-            ) : (
-              <ARViewer src={modelUrl} />
-            )}
-          </div>
-        ) : (
-          <img
-            src={mainImage || "https://placehold.co/300x300?text=No+Image"}
-            alt="Main"
-            className="main-image"
-          />
-        )}
 
-          {product.images?.length > 0 && (
+          {/* 🔧 FIXED AR + MODEL VIEWER TO PREVENT REMOUNT */}
+          {hasGLB ? (
+            <div className="ar-viewer-container">
+
+              {/* ModelViewer stays mounted */}
+              <div style={{ display: showAR ? "none" : "block" }}>
+                <ModelViewer modelUrl={modelUrl} />
+              </div>
+
+              {/* ARViewer stays mounted */}
+              <div style={{ display: showAR ? "block" : "none" }}>
+                <ARViewer
+                  src={modelUrl}
+                  alt={displayName}
+                  viewerRef={arViewerRef}
+                />
+              </div>
+
+            </div>
+          ) : (
+            <img
+              src={mainImage || "https://placehold.co/300x300?text=No+Image"}
+              alt="Main"
+              className="main-image"
+            />
+          )}
+
+          {product.images && (
             <div className="thumbnail-row">
               {product.images.map((img, i) => (
                 <img
@@ -216,11 +226,10 @@ const ViewProduct = () => {
           )}
         </div>
 
-        {/* Right Section: Product Details */}
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">
-              🚗 Fitment for: <strong>{vehicleLabel}</strong>
+              🚗 Showing fitment for: <strong>{vehicleLabel}</strong>
             </div>
           )}
 
@@ -258,6 +267,14 @@ const ViewProduct = () => {
             <button
               className="exit-ar-button"
               onClick={() => setShowAR(false)}
+              style={{
+                marginTop: "1rem",
+                padding: "0.5rem 1rem",
+                borderRadius: "8px",
+                backgroundColor: "#eee",
+                border: "1px solid #ccc",
+                cursor: "pointer",
+              }}
             >
               Exit AR Mode
             </button>
