@@ -56,6 +56,8 @@ import RequireVerifiedEmail from "./routes/RequireVerifiedEmail";
 
 // ⭐ AR Debugger (added for camera test)
 import ARCameraDebugger from "./ARCameraDebugger";
+import DebugAR from "./DebugAR";
+
 
 // Wrapper to pass origin
 const WithOrigin = ({ children }) => {
@@ -122,6 +124,8 @@ export default function App() {
 
         {/* ⭐ AR Debug route */}
         <Route path="/debug-ar" element={<ARCameraDebugger />} />
+
+        <Route path="/debug-ar-model" element={<DebugAR />} />
 
         {/* ================= USER ROUTES ================= */}
         <Route
