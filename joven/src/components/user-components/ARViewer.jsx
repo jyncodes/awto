@@ -8,7 +8,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
  * Backend endpoint: http://localhost:8000/infer
  */
 
-const YOLO_API_URL = "http://localhost:8000/infer"; // ⬅️ backend server
+const YOLO_API_URL = "https://awto.onrender.com/infer"; // ⬅️ backend server
 
 const ARViewer = ({ src }) => {
   const videoRef = useRef(null);
