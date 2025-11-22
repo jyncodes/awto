@@ -1,9 +1,11 @@
 // src/pages/user-page/DevTools.jsx
 import React, { useState, useEffect } from "react";
 import "../../styles/DevTools.css";
-import CarData from "../../components/dev-components/CarData.jsx";
-import ARTesting from "../../components/dev-components/ARTesting.jsx";
 
+// Components
+import CarData from "../../components/dev-components/CarData.jsx";
+import ARCameraDebugger from "../../components/dev-components/ARCameraDebugger.jsx";
+import DebugAR from "../../components/dev-components/DebugAR.jsx";   // ✔ Correct path
 
 export default function DevTools() {
   const [visibleSection, setVisibleSection] = useState("info");
@@ -11,18 +13,19 @@ export default function DevTools() {
   const [passwordInput, setPasswordInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Shortcut key listener (*) to open DevTools
+  // Shortcut (*) to open devtools
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "*") {
-        window.location.href = "/devtools";
+        window.location.href = "/#/devtools"; // ✔ HashRouter safe
       }
     };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Handle password submit
+  // Password submit
   const handlePasswordSubmit = () => {
     if (passwordInput === "capstone") {
       setAuthenticated(true);
@@ -31,17 +34,15 @@ export default function DevTools() {
     }
   };
 
-  // Allow ENTER key to unlock
+  // Enter key = submit
   const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handlePasswordSubmit();
-    }
+    if (e.key === "Enter") handlePasswordSubmit();
   };
 
   return (
     <div className="devtools-container">
 
-      {/* =========================== PASSWORD SCREEN =========================== */}
+      {/* =========================== LOCK SCREEN =========================== */}
       {!authenticated && (
         <div className="password-screen">
           <h2>🔒 Developer Tools Locked</h2>
@@ -55,7 +56,7 @@ export default function DevTools() {
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              autoComplete="new-password"       // ✅ Prevents Google autofill
+              autoComplete="new-password"
             />
 
             <button
@@ -73,16 +74,15 @@ export default function DevTools() {
         </div>
       )}
 
-      {/* =========================== DEVTOOLS MAIN UI =========================== */}
+      {/* =========================== MAIN DEVTOOLS UI =========================== */}
       {authenticated && (
         <>
-          {/* Header */}
           <div className="devtools-header">
             <h1>🛠 Developer Tools</h1>
-            <p>⚠️ Internal testing only — Not part of the final system.</p>
+            <p>⚠️ Internal debugging area — not part of final user system.</p>
           </div>
 
-          {/* Menu Tabs */}
+          {/* Tabs */}
           <div className="devtools-tabs">
             <button
               className={`tab-btn ${visibleSection === "info" ? "active" : ""}`}
@@ -90,12 +90,14 @@ export default function DevTools() {
             >
               Info
             </button>
+
             <button
               className={`tab-btn ${visibleSection === "vehicle" ? "active" : ""}`}
               onClick={() => setVisibleSection("vehicle")}
             >
               Vehicle Fitment
             </button>
+
             <button
               className={`tab-btn ${visibleSection === "ar" ? "active" : ""}`}
               onClick={() => setVisibleSection("ar")}
@@ -104,28 +106,30 @@ export default function DevTools() {
             </button>
           </div>
 
-          {/* Content Area */}
+          {/* Content */}
           <div className="devtools-content">
             <button
               className="action-btn"
               style={{ marginBottom: "1rem" }}
-              onClick={() => (window.location.href = "/")}
+              onClick={() => (window.location.href = "/#/")}
             >
               ← Back to Home
             </button>
 
+            {/* ---------------- INFO TAB ---------------- */}
             {visibleSection === "info" && (
               <div>
                 <h2>System Debug Info</h2>
                 <ul>
-                  <li>🧭 Check Firebase connection</li>
+                  <li>🧭 Test Firebase connection</li>
                   <li>🧪 Test components</li>
                   <li>🧰 Manage vehicle fitments</li>
-                  <li>⚠️ Accessible only via shortcut or URL</li>
+                  <li>⚠️ Developer-only access</li>
                 </ul>
               </div>
             )}
 
+            {/* ---------------- VEHICLE TAB ---------------- */}
             {visibleSection === "vehicle" && (
               <div>
                 <h2>Vehicle Fitment Manager</h2>
@@ -134,12 +138,17 @@ export default function DevTools() {
               </div>
             )}
 
+            {/* ---------------- AR TAB ---------------- */}
             {visibleSection === "ar" && (
               <div>
                 <h2>AR Testing</h2>
-                <p>Use this section to test GLB models and AR mode.</p>
+                <p>Debug the camera, canvas access, and 3D overlay.</p>
 
-                <ARTesting />
+                <h3>📸 Camera Debugger</h3>
+                <ARCameraDebugger />
+
+                <h3 style={{ marginTop: "2rem" }}>🧪 AR Model Viewer</h3>
+                <DebugAR />
               </div>
             )}
           </div>

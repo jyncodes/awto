@@ -54,10 +54,9 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import RedirectIfAuthenticated from "./routes/RedirectIfAuthenticated";
 import RequireVerifiedEmail from "./routes/RequireVerifiedEmail";
 
-// ⭐ AR Debugger (added for camera test)
-import ARCameraDebugger from "./ARCameraDebugger";
-import DebugAR from "./DebugAR";
-
+// ⭐ AR Debug Files
+import ARCameraDebugger from "./components/dev-components/ARCameraDebugger";
+import DebugAR from "./components/dev-components/DebugAR";
 
 // Wrapper to pass origin
 const WithOrigin = ({ children }) => {
@@ -122,10 +121,10 @@ export default function App() {
         {/* DevTools */}
         <Route path="/devtools" element={<DevTools />} />
 
-        {/* ⭐ AR Debug route */}
+        {/* ⭐ AR Debug Routes */}
         <Route path="/debug-ar" element={<ARCameraDebugger />} />
-
         <Route path="/debug-ar-model" element={<DebugAR />} />
+
 
         {/* ================= USER ROUTES ================= */}
         <Route
