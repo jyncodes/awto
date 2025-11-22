@@ -1,7 +1,14 @@
 // src/pages/user-page/PaymentPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/PaymentPage.css";
@@ -15,124 +22,256 @@ const PaymentPage = () => {
   const [paying, setPaying] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
+  const PAYPAL_INVOICE_LINK =
+    "https://www.paypal.com/invoice/p/#XAL54UJHW7GXRRHN";
+
+  const [transactionNumber, setTransactionNumber] = useState("");
+
+  // --------------------------
+  // AUTH CHECK
+  // --------------------------
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) setCurrentUser(user);
-      else navigate("/login");
+      if (!user) return navigate("/login");
+      setCurrentUser(user);
     });
     return () => unsubscribe();
   }, [navigate]);
 
+  // --------------------------
+  // FETCH RESERVATION
+  // --------------------------
   useEffect(() => {
     const fetchReservation = async () => {
       try {
-        const docRef = doc(db, "reservations", reservationId);
-        const docSnap = await getDoc(docRef);
+        const ref = doc(db, "reservations", reservationId);
+        const snap = await getDoc(ref);
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-
-          if (data.userId !== auth.currentUser?.uid) {
-            alert("❌ You do not have permission to view this reservation.");
-            navigate("/my-selections");
-            return;
-          }
-
-          setReservation(data);
-        } else {
-          alert("❌ Reservation not found.");
-          navigate("/my-selections");
+        if (!snap.exists()) {
+          alert("Reservation not found.");
+          return navigate(-1);
         }
+
+        const data = snap.data();
+        if (data.userId !== auth.currentUser?.uid) {
+          alert("You are not allowed to view this reservation.");
+          return navigate("/profile?tab=reservations");
+        }
+
+        setReservation(data);
       } catch (err) {
-        console.error("❌ Error fetching reservation:", err);
+        console.error(err);
         alert("Failed to load reservation.");
-        navigate("/my-selections");
+        navigate(-1);
       } finally {
         setLoading(false);
       }
     };
 
-    if (currentUser) fetchReservation();
-  }, [reservationId, navigate, currentUser]);
+    if (reservationId && currentUser) fetchReservation();
+  }, [reservationId, currentUser, navigate]);
 
-  const handlePayNow = async () => {
-    if (!reservationId || !reservation) return;
+  // --------------------------
+  // PAY NOW
+  // --------------------------
+  const handlePayNow = () => {
+    if (!reservation) return;
     setPaying(true);
 
     try {
-      const response = await fetch("http://localhost:5000/create-payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: reservation.downpayment,
-          description: `Downpayment for Reservation ${reservationId}`,
-          email: currentUser.email,
-          reservationId: reservationId,
-        }),
+      window.open(PAYPAL_INVOICE_LINK, "_blank");
+    } catch (error) {
+      console.error(error);
+      alert("Error opening PayPal Invoice.");
+    }
+    setPaying(false);
+  };
+
+  // --------------------------
+  // SUBMIT TRANSACTION NUMBER
+  // --------------------------
+  const handleSubmitPaymentProof = async () => {
+    if (!transactionNumber.trim()) {
+      alert("Transaction number is required.");
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, "payments", reservationId), {
+        reservationId,
+        userId: currentUser.uid,
+        transactionNumber: transactionNumber.trim(),
+        timestamp: serverTimestamp(),
       });
 
-      const data = await response.json();
-      console.log("🔵 FULL PayMongo Response:", data);
+      await updateDoc(doc(db, "reservations", reservationId), {
+        status: "Downpayment Paid",
+        paymentMethod: "PayPal Invoice",
+      });
 
-      if (data.success && data.checkoutUrl) {
-        window.open(data.checkoutUrl, "_blank");
-        alert("Redirecting you to PayMongo...");
-      } else {
-        console.error("❌ PayMongo error:", data);
-
-        if (data.error) {
-          console.log("🔴 Raw PayMongo error:", data.error);
-          console.log("🔴 PayMongo error.errors:", data.error.errors);
-
-          if (data.error.errors && data.error.errors[0]) {
-            const err = data.error.errors[0];
-            console.log("🔴 ERROR TITLE:", err.title);
-            console.log("🔴 ERROR DETAIL:", err.detail);
-            console.log("🔴 ERROR POINTER:", err.source?.pointer);
-          }
-        }
-
-        alert("❌ Payment failed. Check console for exact PayMongo error.");
-      }
-
+      alert("Payment submitted successfully!");
+      navigate("/payment-success");
     } catch (error) {
-      console.error("❌ Payment Failed Exception:", error);
-      alert("❌ Payment failed. Check console logs.");
-    } finally {
-      setPaying(false);
+      console.error(error);
+      alert("Failed to submit payment proof.");
     }
   };
 
-  if (loading) return <div className="payment-page">Loading payment info...</div>;
+  // --------------------------
+  // CANCEL RESERVATION
+  // --------------------------
+const handleCancelReservation = async () => {
+  const confirmCancel = window.confirm(
+    "Are you sure you want to cancel this reservation?"
+  );
+  if (!confirmCancel) return;
+
+  try {
+    await updateDoc(doc(db, "reservations", reservationId), {
+      status: "Cancelled",
+      isCancelled: true,
+      cancelledAt: serverTimestamp(),
+    });
+
+    alert("Reservation has been cancelled.");
+    navigate("/profile?tab=reservations");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to cancel reservation.");
+  }
+};
+
+  if (loading) return <div className="payment-page">Loading...</div>;
   if (!reservation) return null;
 
-  const formattedDateTime =
-    reservation.preferredDateTime?.toDate?.().toLocaleString?.() || "Unavailable";
+  const readableDate = reservation?.preferredDate?.toDate?.()
+    ? reservation.preferredDate.toDate().toLocaleString()
+    : "N/A";
 
+  const createdAt = reservation?.createdAt?.toDate?.()
+    ? reservation.createdAt.toDate().toLocaleString()
+    : "N/A";
+
+  const isPaid = reservation.status === "Downpayment Paid";
+
+  // -------------------------------------------------------------
+  //  TWO COLUMN LAYOUT IMPLEMENTATION (ONLY CHANGE YOU REQUESTED)
+  // -------------------------------------------------------------
   return (
     <div className="payment-page">
-      <h2>Payment Summary</h2>
+      <h2>Reservation Invoice</h2>
 
-      <div className="payment-card">
-        <p><strong>Product:</strong> {reservation.productName}</p>
-        <p><strong>Brand:</strong> {reservation.brand}</p>
-        <p><strong>Vehicle:</strong> {reservation.vehicleBrand} {reservation.vehicleModel} {reservation.vehicleYear}</p>
-        <p><strong>Plate Number:</strong> {reservation.plateNumber}</p>
-        <p><strong>Date & Time:</strong> {formattedDateTime}</p>
-        <p><strong>Service Type:</strong> {reservation.serviceType}</p>
-        <p><strong>Total Price:</strong> ₱{reservation.price}</p>
+      <div className="payment-layout">
 
-        {/* ✔ FIXED LABEL HERE */}
-        <p><strong>Downpayment:</strong> ₱{reservation.downpayment}</p>
+        {/* LEFT COLUMN — INVOICE */}
+        <div className="payment-left">
+          <div className="payment-card">
+            <p><strong>Invoice ID:</strong> {reservationId}</p>
+            <p><strong>Created At:</strong> {createdAt}</p>
+            <p><strong>Appointment:</strong> {readableDate}</p>
+
+            <hr />
+
+            <h3>Customer Vehicle</h3>
+            <p><strong>Brand:</strong> {reservation.vehicleBrand}</p>
+            <p><strong>Model:</strong> {reservation.vehicleModel}</p>
+            <p><strong>Year:</strong> {reservation.vehicleYear}</p>
+            <p><strong>Plate No.:</strong> {reservation.plateNumber}</p>
+
+            <hr />
+
+            <h3>Service & Product</h3>
+            <p><strong>Service Type:</strong> {reservation.serviceType}</p>
+            <p><strong>Product:</strong> {reservation.productName}</p>
+            <p><strong>Brand:</strong> {reservation.brand}</p>
+            <p><strong>Size:</strong> {reservation.size}</p>
+            <p><strong>Type:</strong> {reservation.type}</p>
+
+            <hr />
+
+            <h3>Payment Details</h3>
+            <p><strong>Total Price:</strong> ₱{reservation.price?.toLocaleString()}</p>
+            <p><strong>Downpayment:</strong> ₱{reservation.downpayment?.toLocaleString()}</p>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN — PAYMENTS, WARNING, PROOF */}
+        <div className="payment-right">
+
+          <div className="payment-warning">
+            <p style={{ color: "red", fontWeight: "bold" }}>
+              ⚠ You can cancel only BEFORE payment.
+              Once paid, the reservation is non-refundable.
+            </p>
+
+            <button
+              className="cancel-btn"
+              onClick={handleCancelReservation}
+              disabled={isPaid}
+              style={{
+                marginTop: "10px",
+                opacity: isPaid ? 0.5 : 1,
+                cursor: isPaid ? "not-allowed" : "pointer",
+              }}
+            >
+              {isPaid
+                ? "Cancel Reservation (Disabled - Already Paid)"
+                : "Cancel Reservation"}
+            </button>
+          </div>
+
+          <button
+            className="pay-button"
+            onClick={handlePayNow}
+            disabled={isPaid}
+            style={{
+              opacity: isPaid ? 0.5 : 1,
+              cursor: isPaid ? "not-allowed" : "pointer",
+            }}
+          >
+            {isPaid ? "Already Paid" : "Pay Now via PayPal Invoice"}
+          </button>
+
+          <button
+            className="pay-later-button"
+            onClick={() => navigate("/profile?tab=reservations")}
+            disabled={isPaid}
+            style={{
+              opacity: isPaid ? 0.5 : 1,
+              cursor: isPaid ? "not-allowed" : "pointer",
+            }}
+          >
+            Pay Later
+          </button>
+
+          <div className="payment-card">
+            <h3>Submit Payment Proof</h3>
+            <label>Transaction Number:</label>
+            <input
+              type="text"
+              className="tx-input"
+              placeholder="Enter PayPal Transaction Number"
+              value={transactionNumber}
+              onChange={(e) => setTransactionNumber(e.target.value)}
+              disabled={isPaid}
+            />
+
+            <button
+              className="pay-button"
+              style={{ backgroundColor: "#28a745" }}
+              onClick={handleSubmitPaymentProof}
+              disabled={isPaid}
+            >
+              {isPaid ? "Already Submitted" : "Submit Proof"}
+            </button>
+          </div>
+
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            ← Back
+          </button>
+
+        </div>
       </div>
-
-      <button className="pay-button" onClick={handlePayNow} disabled={paying}>
-        {paying ? "Processing..." : "Pay Now via PayMongo"}
-      </button>
-
-      <button className="cancel-btn" onClick={() => navigate(-1)}>
-        ← Go Back
-      </button>
     </div>
   );
 };

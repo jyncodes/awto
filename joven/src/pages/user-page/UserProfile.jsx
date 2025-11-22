@@ -59,8 +59,8 @@ const UserProfile = () => {
     });
 
     userReservations.sort((a, b) => {
-      const dateA = a.preferredDateTime?.toDate?.() || 0;
-      const dateB = b.preferredDateTime?.toDate?.() || 0;
+      const dateA = a.preferredDate?.toDate?.() || 0;
+      const dateB = b.preferredDate?.toDate?.() || 0;
       return dateB - dateA;
     });
 
@@ -214,7 +214,7 @@ const UserProfile = () => {
                     <p><strong>Product:</strong> {res.productName}</p>
                     <p><strong>Brand:</strong> {res.brand}</p>
                     <p><strong>Size:</strong> {res.size}</p>
-                    <p><strong>Date:</strong> {formatTimestamp(res.preferredDateTime)}</p>
+                    <p><strong>Date:</strong> {formatTimestamp(res.preferredDate)}</p>
                     <p><strong>Status:</strong> {res.status}</p>
                     <p><strong>Payment:</strong> {res.paymentStatus || "unpaid"}</p>
 

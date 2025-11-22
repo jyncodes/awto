@@ -1,106 +1,194 @@
 /* src/styles/PaymentPage.css */
 
+/* ----------------------------------------------
+   PAGE WRAPPER
+---------------------------------------------- */
 .payment-page {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(to right, #f5f7fa, #e8ecf1);
-  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+  background: #f4f6f8;
+  padding: 1.2rem 1rem;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: fadeIn 0.4s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  animation: fadeIn 0.25s ease;
 }
 
 .payment-page h2 {
-  font-size: 2rem;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
   color: #2c3e50;
-  margin-bottom: 1.5rem;
   text-align: center;
 }
 
-.payment-card {
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  padding: 2rem;
+/* ----------------------------------------------
+   TWO COLUMN LAYOUT
+---------------------------------------------- */
+.payment-layout {
+  display: flex;
   width: 100%;
-  max-width: 650px;
-  color: #34495e;
-  margin-bottom: 2rem;
-  animation: slideIn 0.3s ease;
+  max-width: 1100px;
+  gap: 1.2rem;
+  align-items: flex-start;
 }
 
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+/* LEFT COL = 60%, RIGHT COL = 40% */
+.payment-left {
+  width: 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.payment-card p {
-  font-size: 1rem;
-  margin: 0.5rem 0;
+.payment-right {
+  width: 40%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.payment-card strong {
+/* ----------------------------------------------
+   CARD COMPONENT
+---------------------------------------------- */
+.payment-card {
+  background: white;
+  border-radius: 10px;
+  padding: 1.2rem 1.4rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  animation: slideIn 0.2s ease;
+}
+
+.payment-card h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
   color: #2c3e50;
 }
 
-.pay-button,
-.cancel-btn {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+.payment-card p {
+  font-size: 0.94rem;
+  color: #34495e;
+  margin: 0.3rem 0;
+}
+
+/* Divider */
+hr {
   border: none;
+  border-top: 1px solid #e2e2e2;
+  margin: 0.8rem 0;
+}
+
+/* ----------------------------------------------
+   WARNING BOX (RIGHT SIDE)
+---------------------------------------------- */
+.payment-warning {
+  background: #fff4f4;
+  border-left: 4px solid #e74c3c;
+  padding: 1rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  box-shadow: 0 2px 10px rgba(231, 76, 60, 0.12);
+  line-height: 1.35;
+}
+
+/* ----------------------------------------------
+   BUTTONS
+---------------------------------------------- */
+.pay-button,
+.pay-later-button,
+.cancel-btn,
+.back-btn {
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  width: 100%;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  width: 100%;
-  max-width: 300px;
-  margin-bottom: 1rem;
+  border: none;
+  transition: 0.2s ease;
 }
 
+/* Pay Now */
 .pay-button {
-  background-color: #27ae60;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+  background: #27ae60;
+  color: white;
 }
+.pay-button:hover:not(:disabled) { background: #1e8d4e; }
 
-.pay-button:hover {
-  background-color: #219150;
+/* Pay later */
+.pay-later-button {
+  background: #3498db;
+  color: white;
 }
+.pay-later-button:hover:not(:disabled) { background: #2a7fbe; }
 
-.pay-button:disabled {
-  background-color: #95a5a6;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
+/* Cancel */
 .cancel-btn {
-  background-color: #ffffff;
-  color: #7f8c8d;
+  background: white;
   border: 1px solid #ccc;
+  color: #7f8c8d;
+}
+.cancel-btn:hover:not(:disabled) { background: #f1f1f1; }
+
+/* Back */
+.back-btn {
+  background: #ecf0f1;
+  color: #2c3e50;
+}
+.back-btn:hover { background: #d6dbdf; }
+
+/* Disabled Buttons */
+.pay-button:disabled,
+.pay-later-button:disabled {
+  background: #bfc7cd !important;
+  cursor: not-allowed;
+}
+.cancel-btn:disabled {
+  background: #dddddd;
+  color: #888;
+  cursor: not-allowed;
 }
 
-.cancel-btn:hover {
-  background-color: #ecf0f1;
+/* ----------------------------------------------
+   INPUT FIELD
+---------------------------------------------- */
+.tx-input {
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #c8cdd2;
+  margin-top: 0.4rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.95rem;
+}
+.tx-input:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 4px rgba(52,152,219,0.25);
 }
 
-@media (max-width: 640px) {
-  .payment-card {
-    padding: 1.5rem;
+/* ----------------------------------------------
+   RESPONSIVE — STACK COLUMNS ON MOBILE
+---------------------------------------------- */
+@media (max-width: 850px) {
+  .payment-layout {
+    flex-direction: column;
   }
 
-  .pay-button,
-  .cancel-btn {
+  .payment-left,
+  .payment-right {
     width: 100%;
   }
 }
 
+/* ----------------------------------------------
+   ANIMATIONS
+---------------------------------------------- */
 @keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
