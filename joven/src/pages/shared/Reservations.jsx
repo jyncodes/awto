@@ -1,3 +1,4 @@
+// src/pages/shared/Reservations.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import {
@@ -22,11 +23,11 @@ const Reservations = ({ role }) => {
   const [selected, setSelected] = useState([]);
   const [activeTab, setActiveTab] = useState("All");
   const [viewModal, setViewModal] = useState(null);
-  const [productStocks, setProductStocks] = useState({}); // 🟢 Stock data map
+  const [productStocks, setProductStocks] = useState({});
 
   const normalizedRole = (role || "").toLowerCase();
 
-  // 🟢 Fetch Realtime Stocks from products_tires & products_mags
+  // LIVE STOCKS
   useEffect(() => {
     const stocks = {};
 
@@ -54,7 +55,7 @@ const Reservations = ({ role }) => {
     };
   }, []);
 
-  // 🔹 Load all reservations + Auto-decline expired
+  // LOAD RESERVATIONS + AUTO-DECLINE
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "reservations"), async (snapshot) => {
       const list = snapshot.docs.map((doc) => ({
@@ -65,7 +66,7 @@ const Reservations = ({ role }) => {
 
       const now = new Date();
 
-      // 🔹 Auto-decline if date has passed and not completed
+      // ⭐ UPDATED FOR NEW STATUSES
       for (const r of list) {
         const date = r.preferredDate?.seconds
           ? new Date(r.preferredDate.seconds * 1000)
@@ -73,7 +74,11 @@ const Reservations = ({ role }) => {
 
         if (
           date < now &&
-          (r.status === "Pending" || r.status === "Approved") &&
+          (
+            r.status === "Downpayment Pending" ||
+            r.status === "Downpayment Paid" ||
+            r.status === "Approved"
+          ) &&
           r.status !== "Completed" &&
           r.status !== "Declined"
         ) {
@@ -89,7 +94,7 @@ const Reservations = ({ role }) => {
         }
       }
 
-      // 🔹 Fetch associated user names
+      // FETCH USER NAMES
       const userIds = [...new Set(list.map((r) => r.userId).filter(Boolean))];
       const nameMap = {};
       for (const uid of userIds) {
@@ -108,7 +113,7 @@ const Reservations = ({ role }) => {
     return () => unsub();
   }, []);
 
-  // 🔹 Status update
+  // STATUS CHANGE
   const handleStatusChange = async (id, newStatus) => {
     try {
       const reservationRef = doc(db, "reservations", id);
@@ -162,6 +167,7 @@ const Reservations = ({ role }) => {
     }
   };
 
+  // DELETE RESERVATION
   const handleDelete = async (id) => {
     if (normalizedRole !== "admin") return;
     if (!window.confirm("Are you sure you want to delete this reservation?")) return;
@@ -176,7 +182,7 @@ const Reservations = ({ role }) => {
     }
   };
 
-  // 🔍 Filter by tab
+  // FILTERS
   const now = new Date();
   const filteredByTab = reservations.filter((r) => {
     const date = r.preferredDate?.seconds
@@ -197,7 +203,6 @@ const Reservations = ({ role }) => {
     }
   });
 
-  // 🔍 Search filter
   const filtered = filteredByTab.filter((r) =>
     (r.productName || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -215,7 +220,7 @@ const Reservations = ({ role }) => {
         />
       </div>
 
-      {/* 🔹 Tabs */}
+      {/* TABS */}
       <div className="reservation-tabs">
         {["All", "Upcoming", "Approved", "Declined", "Completed"].map((tab) => (
           <button
@@ -235,7 +240,7 @@ const Reservations = ({ role }) => {
               <th>Reservation ID</th>
               <th>Schedule Date</th>
               <th>Product</th>
-              <th>Stock</th> {/* 🟢 New Stock Column */}
+              <th>Stock</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -257,18 +262,22 @@ const Reservations = ({ role }) => {
                     <td>{date.toLocaleDateString()}</td>
                     <td>{res.productName || "—"}</td>
                     <td>{stock}</td>
+
                     <td>
                       <select
                         className="status-dropdown"
-                        value={res.status || "Pending"}
+                        value={res.status || "Downpayment Pending"}
                         onChange={(e) => handleStatusChange(res.id, e.target.value)}
                       >
-                        <option value="Pending">Pending</option>
+                        {/* ⭐ Updated status options */}
+                        <option value="Downpayment Pending">Downpayment Pending</option>
+                        <option value="Downpayment Paid">Downpayment Paid</option>
                         <option value="Approved">Approved</option>
                         <option value="Declined">Declined</option>
                         <option value="Completed">Completed</option>
                       </select>
                     </td>
+
                     <td>
                       <button
                         className="view-btn"
@@ -299,7 +308,7 @@ const Reservations = ({ role }) => {
         </table>
       </div>
 
-      {/* 🔹 View Modal */}
+      {/* VIEW MODAL */}
       {viewModal && (
         <div className="reservation-modal">
           <div className="modal-content">

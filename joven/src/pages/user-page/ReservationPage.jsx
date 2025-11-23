@@ -271,8 +271,11 @@ const ReservationPage = () => {
         plateNumber: plateNumber.trim(),
         preferredDate: Timestamp.fromDate(chosenDate),
         note: note.trim(),
-        paymentMethod: "PayMongo",
-        status: "Pending Payment",
+
+        // IMPORTANT FIXES
+        paymentMethod: "PayPal Invoice",
+        status: "Downpayment Pending",
+
         isCancelled: false,
         createdAt: serverTimestamp(),
       };
@@ -288,9 +291,12 @@ const ReservationPage = () => {
       );
 
       alert("Reservation submitted!");
-      navigate(`/invoice/${reservationId}`, {
+
+      // ⭐ IMPORTANT FIX — Go to PaymentPage, NOT InvoicePage
+      navigate(`/payment/${reservationId}`, {
         state: { reservation: reservationData },
       });
+
     } catch (err) {
       console.error("Reservation submission error:", err);
       alert("Failed to reserve.");
