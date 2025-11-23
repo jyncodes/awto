@@ -20,7 +20,7 @@ const CatalogBox = ({ filters }) => {
   const itemsPerPage = 12;
 
   // ================================
-  // FETCH PRODUCTS (with MERGING)
+  // FETCH PRODUCTS (Tires + Mags)
   // ================================
   useEffect(() => {
     const fetchProducts = async () => {
@@ -52,11 +52,12 @@ const CatalogBox = ({ filters }) => {
               model: data.model || "",
               type: data.type || name,
               price: Number(data.price) || 0,
+              retail: Number(data.retail) || Number(data.price) || 0, // ✅ ADDED
               sizeString: tireSize || "",
               tireWidth: data.tireWidth || "",
               aspectRatio: data.aspectRatio || "",
               rimDiameter: data.rimDiameter || "",
-              wheelWidth: data.wheelWidth || "", // added for wheels
+              wheelWidth: data.wheelWidth || "",
               boltPattern: data.boltPattern || "",
               ...data,
             });
@@ -78,11 +79,12 @@ const CatalogBox = ({ filters }) => {
               model: p.model,
               type: p.type,
               price: p.price,
+              retail: p.retail, // ✅ ADDED
               sizes: [],
-              tireWidth: p.tireWidth || "",
-              wheelWidth: p.wheelWidth || "",
-              rimDiameter: p.rimDiameter || "",
-              boltPattern: p.boltPattern || "",
+              tireWidth: p.tireWidth,
+              wheelWidth: p.wheelWidth,
+              rimDiameter: p.rimDiameter,
+              boltPattern: p.boltPattern,
             };
           }
 
@@ -148,7 +150,7 @@ const CatalogBox = ({ filters }) => {
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // 🔹 Filter by fitment if available
+    // 🔹 Fitment filters
     if (fitment && Object.keys(fitment).length > 0) {
       result = result.filter((p) => {
         if (fitment.type === "tire") {
@@ -173,9 +175,9 @@ const CatalogBox = ({ filters }) => {
       case "name-desc":
         return result.sort((a, b) => b.brand.localeCompare(a.brand));
       case "price-asc":
-        return result.sort((a, b) => a.price - b.price);
+        return result.sort((a, b) => a.retail - b.retail); // ✅ SORT BY RETAIL
       case "price-desc":
-        return result.sort((a, b) => b.price - a.price);
+        return result.sort((a, b) => b.retail - a.retail); // ✅ SORT BY RETAIL
       default:
         return result;
     }
@@ -244,7 +246,7 @@ const CatalogBox = ({ filters }) => {
                 <p className="product-model">{product.model}</p>
 
                 <p className="product-price">
-                  ₱{product.price.toLocaleString()}
+                  ₱{product.retail.toLocaleString()} {/* ✅ NOW SHOWING RETAIL */}
                 </p>
               </div>
             );
