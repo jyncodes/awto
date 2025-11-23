@@ -121,6 +121,21 @@ const Navbar = () => {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  // 🔥 NEW helper: go to landing page and scroll to section
+  const goToSection = (id) => {
+    if (location.pathname !== "/") {
+      navigate("/#" + id);
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }, 200);
+    } else {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+    setMenuOpen(false);
+  };
+
   return (
     <>
       <nav className="navbar">
@@ -141,34 +156,18 @@ const Navbar = () => {
 
         {/* CENTER */}
         <div className={`center-nav ${menuOpen ? "open" : ""}`}>
-          <a
-            href="#fitment"
-            className="nav-link"
-            onClick={() => setMenuOpen(false)}
-          >
+          <button className="nav-link" onClick={() => goToSection("fitment")}>
             Fitment
-          </a>
-          <a
-            href="#brand"
-            className="nav-link"
-            onClick={() => setMenuOpen(false)}
-          >
+          </button>
+          <button className="nav-link" onClick={() => goToSection("brand")}>
             Brand
-          </a>
-          <a
-            href="#services"
-            className="nav-link"
-            onClick={() => setMenuOpen(false)}
-          >
+          </button>
+          <button className="nav-link" onClick={() => goToSection("services")}>
             Services
-          </a>
-          <a
-            href="#about"
-            className="nav-link"
-            onClick={() => setMenuOpen(false)}
-          >
+          </button>
+          <button className="nav-link" onClick={() => goToSection("about")}>
             About
-          </a>
+          </button>
         </div>
 
         {/* RIGHT */}
