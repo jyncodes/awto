@@ -140,27 +140,7 @@ const LandingPage = () => {
             <p className="section-sub">Get tires you can trust from leading makers</p>
           </div>
 
-          <button
-            className="brand-arrow brand-arrow-left"
-            aria-label="scroll left"
-            onClick={() =>
-              brandScrollRef.current.scrollBy({ left: -360, behavior: "smooth" })
-            }
-          >
-            &#8249;
-          </button>
-
-          <button
-            className="brand-arrow brand-arrow-right"
-            aria-label="scroll right"
-            onClick={() =>
-              brandScrollRef.current.scrollBy({ left: 360, behavior: "smooth" })
-            }
-          >
-            &#8250;
-          </button>
-
-          <div className="brand-scroll-container" ref={brandScrollRef}>
+          <div className="brand-row">
             {topBrands.map((brand) => (
               <div
                 key={brand.name}
@@ -168,7 +148,9 @@ const LandingPage = () => {
                 role="button"
                 tabIndex={0}
                 onClick={() => handleBrandClick(brand.name)}
-                onKeyDown={(e) => (e.key === "Enter" ? handleBrandClick(brand.name) : null)}
+                onKeyDown={(e) =>
+                  e.key === "Enter" ? handleBrandClick(brand.name) : null
+                }
                 aria-label={`Open ${brand.name}`}
               >
                 <img src={brand.image} alt={brand.name} />
@@ -180,29 +162,33 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* SERVICES */}
-        <section id="services" className="section services-row-section">
-          <div className="section-header">
-            <h2 className="section-title">Services Offered</h2>
-            <p className="section-sub">Reliable service, done right — every time</p>
-          </div>
 
-          <div className="services-row">
-            {services.map((service) => (
-              <div
-                key={service.name}
-                className="service-card"
-                role="button"
-                tabIndex={0}
-                onClick={() => handleServiceClick(service.name)}
-                onKeyDown={(e) => (e.key === "Enter" ? handleServiceClick(service.name) : null)}
-              >
-                <div className="service-icon-overlay">{service.icon}</div>
-                <p>{service.name}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+      {/* SERVICES */}
+      <section id="services" className="section services-row-section">
+        <div className="section-header">
+          <h2 className="section-title">Services Offered</h2>
+          <p className="section-sub">Reliable service, done right — every time</p>
+        </div>
+
+        <div className="services-row">
+          {services.map((service) => (
+            <div
+              key={service.name}
+              className="service-card"
+              role="button"
+              tabIndex={0}
+              onClick={() => handleServiceClick(service.name)}
+              onKeyDown={(e) =>
+                e.key === "Enter" ? handleServiceClick(service.name) : null
+              }
+            >
+              <div className="service-icon-overlay">{service.icon}</div>
+              <p>{service.name}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
 
         {/* ABOUT US */}
         <section
