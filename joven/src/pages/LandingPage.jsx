@@ -89,49 +89,49 @@ const LandingPage = () => {
       <main className="landing-main">
         <Manual />
 
-        {/* HERO */}
-        <section className="section hero-section">
-          <div className="hero-inner">
-            <div className="hero-copy">
-              <h1 className="hero-title">Premium Tires & Professional Care</h1>
-              <p className="hero-sub">
-                Joven Tire Enterprise — trusted fitment, expert alignment, and
-                comprehensive vehicle services. Quality parts. Honest service.
-                Fast turnaround.
-              </p>
+      {/* HERO */}
+      <section className="section hero-section">
+        <div className="hero-inner">
 
-              <div className="hero-cta">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => navigate("/services")}
-                >
-                  Book a Service
-                </button>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => document.getElementById("brand")?.scrollIntoView({behavior: "smooth"})}
-                >
-                  Shop Brands
-                </button>
-              </div>
+          {/* LEFT COPY */}
+          <div className="hero-copy">
+            <h1 className="hero-title">Premium Tires & Professional Care</h1>
+
+            <p className="hero-sub">
+              Joven Tire Enterprise — delivering trusted fitment, precise alignment,
+              and complete vehicle care. Quality parts. Honest service. Fast and reliable.
+            </p>
+
+            <div className="hero-cta">
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate("/services")}
+              >
+                Services
+              </button>
+
+              <button
+                className="btn btn-outline"
+                onClick={() =>
+                  document.getElementById("brand")?.scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                Shop Brands
+              </button>
             </div>
+          </div>
 
-            <div className="hero-art">
-              <div className="hero-card">
-                <div className="hero-card-inner">
-                  <div className="stat">
-                    <div className="stat-number">10k+</div>
-                    <div className="stat-label">Satisfied Customers</div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-number">20+</div>
-                    <div className="stat-label">Top Brands</div>
-                  </div>
-                </div>
+          {/* RIGHT ART (Stats Removed) */}
+          <div className="hero-art">
+            <div className="hero-card">
+              <div className="hero-card-inner">
+                {/* Removed the stats completely */}
               </div>
             </div>
           </div>
-        </section>
+
+        </div>
+      </section>
 
         {/* TOP BRANDS */}
         <section id="brand" className="section brand-section">
@@ -190,44 +190,77 @@ const LandingPage = () => {
       </section>
 
 
-        {/* ABOUT US */}
-        <section
-          id="about"
-          className="section about-section"
-          onClick={() => navigate("/about-us")}
-          role="link"
-          tabIndex={0}
-          onKeyDown={(e) => (e.key === "Enter" ? navigate("/about-us") : null)}
-        >
-          <div className="about-inner">
-            <div className="about-left">
-              <h2 className="section-title">Our Story</h2>
-              <p className="about-text">
-                Joven Tire Enterprise started with one belief: good service should be
-                straightforward. We’ve partnered with trusted brands and invested in
-                professional equipment so you get accurate fitment, dependable
-                parts, and service that keeps you safe on the road.
-              </p>
-              <p className="about-learn-more">Click to read our full story & commitments →</p>
-            </div>
-
-            <div className="about-right">
-              <div className="about-card">
-                <h3>Quality Parts</h3>
-                <p>We stock trusted brands and perform precise installations.</p>
+          {/* ABOUT US */}
+          <section
+            id="about"
+            className="section about-section"
+            onClick={() => navigate("/about-us")}
+            role="link"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" ? navigate("/about-us") : null)}
+          >
+            <div className="about-inner">
+              <div className="about-left">
+                <h2 className="section-title">Our Story</h2>
+                <p className="about-text">
+                  Joven Tire Enterprise started with one belief: good service should be
+                  straightforward. We’ve partnered with trusted brands and invested in
+                  professional equipment so you get accurate fitment, dependable
+                  parts, and service that keeps you safe on the road.
+                </p>
+                <p className="about-learn-more">
+                  Click to read our full story & commitments →
+                </p>
               </div>
-              <div className="about-card">
-                <h3>Skilled Technicians</h3>
-                <p>Experienced, trained staff with modern diagnostic tools.</p>
+
+              <div className="about-right">
+                <div
+                  className="about-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation(); // prevent triggering section navigation
+                    navigate("/about-us", { state: { section: "quality" } });
+                  }}
+                  onKeyDown={(e) =>
+                    e.key === "Enter"
+                      ? (e.stopPropagation(),
+                        navigate("/about-us", { state: { section: "quality" } }))
+                      : null
+                  }
+                >
+                  <h3>Quality Parts</h3>
+                  <p>We stock trusted brands and perform precise installations.</p>
+                </div>
+
+                <div
+                  className="about-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate("/about-us", { state: { section: "technicians" } });
+                  }}
+                  onKeyDown={(e) =>
+                    e.key === "Enter"
+                      ? (e.stopPropagation(),
+                        navigate("/about-us", { state: { section: "technicians" } }))
+                      : null
+                  }
+                >
+                  <h3>Skilled Technicians</h3>
+                  <p>Experienced, trained staff with modern diagnostic tools.</p>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-      </main>
+          </section>
+          </main>
 
-      <Footer />
-    </>
-  );
-};
+        <Footer />
+      </>
+      );
+    };
 
 export default LandingPage;
+
+

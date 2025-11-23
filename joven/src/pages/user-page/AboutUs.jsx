@@ -1,15 +1,31 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/user-components/Footer";
 import "../../styles/user-styles/AboutUs.css";
 
 const AboutUs = () => {
+  const location = useLocation();
+  const qualityRef = useRef(null);
+  const commitmentRef = useRef(null);
+
+  // Scroll to a specific section if 'state.section' exists
+  useEffect(() => {
+    if (location.state && location.state.section) {
+      const target = location.state.section;
+      if (target === "quality" && qualityRef.current) {
+        qualityRef.current.scrollIntoView({ behavior: "smooth" });
+      } else if (target === "commitment" && commitmentRef.current) {
+        commitmentRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [location]);
+
   return (
     <>
       <Navbar />
 
       <div className="aboutus-container">
-
         {/* Our Mission */}
         <section className="aboutus-section">
           <div className="aboutus-content">
@@ -67,8 +83,8 @@ const AboutUs = () => {
           </div>
         </section>
 
-        {/* Important Section 1 */}
-        <section className="aboutus-section">
+        {/* Quality Assurance */}
+        <section className="aboutus-section" ref={qualityRef}>
           <div className="aboutus-content reverse">
             <div className="aboutus-image">
               <div className="image-placeholder">
@@ -86,8 +102,8 @@ const AboutUs = () => {
           </div>
         </section>
 
-        {/* Important Section 2 */}
-        <section className="aboutus-section">
+        {/* Customer Commitment */}
+        <section className="aboutus-section" ref={commitmentRef}>
           <div className="aboutus-content">
             <div className="aboutus-text">
               <h2>Customer Commitment</h2>
@@ -104,7 +120,6 @@ const AboutUs = () => {
             </div>
           </div>
         </section>
-
       </div>
 
       <Footer />
