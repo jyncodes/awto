@@ -21,8 +21,9 @@ const PaymentPage = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [transactionNumber, setTransactionNumber] = useState("");
 
+  // ✅ Your personal manual PayPal invoice link
   const PAYPAL_INVOICE_LINK =
-    "https://www.paypal.com/invoice/p/#XAL54UJHW7GXRRHN";
+    "https://www.paypal.com/invoice/p/#MF7NLAUBP47DZLBB";
 
   // --------------------------
   // AUTH CHECK
@@ -69,7 +70,7 @@ const PaymentPage = () => {
   }, [reservationId, currentUser, navigate]);
 
   // --------------------------
-  // PAY NOW (open invoice link)
+  // PAY NOW (Manual PayPal Invoice)
   // --------------------------
   const handlePayNow = () => {
     try {
@@ -81,12 +82,12 @@ const PaymentPage = () => {
   };
 
   // --------------------------
-  // CONFIRM PAYMENT PROOF (UPDATED)
+  // CONFIRM PAYMENT PROOF
   // --------------------------
   const handleSubmitPaymentProof = async () => {
     if (!transactionNumber.trim()) {
       alert("⚠ Please enter your PayPal transaction number before confirming.");
-      return; // STOP — do not proceed
+      return;
     }
 
     try {
@@ -102,7 +103,6 @@ const PaymentPage = () => {
         paymentMethod: "PayPal Invoice",
       });
 
-      // Redirect on success
       navigate("/payment-success");
     } catch (error) {
       console.error(error);
@@ -134,6 +134,9 @@ const PaymentPage = () => {
     }
   };
 
+  // --------------------------
+  // LOADING HANDLING
+  // --------------------------
   if (loading) return <div className="payment-page">Loading...</div>;
   if (!reservation) return null;
 
@@ -196,11 +199,6 @@ const PaymentPage = () => {
               className="cancel-btn"
               onClick={handleCancelReservation}
               disabled={isPaid}
-              style={{
-                marginTop: "10px",
-                opacity: isPaid ? 0.5 : 1,
-                cursor: isPaid ? "not-allowed" : "pointer",
-              }}
             >
               {isPaid
                 ? "Cancel Reservation (Disabled - Already Paid)"
@@ -208,6 +206,7 @@ const PaymentPage = () => {
             </button>
           </div>
 
+          {/* Pay with PayPal Invoice */}
           <button
             className="pay-button"
             onClick={handlePayNow}
