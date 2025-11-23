@@ -1,4 +1,4 @@
-// src/pages/admin-dashboard/Products.jsx
+// src/pages/admin-page/Products.jsx
 import React, { useEffect, useState } from "react";
 import { db, auth } from "../../firebase";
 import {
@@ -34,6 +34,7 @@ const INITIAL_FORM = {
   boltPattern: "",
   centerBore: "",
   price: "",
+  retail: "",
   description: "",
   supplierId: "",
 };
@@ -59,7 +60,6 @@ const Products = () => {
   const [currentView, setCurrentView] = useState("tires");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- Services states
   const [services, setServices] = useState([]);
   const [serviceModalOpen, setServiceModalOpen] = useState(false);
   const [serviceForm, setServiceForm] = useState(INITIAL_SERVICE_FORM);
@@ -68,9 +68,6 @@ const Products = () => {
 
   const [showSupplierList, setShowSupplierList] = useState(false);
 
-  // ================================
-  // FETCH PRODUCTS & RELATED DATA
-  // ================================
   const fetchTires = async () => {
     const snapshot = await getDocs(collection(db, "products_tires"));
     setTires(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -86,12 +83,10 @@ const Products = () => {
     setSuppliers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
-  // Services: realtime listener (so admin sees updates)
   const subscribeServices = () => {
     const col = collection(db, "services");
     return onSnapshot(col, (snap) => {
       const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      // sort by name
       setServices(list.sort((a, b) => (a.name || "").localeCompare(b.name || "")));
     });
   };
@@ -101,15 +96,9 @@ const Products = () => {
     fetchMags();
     fetchSuppliers();
     const unsubServices = subscribeServices();
-    return () => {
-      if (unsubServices) unsubServices();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => unsubServices && unsubServices();
   }, []);
 
-  // ================================
-  // GENERATE PRODUCT ID
-  // ================================
   const fetchNextProductId = async (type = "Tire") => {
     try {
       const prefix = PRODUCT_TYPE_PREFIXES[type];
@@ -122,21 +111,23 @@ const Products = () => {
       return { id, current, prefix };
     } catch (error) {
       console.error("Error fetching product ID:", error);
-      alert("Failed to generate product ID. Please try again.");
+      alert("Failed to generate product ID.");
     }
   };
 
-  // ================================
-  // INPUT HANDLER
-  // ================================
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === "price") {
+      const priceNum = Number(value) || 0;
+      const retail = (priceNum * 1.25).toFixed(2);
+      setFormData((prev) => ({ ...prev, price: value, retail }));
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ================================
-  // VERIFY ADMIN
-  // ================================
   const verifyAdminAccess = async () => {
     const user = auth.currentUser;
     if (!user) return false;
@@ -146,9 +137,6 @@ const Products = () => {
     return false;
   };
 
-  // ================================
-  // ADD / EDIT PRODUCT
-  // ================================
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -169,6 +157,7 @@ const Products = () => {
         ...formData,
         productId: isEditMode ? formData.productId : generatedId,
         price: Number(formData.price) || 0,
+        retail: Number(formData.retail) || 0,
         updatedAt: serverTimestamp(),
         ...(isEditMode ? {} : { createdAt: serverTimestamp() }),
       };
@@ -178,31 +167,29 @@ const Products = () => {
 
       if (isEditMode && selectedProduct) {
         await updateDoc(doc(db, collectionName, selectedProduct.id), payload);
-        alert("Product updated successfully!");
+        alert("Product updated!");
       } else {
         await setDoc(doc(db, collectionName, generatedId), payload);
         await setDoc(doc(db, "counters", `productCounter_${prefix}`), {
           lastId: current + 1,
         });
-        alert("Product added successfully!");
+        alert("Product added!");
       }
 
       setFormData(INITIAL_FORM);
       setIsModalOpen(false);
       setIsEditMode(false);
+
       if (formData.type === "Tire") await fetchTires();
       else await fetchMags();
     } catch (error) {
-      console.error("Error adding/updating product:", error);
-      alert("Something went wrong. Please check your input or try again later.");
+      console.error(error);
+      alert("Error saving product.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ================================
-  // EDIT PRODUCT
-  // ================================
   const handleEdit = (product, type) => {
     setSelectedProduct(product);
     setFormData({ ...INITIAL_FORM, ...product, type });
@@ -211,21 +198,15 @@ const Products = () => {
     setIsModalOpen(true);
   };
 
-  // ================================
-  // DELETE PRODUCT
-  // ================================
   const handleDelete = async (product, type) => {
     if (!(await verifyAdminAccess())) return;
     const collectionName = type === "Tire" ? "products_tires" : "products_mags";
     await deleteDoc(doc(db, collectionName, product.id));
     if (type === "Tire") fetchTires();
     else fetchMags();
-    alert("Product deleted successfully!");
+    alert("Product deleted!");
   };
 
-  // ================================
-  // OPEN ADD MODAL
-  // ================================
   const openAddModal = async (type) => {
     setIsEditMode(false);
     setFormData({ ...INITIAL_FORM, type });
@@ -233,9 +214,6 @@ const Products = () => {
     setIsModalOpen(true);
   };
 
-  // ================================
-  // FILTER PRODUCTS BY SEARCH
-  // ================================
   const filterProducts = (arr) =>
     arr.filter((p) =>
       ["brand", "productId", "model"].some((key) =>
@@ -243,107 +221,6 @@ const Products = () => {
       )
     );
 
-  // ================================
-  // ===== Services CRUD helpers =====
-  // ================================
-  const openAddServiceModal = () => {
-    setEditingService(null);
-    setServiceForm(INITIAL_SERVICE_FORM);
-    setServiceModalOpen(true);
-  };
-
-  const openEditServiceModal = (s) => {
-    setEditingService(s);
-    setServiceForm({
-      name: s.name || "",
-      price: s.price || 0,
-      taxable: !!s.taxable,
-      durationMinutes: s.durationMinutes || "",
-      active: s.active ?? true,
-    });
-    setServiceModalOpen(true);
-  };
-
-  const handleServiceInput = (e) => {
-    const { name, type, value, checked } = e.target;
-    setServiceForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  const saveService = async () => {
-    if (!serviceForm.name.trim() || isNaN(Number(serviceForm.price))) {
-      alert("Provide a service name and valid price.");
-      return;
-    }
-    if (!(await verifyAdminAccess())) return;
-    setIsServiceSaving(true);
-    try {
-      if (editingService) {
-        await updateDoc(doc(db, "services", editingService.id), {
-          name: serviceForm.name.trim(),
-          price: Number(serviceForm.price),
-          taxable: !!serviceForm.taxable,
-          durationMinutes: serviceForm.durationMinutes
-            ? Number(serviceForm.durationMinutes)
-            : null,
-          active: !!serviceForm.active,
-          updatedAt: serverTimestamp(),
-        });
-        alert("Service updated.");
-      } else {
-        await addDoc(collection(db, "services"), {
-          name: serviceForm.name.trim(),
-          price: Number(serviceForm.price),
-          taxable: !!serviceForm.taxable,
-          durationMinutes: serviceForm.durationMinutes
-            ? Number(serviceForm.durationMinutes)
-            : null,
-          active: !!serviceForm.active,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        alert("Service added.");
-      }
-      setServiceModalOpen(false);
-      setEditingService(null);
-    } catch (err) {
-      console.error("Service save error:", err);
-      alert("Failed to save service.");
-    } finally {
-      setIsServiceSaving(false);
-    }
-  };
-
-  const deleteService = async (s) => {
-    if (!(await verifyAdminAccess())) return;
-    if (!window.confirm(`Delete service "${s.name}"?`)) return;
-    try {
-      await deleteDoc(doc(db, "services", s.id));
-      alert("Service deleted.");
-    } catch (err) {
-      console.error("Delete service error:", err);
-      alert("Failed to delete service.");
-    }
-  };
-
-  const toggleServiceActive = async (s) => {
-    if (!(await verifyAdminAccess())) return;
-    try {
-      await updateDoc(doc(db, "services", s.id), {
-        active: !s.active,
-        updatedAt: serverTimestamp(),
-      });
-    } catch (err) {
-      console.error("Toggle active error:", err);
-      alert("Failed to update service.");
-    }
-  };
-
-  // ================================
-  // RENDER
-  // ================================
   return (
     <div className="products-page-container">
       <h1 className="products-page-title">Products</h1>
@@ -369,16 +246,12 @@ const Products = () => {
           Add Mag
         </button>
 
-        {/* New Services button - kept as the last button per your order */}
-        <button
-          className="btn-services"
-          onClick={() => setCurrentView("services")}
-        >
+        <button className="btn-services" onClick={() => setCurrentView("services")}>
           Services
         </button>
       </div>
 
-      {/* ================= TIRES TABLE ================= */}
+      {/* ------------------ TIRES TABLE ------------------ */}
       {currentView === "tires" && (
         <div className="product-table-wrapper">
           <h2>Tires</h2>
@@ -396,6 +269,7 @@ const Products = () => {
                   <th>Rim</th>
                   <th>Supplier</th>
                   <th>Price</th>
+                  <th>Retail</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -412,6 +286,7 @@ const Products = () => {
                       <td>{p.rimDiameter}</td>
                       <td>{supplier ? supplier.name : "—"}</td>
                       <td>{p.price}</td>
+                      <td>{p.retail}</td>
                       <td>
                         <button onClick={() => handleEdit(p, "Tire")}>Edit</button>
                         <button onClick={() => handleDelete(p, "Tire")}>
@@ -427,7 +302,7 @@ const Products = () => {
         </div>
       )}
 
-      {/* ================= MAGS TABLE ================= */}
+      {/* ------------------ MAGS TABLE ------------------ */}
       {currentView === "mags" && (
         <div className="product-table-wrapper">
           <h2>Mags</h2>
@@ -447,6 +322,7 @@ const Products = () => {
                   <th>Center Bore</th>
                   <th>Supplier</th>
                   <th>Price</th>
+                  <th>Retail</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -465,6 +341,7 @@ const Products = () => {
                       <td>{p.centerBore}</td>
                       <td>{supplier ? supplier.name : "—"}</td>
                       <td>{p.price}</td>
+                      <td>{p.retail}</td>
                       <td>
                         <button onClick={() => handleEdit(p, "Mags")}>Edit</button>
                         <button onClick={() => handleDelete(p, "Mags")}>
@@ -480,13 +357,24 @@ const Products = () => {
         </div>
       )}
 
-      {/* ================= SERVICES TABLE ================= */}
+      {/* ------------------ SERVICES TABLE ------------------ */}
       {currentView === "services" && (
         <div className="product-table-wrapper">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "1rem",
+            }}
+          >
             <h2>Services</h2>
             <div>
-              <button className="btn-submit" onClick={openAddServiceModal}>
+              <button className="btn-submit" onClick={() => {
+                setEditingService(null);
+                setServiceForm(INITIAL_SERVICE_FORM);
+                setServiceModalOpen(true);
+              }}>
                 Add Service
               </button>
             </div>
@@ -500,10 +388,13 @@ const Products = () => {
                 <tr>
                   <th>Name</th>
                   <th>Price</th>
+                  <th>Taxable</th>
+                  <th>Duration</th>
                   <th>Active</th>
                   <th>Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {services.map((s) => (
                   <tr key={s.id}>
@@ -512,12 +403,36 @@ const Products = () => {
                     <td>{s.taxable ? "Yes" : "No"}</td>
                     <td>{s.durationMinutes ?? "—"}</td>
                     <td>{s.active ? "Yes" : "No"}</td>
+
                     <td>
-                      <button onClick={() => openEditServiceModal(s)}>Edit</button>
-                      <button onClick={() => toggleServiceActive(s)}>
+                      <button
+                        onClick={() => {
+                          setEditingService(s);
+                          setServiceForm({
+                            name: s.name,
+                            price: s.price,
+                            taxable: s.taxable,
+                            durationMinutes: s.durationMinutes,
+                            active: s.active,
+                          });
+                          setServiceModalOpen(true);
+                        }}
+                      >
+                        Edit
+                      </button>
+
+                      <button onClick={() => {
+                        updateDoc(doc(db, "services", s.id), {
+                          active: !s.active,
+                          updatedAt: serverTimestamp(),
+                        });
+                      }}>
                         {s.active ? "Disable" : "Enable"}
                       </button>
-                      <button onClick={() => deleteService(s)}>Delete</button>
+
+                      <button onClick={() => deleteDoc(doc(db, "services", s.id))}>
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -527,7 +442,7 @@ const Products = () => {
         </div>
       )}
 
-      {/* ================= ADD / EDIT PRODUCT MODAL ================= */}
+      {/* ------------------ PRODUCT MODAL ------------------ */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="form-modal-content">
@@ -676,6 +591,11 @@ const Products = () => {
                 />
               </div>
 
+              <div className="form-group">
+                <label>Retail (Auto Markup)</label>
+                <input type="number" name="retail" value={formData.retail} readOnly />
+              </div>
+
               <div className="form-group full-span">
                 <label>Description</label>
                 <textarea
@@ -702,11 +622,12 @@ const Products = () => {
         </div>
       )}
 
-      {/* ================= SERVICES MODAL ================= */}
+      {/* ------------------ SERVICE MODAL ------------------ */}
       {serviceModalOpen && (
         <div className="modal-overlay">
           <div className="form-modal-content">
             <h2>{editingService ? "Edit Service" : "Add Service"}</h2>
+
             <form className="form-grid">
               <div className="form-group">
                 <label>Name</label>
@@ -714,7 +635,9 @@ const Products = () => {
                   type="text"
                   name="name"
                   value={serviceForm.name}
-                  onChange={handleServiceInput}
+                  onChange={(e) =>
+                    setServiceForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   required
                 />
               </div>
@@ -725,7 +648,9 @@ const Products = () => {
                   type="number"
                   name="price"
                   value={serviceForm.price}
-                  onChange={handleServiceInput}
+                  onChange={(e) =>
+                    setServiceForm((prev) => ({ ...prev, price: e.target.value }))
+                  }
                   required
                 />
               </div>
@@ -736,7 +661,12 @@ const Products = () => {
                   type="checkbox"
                   name="taxable"
                   checked={serviceForm.taxable}
-                  onChange={handleServiceInput}
+                  onChange={(e) =>
+                    setServiceForm((prev) => ({
+                      ...prev,
+                      taxable: e.target.checked,
+                    }))
+                  }
                 />
               </div>
 
@@ -746,7 +676,12 @@ const Products = () => {
                   type="number"
                   name="durationMinutes"
                   value={serviceForm.durationMinutes}
-                  onChange={handleServiceInput}
+                  onChange={(e) =>
+                    setServiceForm((prev) => ({
+                      ...prev,
+                      durationMinutes: e.target.value,
+                    }))
+                  }
                 />
               </div>
 
@@ -756,22 +691,72 @@ const Products = () => {
                   type="checkbox"
                   name="active"
                   checked={serviceForm.active}
-                  onChange={handleServiceInput}
+                  onChange={(e) =>
+                    setServiceForm((prev) => ({
+                      ...prev,
+                      active: e.target.checked,
+                    }))
+                  }
                 />
               </div>
 
               <div className="form-buttons">
                 <button
                   type="button"
-                  onClick={saveService}
                   disabled={isServiceSaving}
+                  onClick={async () => {
+                    if (!serviceForm.name.trim()) {
+                      alert("Service name required");
+                      return;
+                    }
+
+                    setIsServiceSaving(true);
+
+                    try {
+                      if (editingService) {
+                        await updateDoc(doc(db, "services", editingService.id), {
+                          name: serviceForm.name,
+                          price: Number(serviceForm.price),
+                          taxable: serviceForm.taxable,
+                          durationMinutes: serviceForm.durationMinutes
+                            ? Number(serviceForm.durationMinutes)
+                            : null,
+                          active: serviceForm.active,
+                          updatedAt: serverTimestamp(),
+                        });
+                        alert("Service updated");
+                      } else {
+                        await addDoc(collection(db, "services"), {
+                          name: serviceForm.name,
+                          price: Number(serviceForm.price),
+                          taxable: serviceForm.taxable,
+                          durationMinutes: serviceForm.durationMinutes
+                            ? Number(serviceForm.durationMinutes)
+                            : null,
+                          active: serviceForm.active,
+                          createdAt: serverTimestamp(),
+                          updatedAt: serverTimestamp(),
+                        });
+                        alert("Service added");
+                      }
+
+                      setServiceModalOpen(false);
+                      setEditingService(null);
+                    } catch (err) {
+                      console.error(err);
+                      alert("Error saving service");
+                    } finally {
+                      setIsServiceSaving(false);
+                    }
+                  }}
                 >
                   {editingService ? "Update" : "Add"} Service
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setServiceModalOpen(false)}
                   className="btn-cancel"
+                  onClick={() => setServiceModalOpen(false)}
                 >
                   Cancel
                 </button>
@@ -780,6 +765,7 @@ const Products = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
