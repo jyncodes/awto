@@ -20,7 +20,6 @@ import ARViewer from "../../components/user-components/ARViewer";
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
 
-// 🔥 FIX: match CatalogBox (capital I)
 const SUPABASE_IMAGE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/Images";
 
@@ -40,7 +39,6 @@ const ViewProduct = () => {
   const [mainImage, setMainImage] = useState(null);
   const [showAR, setShowAR] = useState(false);
   const [modelUrl, setModelUrl] = useState(null);
-  const arViewerRef = useRef(null);
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedPrice, setSelectedPrice] = useState(null);
@@ -77,7 +75,8 @@ const ViewProduct = () => {
 
         if (!collectionName) {
           docSnap = await getDoc(doc(db, "products_tires", id));
-          if (!docSnap.exists()) docSnap = await getDoc(doc(db, "products_mags", id));
+          if (!docSnap.exists())
+            docSnap = await getDoc(doc(db, "products_mags", id));
         } else {
           docSnap = await getDoc(doc(db, collectionName, id));
         }
@@ -86,7 +85,11 @@ const ViewProduct = () => {
           const data = docSnap.data();
           setProduct({ ...data, id: docSnap.id });
 
-          // 🔥 FIXED IMAGE PATH
+          // 🔥 AUTO-SELECT SIZE IF NO SIZE LIST PROVIDED
+          if (!sizes || sizes.length === 0) {
+            setSelectedSize("default");
+          }
+
           const pngUrl = `${SUPABASE_IMAGE_URL}/${id}.png`;
           const jpegUrl = `${SUPABASE_IMAGE_URL}/${id}.jpeg`;
 
@@ -107,7 +110,9 @@ const ViewProduct = () => {
           const defaultRetail = data.retail ?? data.price ?? null;
           setSelectedPrice(defaultRetail);
 
-          setSelectedStock(typeof data.stock === "number" ? data.stock : null);
+          setSelectedStock(
+            typeof data.stock === "number" ? data.stock : null
+          );
 
           const isTire =
             collectionName === "products_tires" ||
@@ -124,7 +129,7 @@ const ViewProduct = () => {
   }, [id]);
 
   // ================================
-  // CHECK GLB
+  // CHECK GLB MODEL
   // ================================
   useEffect(() => {
     const checkModel = async () => {
@@ -153,8 +158,16 @@ const ViewProduct = () => {
   // SIZE-SPECIFIC PRICE
   // ================================
   useEffect(() => {
-    if (!selectedSize || !product) return;
+    if (!product) return;
 
+    // If no size selector exists, ignore this logic
+    if (!sizes || sizes.length === 0) {
+      setSelectedPrice(product.retail ?? product.price ?? null);
+      setSelectedStock(product.stock ?? null);
+      return;
+    }
+
+    if (!selectedSize) return;
     const fetchSizeDoc = async () => {
       try {
         const colName =
@@ -174,21 +187,6 @@ const ViewProduct = () => {
 
         let snapshot = await getDocs(qMain);
 
-        if (snapshot.empty) {
-          const parsed = parseSize(selectedSize);
-          if (parsed) {
-            snapshot = await getDocs(
-              query(
-                colRef,
-                where("tireWidth", "==", parsed.tireWidth),
-                where("rimDiameter", "==", parsed.rimDiameter),
-                where("brand", "==", passedBrand || product.brand || ""),
-                where("model", "==", passedModel || product.model || "")
-              )
-            );
-          }
-        }
-
         if (!snapshot.empty) {
           const docSnap = snapshot.docs[0];
           const data = docSnap.data();
@@ -197,10 +195,6 @@ const ViewProduct = () => {
           setSelectedPrice(retail);
           setSelectedStock(data.stock ?? product.stock ?? null);
           setSelectedDocId(docSnap.id);
-
-          if (typeof data.stock === "number" && quantity > data.stock) {
-            setQuantity(data.stock > 0 ? data.stock : 1);
-          }
         } else {
           const fallbackRetail = product.retail ?? product.price ?? null;
           setSelectedPrice(fallbackRetail);
@@ -226,9 +220,12 @@ const ViewProduct = () => {
     const user = auth.currentUser;
     if (!user) return alert("You must be logged in to add selections.");
     if (!product?.id) return alert("Product data not ready.");
-    if (!selectedSize) return alert("Please select a size first.");
+
+    if (sizes.length > 0 && !selectedSize)
+      return alert("Please select a size first.");
+
     if (!selectedPrice && selectedPrice !== 0)
-      return alert("Price not available for selected size.");
+      return alert("Price not available.");
 
     try {
       const cartRef = collection(db, "cartSelections");
@@ -272,8 +269,11 @@ const ViewProduct = () => {
   };
 
   const handleReserveClick = () => {
-    if (!selectedSize) return alert("Select a size first.");
-    if (!selectedPrice && selectedPrice !== 0) return alert("Price not available.");
+    if (sizes.length > 0 && !selectedSize)
+      return alert("Select a size first.");
+
+    if (!selectedPrice && selectedPrice !== 0)
+      return alert("Price not available.");
 
     navigate(`/reservation/${product.id}`, {
       state: {
@@ -296,8 +296,8 @@ const ViewProduct = () => {
 
   const hasGLB = !!modelUrl;
 
-  // 🔥 final fallback image
-  const fallbackImage = mainImage || "https://placehold.co/300x300?text=No+Image";
+  const fallbackImage =
+    mainImage || "https://placehold.co/300x300?text=No+Image";
 
   return (
     <div className="view-product">
@@ -387,7 +387,7 @@ const ViewProduct = () => {
               <select
                 value={selectedSize}
                 onChange={(e) => setSelectedSize(e.target.value)}
-              >
+              > 
                 <option value="">Choose a size</option>
                 {sizes.map((s, i) => (
                   <option key={i} value={s}>
@@ -422,8 +422,10 @@ const ViewProduct = () => {
               className="reserve-button"
               onClick={handleReserveClick}
               disabled={
-                !selectedSize ||
-                (typeof selectedPrice !== "number" && selectedPrice !== 0)
+                // NEW LOGIC
+                sizes.length > 0
+                  ? !selectedSize
+                  : !selectedPrice && selectedPrice !== 0
               }
             >
               Reserve Now
@@ -434,8 +436,9 @@ const ViewProduct = () => {
               onClick={handleAddToCart}
               title="Add to My Selections"
               disabled={
-                !selectedSize ||
-                (typeof selectedPrice !== "number" && selectedPrice !== 0)
+                sizes.length > 0
+                  ? !selectedSize
+                  : !selectedPrice && selectedPrice !== 0
               }
             >
               <FiShoppingCart size={24} />

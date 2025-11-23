@@ -27,8 +27,8 @@ import Analytics from './pages/admin-page/Analytics';
 import AdminSuppliers from './pages/admin-page/Supplier';
 import Financials from './pages/admin-page/Financials';
 
-// POS PAGE
-import POS from "./components/admin-components/POS";
+// POS PAGE (SHARED)
+import POS from "./pages/shared/POS";
 
 // User Pages
 import UserDashboard from './pages/user-page/UserDashboard';
@@ -124,7 +124,6 @@ export default function App() {
         {/* ⭐ AR Debug Routes */}
         <Route path="/debug-ar" element={<ARCameraDebugger />} />
         <Route path="/debug-ar-model" element={<DebugAR />} />
-
 
         {/* ================= USER ROUTES ================= */}
         <Route
@@ -248,13 +247,27 @@ export default function App() {
           <Route path="financials" element={<Financials />} />
         </Route>
 
-        {/* POS Page */}
+        {/* ================= POS ROUTES ================= */}
+
+        {/* ⭐ Admin POS */}
         <Route
-          path="/pos"
+          path="/admin-pos"
           element={
             <RequireVerifiedEmail>
               <ProtectedRoute allowedRole="Admin">
-                <POS />
+                <POS role="Admin" />
+              </ProtectedRoute>
+            </RequireVerifiedEmail>
+          }
+        />
+
+        {/* ⭐ Staff POS */}
+        <Route
+          path="/staff-pos"
+          element={
+            <RequireVerifiedEmail>
+              <ProtectedRoute allowedRole="Staff">
+                <POS role="Staff" />
               </ProtectedRoute>
             </RequireVerifiedEmail>
           }

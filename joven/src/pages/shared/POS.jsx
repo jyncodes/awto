@@ -256,9 +256,25 @@ export default function POS({ role }) {
       }));
 
       const uid = auth?.currentUser?.uid;
-      const userSnap = uid ? await getDoc(doc(db, "users", uid)) : null;
-      const createdByName = userSnap?.data()?.name || role || "Staff";
-      const createdByRole = userSnap?.data()?.role || role || "Staff";
+      
+          let createdByName = "Staff";
+    let createdByRole = "Staff";
+
+    if (uid) {
+      // Try users
+      const userDoc = await getDoc(doc(db, "users", uid));
+      if (userDoc.exists()) {
+        createdByName = userDoc.data().name;
+        createdByRole = userDoc.data().role;
+      } else {
+        // Try staff
+        const staffDoc = await getDoc(doc(db, "staff", uid));
+        if (staffDoc.exists()) {
+          createdByName = staffDoc.data().name;
+          createdByRole = staffDoc.data().role;
+        }
+      }
+    }
 
       const saleData = {
         customerName: finalCustomer,
@@ -311,10 +327,16 @@ export default function POS({ role }) {
 
   // ================= RENDER =================
   return (
-    <div className="pos-container">
+        <div className="pos-container">
       <div className="pos-header">
         <div>Joven Tire Enterprise — Point of Sale</div>
-        <button className="pos-close-btn" onClick={() => navigate("/admin-dashboard/sales")}>
+        <button
+          className="pos-close-btn"
+          onClick={() => {
+            if (role === "Admin") navigate("/admin-dashboard/sales");
+            else navigate("/staff-dashboard/sales");
+          }}
+        >
           Back to Dashboard
         </button>
       </div>

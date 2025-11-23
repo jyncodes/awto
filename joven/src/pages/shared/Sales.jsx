@@ -32,7 +32,7 @@ const Sales = ({ role }) => {
       const newSale = location.state.newSale;
       setActiveReceipt(newSale);
       setReceiptOpen(true);
-      window.history.replaceState({}, document.title); // clear state to prevent re-open
+      window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
@@ -130,15 +130,27 @@ const Sales = ({ role }) => {
     }
   };
 
+  // ⭐ FIXED: Route POS based on role
   const handleComplete = (reservationId, products, customerName) => {
-    navigate("/pos", {
-      state: {
-        fromReservation: true,
-        reservationId,
-        reservedItems: products,
-        customerName,
-      },
-    });
+    if (role === "admin") {
+      navigate("/admin-pos", {
+        state: {
+          fromReservation: true,
+          reservationId,
+          reservedItems: products,
+          customerName,
+        },
+      });
+    } else {
+      navigate("/staff-pos", {
+        state: {
+          fromReservation: true,
+          reservationId,
+          reservedItems: products,
+          customerName,
+        },
+      });
+    }
   };
 
   const filteredSales =
@@ -152,7 +164,12 @@ const Sales = ({ role }) => {
     <div className="sales-page-container">
       <div className="sales-header">
         <h1>Sales Transactions</h1>
-        <button className="add-sale-btn" onClick={() => navigate("/pos")}>
+
+        {/* ⭐ FIXED: Add Sale → role-based POS */}
+        <button
+          className="add-sale-btn"
+          onClick={() => navigate(role === "admin" ? "/admin-pos" : "/staff-pos")}
+        >
           <FaPlus className="btn-icon" /> Add Sale
         </button>
       </div>
