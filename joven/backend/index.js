@@ -1,4 +1,3 @@
-// awto/joven/backend/index.js
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
@@ -72,6 +71,125 @@ app.post("/send-email", async (req, res) => {
 });
 
 /* ======================================================
+   🔥 PAYPAL — Generate OAuth Token
+====================================================== */
+const getPayPalToken = async () => {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const secret = process.env.PAYPAL_SECRET;
+
+  const auth = Buffer.from(`${clientId}:${secret}`).toString("base64");
+
+  const res = await axios.post(
+    "https://api-m.paypal.com/v1/oauth2/token",
+    "grant_type=client_credentials",
+    {
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    }
+  );
+
+  return res.data.access_token;
+};
+
+/* ======================================================
+   🔥 PAYPAL — Create Invoice
+====================================================== */
+app.post("/create-paypal-invoice", async (req, res) => {
+  try {
+    const { amount, customerEmail, customerName, reservationId } = req.body;
+
+    const token = await getPayPalToken();
+
+    const invoiceData = {
+      detail: {
+        currency_code: "PHP",
+        invoice_number: `INV-${Date.now()}`,
+        reference: reservationId,
+        note: "Joven Tire Enterprise Reservation Payment",
+        term: "Due on receipt",
+      },
+      invoicer: {
+        name: { given_name: "Joven Tire Enterprise" },
+        email_address: process.env.SENDER_EMAIL,
+      },
+      primary_recipients: [
+        {
+          billing_info: {
+            name: { given_name: customerName || "Customer" },
+            email_address: customerEmail,
+          },
+        },
+      ],
+      items: [
+        {
+          name: "Reservation Downpayment",
+          description: "Tire/Wheel Reservation",
+          quantity: "1",
+          unit_amount: {
+            currency_code: "PHP",
+            value: String(amount),
+          },
+        },
+      ],
+    };
+
+    const response = await axios.post(
+      "https://api-m.paypal.com/v2/invoicing/invoices",
+      invoiceData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const invoiceId = response.data.id;
+
+    res.send({
+      success: true,
+      invoiceId,
+      message: "Invoice created successfully",
+    });
+  } catch (err) {
+    console.error("❌ PayPal Create Invoice Error:", err.response?.data || err);
+    res.status(500).json({ success: false, error: err.response?.data || err });
+  }
+});
+
+/* ======================================================
+   🔥 PAYPAL — Send Invoice
+====================================================== */
+app.post("/send-paypal-invoice", async (req, res) => {
+  try {
+    const { invoiceId } = req.body;
+
+    const token = await getPayPalToken();
+
+    const response = await axios.post(
+      `https://api-m.paypal.com/v2/invoicing/invoices/${invoiceId}/send`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    res.send({
+      success: true,
+      message: "Invoice sent successfully",
+    });
+  } catch (err) {
+    console.error("❌ PayPal Send Invoice Error:", err.response?.data || err);
+    res.status(500).json({ success: false, error: err.response?.data || err });
+  }
+});
+
+/* ======================================================
    💳 PAYMONGO - Create Checkout Session (LIVE READY)
 ====================================================== */
 app.post("/create-payment", async (req, res) => {
@@ -104,8 +222,8 @@ app.post("/create-payment", async (req, res) => {
               name: email,
             },
 
-            success_url: "http://localhost:5173/payment-success",
-            cancel_url: "http://localhost:5173/payment-failed",
+            success_url: "https://awto.vercel.app/payment-success",
+            cancel_url: "https://awto.vercel.app/payment-failed",
 
             metadata: { reservationId },
           },
@@ -126,20 +244,8 @@ app.post("/create-payment", async (req, res) => {
       response.data.data.attributes.redirect?.checkout_url;
 
     res.status(200).send({ success: true, checkoutUrl });
-
   } catch (error) {
-
-    // ⭐⭐⭐ FULL PAYMENT ERROR LOGGING ADDED HERE ⭐⭐⭐
-    console.error("❌ FULL PayMongo ERROR OBJECT:", error);
-    console.error("❌ PayMongo RESPONSE DATA:", error.response?.data);
-    console.error("❌ PayMongo RESPONSE STATUS:", error.response?.status);
-    console.error("❌ PayMongo REQUEST DATA SENT:", {
-      amount,
-      description,
-      email,
-      reservationId
-    });
-
+    console.error("❌ FULL PayMongo ERROR:", error.response?.data || error);
     res.status(500).send({
       success: false,
       error: error.response?.data || error.message,
@@ -161,33 +267,23 @@ app.post("/webhook/paymongo", async (req, res) => {
       .digest("hex");
 
     if (computed !== signature) {
-      console.log("❌ Invalid webhook signature — rejected");
       return res.status(400).send("Invalid signature");
     }
 
     const event = req.body;
     const eventType = event.data?.attributes?.type;
 
-    console.log("📩 Webhook Event:", eventType);
-
     if (eventType === "payment.paid") {
       const paymentAttributes = event.data.attributes.data.attributes;
       const reservationId = paymentAttributes.metadata.reservationId;
 
-      if (!reservationId) {
-        console.log("⚠️ No reservationId found in metadata.");
-        return res.status(200).send("OK");
+      if (reservationId) {
+        const reservationRef = doc(db, "reservations", reservationId);
+        await updateDoc(reservationRef, {
+          paymentStatus: "paid",
+          paidAt: new Date(),
+        });
       }
-
-      console.log("💰 Payment confirmed for reservation:", reservationId);
-
-      const reservationRef = doc(db, "reservations", reservationId);
-      await updateDoc(reservationRef, {
-        paymentStatus: "paid",
-        paidAt: new Date(),
-      });
-
-      console.log("✅ Firestore updated (paymentStatus = paid)");
     }
 
     res.status(200).send("OK");

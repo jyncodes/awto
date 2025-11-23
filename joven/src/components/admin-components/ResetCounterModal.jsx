@@ -1,11 +1,15 @@
+// src/components/admin-components/ResetCounterModal.jsx
 import React, { useState, useEffect } from "react";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 
 const PRODUCT_TYPE_PREFIXES = {
   Tire: "TI",
-  Mags: "MA",
+  Mags: "MA"
 };
+
+// Reservation has its own prefix
+const RESERVATION_PREFIX = "RES";
 
 const ResetCounterModal = ({ isOpen, onClose }) => {
   const [selectedType, setSelectedType] = useState("Tire");
@@ -13,26 +17,38 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Fetch next product ID preview
+  // Fetch next ID preview
   const fetchNextId = async (type) => {
     try {
       setLoading(true);
+
+      // Reservation
+      if (type === "Reservation") {
+        const ref = doc(db, "counters", "reservations");
+        const snap = await getDoc(ref);
+        const current = snap.exists() ? snap.data().lastId : 0;
+
+        setNextIdPreview(`${RESERVATION_PREFIX}-${String(current + 1).padStart(5, "0")}`);
+        return;
+      }
+
+      // Tire / Mags
       const prefix = PRODUCT_TYPE_PREFIXES[type];
       const counterRef = doc(db, "counters", `productCounter_${prefix}`);
       const snap = await getDoc(counterRef);
       const current = snap.exists() ? snap.data().lastId : 0;
-      const nextId = `${prefix}-${String(current + 1).padStart(5, "0")}`;
-      setNextIdPreview(nextId);
+
+      setNextIdPreview(`${prefix}-${String(current + 1).padStart(5, "0")}`);
     } catch (err) {
-      console.error("Failed to fetch next ID preview:", err);
-      setNextIdPreview("Error");
+      console.error("Failed to fetch preview:", err);
       setError("Failed to load next ID.");
+      setNextIdPreview("Error");
     } finally {
       setLoading(false);
     }
   };
 
-  // Verify if current user is Admin
+  // Verify Admin
   const verifyAdmin = async () => {
     const user = auth.currentUser;
     if (!user) return false;
@@ -41,7 +57,7 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
     return userDoc.exists() && userDoc.data().role === "Admin";
   };
 
-  // Reset the selected product counter
+  // Reset counter
   const handleReset = async () => {
     setError("");
     setLoading(true);
@@ -49,35 +65,49 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
     try {
       const isAdmin = await verifyAdmin();
       if (!isAdmin) {
-        setError("❌ You are not authorized to reset the counter.");
+        setError("❌ You are not authorized.");
         setLoading(false);
         return;
       }
 
-      const prefix = PRODUCT_TYPE_PREFIXES[selectedType];
-      const counterRef = doc(db, "counters", `productCounter_${prefix}`);
-
-      const confirmReset = window.confirm(
-        `Are you sure you want to reset the ${selectedType} counter to 0?`
-      );
+      const confirmReset = window.confirm(`Reset ${selectedType} counter?`);
       if (!confirmReset) {
         setLoading(false);
         return;
       }
 
-      await setDoc(counterRef, { lastId: 0 }, { merge: true });
+      // Reservation counter reset
+      if (selectedType === "Reservation") {
+        await setDoc(
+          doc(db, "counters", "reservations"),
+          { lastId: 0 },
+          { merge: true }
+        );
 
-      alert(`✅ ${selectedType} counter has been reset to 0.`);
-      onClose(); // Close modal after success
+        alert("✅ Reservation counter reset (RES-00001 next).");
+        onClose();
+        return;
+      }
+
+      // Tire / Mags counter reset
+      const prefix = PRODUCT_TYPE_PREFIXES[selectedType];
+      await setDoc(
+        doc(db, `counters/productCounter_${prefix}`),
+        { lastId: 0 },
+        { merge: true }
+      );
+
+      alert(`✅ ${selectedType} counter reset.`);
+      onClose();
     } catch (err) {
       console.error("Reset failed:", err);
-      setError("Something went wrong. Please try again.");
+      setError("Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
 
-  // When modal opens or type changes, show next ID
+  // Auto preview refresh
   useEffect(() => {
     if (isOpen) {
       fetchNextId(selectedType);
@@ -90,22 +120,26 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <h2>Reset Product ID Counter</h2>
+        <h2>Reset ID Counter</h2>
 
         <div className="form-group">
-          <label htmlFor="type">Select Product Type</label>
+          <label>Select Counter</label>
+
           <select
-            id="type"
+            className="counter-select"
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
           >
             <option value="Tire">Tire</option>
             <option value="Mags">Mags</option>
+
+            {/* Reservation now ALWAYS visible */}
+            <option value="Reservation">Reservation</option>
           </select>
         </div>
 
         <p>
-          <strong>Next Product ID:</strong>{" "}
+          <strong>Next ID Preview:</strong>{" "}
           {loading ? "Loading..." : nextIdPreview}
         </p>
 
