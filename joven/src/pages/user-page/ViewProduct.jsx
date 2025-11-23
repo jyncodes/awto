@@ -20,8 +20,9 @@ import ARViewer from "../../components/user-components/ARViewer";
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
 
+// 🔥 FIX: match CatalogBox (capital I)
 const SUPABASE_IMAGE_URL =
-  "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/images";
+  "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/Images";
 
 const ViewProduct = () => {
   const { id } = useParams();
@@ -65,9 +66,9 @@ const ViewProduct = () => {
     };
   };
 
-  // =====================================
-  // FETCH MAIN PRODUCT (use retail instead of price)
-  // =====================================
+  // ================================
+  // FETCH MAIN PRODUCT + IMAGE FALLBACK
+  // ================================
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -75,31 +76,41 @@ const ViewProduct = () => {
         let docSnap;
 
         if (!collectionName) {
-          const tiresRef = doc(db, "products_tires", id);
-          const magsRef = doc(db, "products_mags", id);
-
-          docSnap = await getDoc(tiresRef);
-          if (!docSnap.exists()) docSnap = await getDoc(magsRef);
+          docSnap = await getDoc(doc(db, "products_tires", id));
+          if (!docSnap.exists()) docSnap = await getDoc(doc(db, "products_mags", id));
         } else {
-          const docRef = doc(db, collectionName, id);
-          docSnap = await getDoc(docRef);
+          docSnap = await getDoc(doc(db, collectionName, id));
         }
 
-        if (docSnap && docSnap.exists()) {
+        if (docSnap.exists()) {
           const data = docSnap.data();
-
           setProduct({ ...data, id: docSnap.id });
-          setMainImage(`${SUPABASE_IMAGE_URL}/${id}.jpg`);
 
-          // ✅ DEFAULT PRICE = retail first, fallback to price
+          // 🔥 FIXED IMAGE PATH
+          const pngUrl = `${SUPABASE_IMAGE_URL}/${id}.png`;
+          const jpegUrl = `${SUPABASE_IMAGE_URL}/${id}.jpeg`;
+
+          fetch(pngUrl, { method: "HEAD" })
+            .then((res) => {
+              if (res.ok) setMainImage(pngUrl);
+              else {
+                fetch(jpegUrl, { method: "HEAD" })
+                  .then((res2) => {
+                    if (res2.ok) setMainImage(jpegUrl);
+                    else setMainImage(null);
+                  })
+                  .catch(() => setMainImage(null));
+              }
+            })
+            .catch(() => setMainImage(null));
+
           const defaultRetail = data.retail ?? data.price ?? null;
           setSelectedPrice(defaultRetail);
 
           setSelectedStock(typeof data.stock === "number" ? data.stock : null);
 
-          const colName = getCollectionName(docSnap.id);
           const isTire =
-            colName === "products_tires" ||
+            collectionName === "products_tires" ||
             (data.type && data.type.toLowerCase().includes("tire"));
 
           setQuantity(isTire ? 4 : 1);
@@ -113,7 +124,33 @@ const ViewProduct = () => {
   }, [id]);
 
   // ================================
-  // FIND SIZE-SPECIFIC PRICE (use retail)
+  // CHECK GLB
+  // ================================
+  useEffect(() => {
+    const checkModel = async () => {
+      if (!id) return;
+      const paths = [
+        `${SUPABASE_BASE_URL}/${id}.glb`,
+        `${SUPABASE_BASE_URL}/${id}.GLB`,
+      ];
+
+      for (const url of paths) {
+        try {
+          const res = await fetch(url, { method: "HEAD" });
+          if (res.ok) {
+            setModelUrl(url);
+            return;
+          }
+        } catch {}
+      }
+      setModelUrl(null);
+    };
+
+    checkModel();
+  }, [id]);
+
+  // ================================
+  // SIZE-SPECIFIC PRICE
   // ================================
   useEffect(() => {
     if (!selectedSize || !product) return;
@@ -125,8 +162,6 @@ const ViewProduct = () => {
           (product.type && product.type.toLowerCase().includes("tire")
             ? "products_tires"
             : "products_mags");
-
-        if (!colName) return;
 
         const colRef = collection(db, colName);
 
@@ -142,14 +177,15 @@ const ViewProduct = () => {
         if (snapshot.empty) {
           const parsed = parseSize(selectedSize);
           if (parsed) {
-            const q2 = query(
-              colRef,
-              where("tireWidth", "==", parsed.tireWidth),
-              where("rimDiameter", "==", parsed.rimDiameter),
-              where("brand", "==", passedBrand || product.brand || ""),
-              where("model", "==", passedModel || product.model || "")
+            snapshot = await getDocs(
+              query(
+                colRef,
+                where("tireWidth", "==", parsed.tireWidth),
+                where("rimDiameter", "==", parsed.rimDiameter),
+                where("brand", "==", passedBrand || product.brand || ""),
+                where("model", "==", passedModel || product.model || "")
+              )
             );
-            snapshot = await getDocs(q2);
           }
         }
 
@@ -157,9 +193,7 @@ const ViewProduct = () => {
           const docSnap = snapshot.docs[0];
           const data = docSnap.data();
 
-          // ✅ Use retail when available
           const retail = data.retail ?? data.price ?? null;
-
           setSelectedPrice(retail);
           setSelectedStock(data.stock ?? product.stock ?? null);
           setSelectedDocId(docSnap.id);
@@ -168,7 +202,6 @@ const ViewProduct = () => {
             setQuantity(data.stock > 0 ? data.stock : 1);
           }
         } else {
-          // fallback to main product retail
           const fallbackRetail = product.retail ?? product.price ?? null;
           setSelectedPrice(fallbackRetail);
           setSelectedStock(product.stock ?? null);
@@ -182,7 +215,6 @@ const ViewProduct = () => {
     fetchSizeDoc();
   }, [selectedSize, product]);
 
-  // quantity helpers
   const decreaseQty = () => setQuantity((q) => Math.max(1, q - 1));
   const increaseQty = () =>
     setQuantity((q) => {
@@ -190,9 +222,6 @@ const ViewProduct = () => {
       return Math.min(max, q + 1);
     });
 
-  // ================================
-  // ADD TO CART (use retail)
-  // ================================
   const handleAddToCart = async () => {
     const user = auth.currentUser;
     if (!user) return alert("You must be logged in to add selections.");
@@ -220,12 +249,14 @@ const ViewProduct = () => {
       await addDoc(cartRef, {
         userId: user.uid,
         productId: product.id,
-        productName: `${passedBrand || product.brand || ""} ${passedModel || product.model || ""} (${selectedSize})`,
+        productName: `${passedBrand || product.brand || ""} ${
+          passedModel || product.model || ""
+        } (${selectedSize})`,
         brand: passedBrand || product.brand || "Unknown",
         model: passedModel || product.model || "",
         selectedSize,
         selectedDocId,
-        pricePerItem: selectedPrice, // ✅ USING RETAIL
+        pricePerItem: selectedPrice,
         quantity,
         totalPrice: selectedPrice * quantity,
         createdAt: serverTimestamp(),
@@ -240,9 +271,6 @@ const ViewProduct = () => {
     }
   };
 
-  // ================================
-  // RESERVE (use retail)
-  // ================================
   const handleReserveClick = () => {
     if (!selectedSize) return alert("Select a size first.");
     if (!selectedPrice && selectedPrice !== 0) return alert("Price not available.");
@@ -253,7 +281,7 @@ const ViewProduct = () => {
         selectedSize,
         product,
         selectedDocId,
-        pricePerItem: selectedPrice, // ✅ RETAIL
+        pricePerItem: selectedPrice,
         quantity,
       },
     });
@@ -268,6 +296,9 @@ const ViewProduct = () => {
 
   const hasGLB = !!modelUrl;
 
+  // 🔥 final fallback image
+  const fallbackImage = mainImage || "https://placehold.co/300x300?text=No+Image";
+
   return (
     <div className="view-product">
       <button className="back-button" onClick={() => navigate(-1)}>
@@ -275,22 +306,22 @@ const ViewProduct = () => {
       </button>
 
       <div className="product-container">
-        {/* ---------- LEFT IMAGES ---------- */}
+        {/* LEFT IMAGE SECTION */}
         <div className="product-images">
           {hasGLB ? (
             <div className="ar-viewer-container">
-              {!showAR ? <ModelViewer modelUrl={modelUrl} /> : <ARViewer src={modelUrl} />}
+              {!showAR ? (
+                <ModelViewer modelUrl={modelUrl} />
+              ) : (
+                <ARViewer src={modelUrl} />
+              )}
             </div>
           ) : (
-            <img
-              src={mainImage || "https://placehold.co/300x300?text=No+Image"}
-              alt="Main"
-              className="main-image"
-            />
+            <img src={fallbackImage} alt="Main" className="main-image" />
           )}
         </div>
 
-        {/* ---------- RIGHT INFO ---------- */}
+        {/* RIGHT INFO */}
         <div className="product-info">
           {vehicleLabel && (
             <div className="fitment-context">
@@ -303,29 +334,46 @@ const ViewProduct = () => {
           <h2 className="brand-logo">{passedBrand || product.brand}</h2>
           <h1 className="product-name">{passedModel || product.model}</h1>
 
-          {/* ================================ */}
-          {/* FINAL DISPLAY OF RETAIL PRICE */}
-          {/* ================================ */}
           <p className="price">
             ₱
-            {(selectedPrice ?? product.retail ?? product.price ?? 0).toLocaleString(
-              undefined,
-              { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-            )}
+            {(
+              selectedPrice ??
+              product.retail ??
+              product.price ??
+              0
+            ).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
             /unit
           </p>
 
           {/* Quantity */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 12,
+            }}
+          >
             <div>
               <label style={{ display: "block", fontSize: 14 }}>Quantity</label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button onClick={decreaseQty} className="qty-btn">-</button>
-                <div style={{ minWidth: 36, textAlign: "center" }}>{quantity}</div>
-                <button onClick={increaseQty} className="qty-btn">+</button>
+                <button onClick={decreaseQty} className="qty-btn">
+                  -
+                </button>
+                <div style={{ minWidth: 36, textAlign: "center" }}>
+                  {quantity}
+                </div>
+                <button onClick={increaseQty} className="qty-btn">
+                  +
+                </button>
               </div>
               {typeof selectedStock === "number" && (
-                <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Stock: {selectedStock}</div>
+                <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
+                  Stock: {selectedStock}
+                </div>
               )}
             </div>
           </div>
@@ -333,8 +381,13 @@ const ViewProduct = () => {
           {/* Size selector */}
           {sizes.length > 0 && (
             <div className="size-selector" style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 6 }}>Select Size:</label>
-              <select value={selectedSize} onChange={(e) => setSelectedSize(e.target.value)}>
+              <label style={{ display: "block", marginBottom: 6 }}>
+                Select Size:
+              </label>
+              <select
+                value={selectedSize}
+                onChange={(e) => setSelectedSize(e.target.value)}
+              >
                 <option value="">Choose a size</option>
                 {sizes.map((s, i) => (
                   <option key={i} value={s}>
@@ -345,10 +398,8 @@ const ViewProduct = () => {
             </div>
           )}
 
-          {/* Total */}
           <div style={{ margin: "12px 0", fontWeight: 700 }}>
-            Total ({quantity} item{quantity > 1 ? "s" : ""}):{" "}
-            ₱
+            Total ({quantity} item{quantity > 1 ? "s" : ""}): ₱
             {(selectedPrice * quantity).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -370,7 +421,10 @@ const ViewProduct = () => {
             <button
               className="reserve-button"
               onClick={handleReserveClick}
-              disabled={!selectedSize || (typeof selectedPrice !== "number" && selectedPrice !== 0)}
+              disabled={
+                !selectedSize ||
+                (typeof selectedPrice !== "number" && selectedPrice !== 0)
+              }
             >
               Reserve Now
             </button>
@@ -379,14 +433,20 @@ const ViewProduct = () => {
               className="icon-button"
               onClick={handleAddToCart}
               title="Add to My Selections"
-              disabled={!selectedSize || (typeof selectedPrice !== "number" && selectedPrice !== 0)}
+              disabled={
+                !selectedSize ||
+                (typeof selectedPrice !== "number" && selectedPrice !== 0)
+              }
             >
               <FiShoppingCart size={24} />
             </button>
           </div>
 
           {showAR && (
-            <button className="exit-ar-button" onClick={() => setShowAR(false)}>
+            <button
+              className="exit-ar-button"
+              onClick={() => setShowAR(false)}
+            >
               Exit AR Mode
             </button>
           )}

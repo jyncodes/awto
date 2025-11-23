@@ -7,7 +7,7 @@ import "../../styles/user-styles/CatalogBox.css";
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/Images";
 
-const CatalogBox = ({ filters }) => {
+const CatalogBox = ({ filters = {} }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { size: fitmentSizes = [], vehicleLabel = "", fitment = {} } =
@@ -20,7 +20,7 @@ const CatalogBox = ({ filters }) => {
   const itemsPerPage = 12;
 
   // ================================
-  // FETCH PRODUCTS (Tires + Mags)
+  // FETCH PRODUCTS
   // ================================
   useEffect(() => {
     const fetchProducts = async () => {
@@ -52,7 +52,7 @@ const CatalogBox = ({ filters }) => {
               model: data.model || "",
               type: data.type || name,
               price: Number(data.price) || 0,
-              retail: Number(data.retail) || Number(data.price) || 0, // ✅ ADDED
+              retail: Number(data.retail) || Number(data.price) || 0,
               sizeString: tireSize || "",
               tireWidth: data.tireWidth || "",
               aspectRatio: data.aspectRatio || "",
@@ -64,9 +64,7 @@ const CatalogBox = ({ filters }) => {
           });
         }
 
-        // ================================
-        // MERGE BY BRAND + MODEL
-        // ================================
+        // MERGE (brand + model)
         const merged = {};
 
         rawProducts.forEach((p) => {
@@ -79,7 +77,7 @@ const CatalogBox = ({ filters }) => {
               model: p.model,
               type: p.type,
               price: p.price,
-              retail: p.retail, // ✅ ADDED
+              retail: p.retail,
               sizes: [],
               tireWidth: p.tireWidth,
               wheelWidth: p.wheelWidth,
@@ -150,7 +148,37 @@ const CatalogBox = ({ filters }) => {
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // 🔹 Fitment filters
+    // 🔥 APPLY FILTERS (THIS WAS MISSING)
+    if (filters.brand?.length)
+      result = result.filter((p) => filters.brand.includes(p.brand));
+
+    if (filters.model?.length)
+      result = result.filter((p) => filters.model.includes(p.model));
+
+    if (filters.type?.length)
+      result = result.filter((p) => filters.type.includes(p.type));
+
+    if (filters.size?.length)
+      result = result.filter((p) =>
+        p.sizes.some((s) => filters.size.includes(s))
+      );
+
+    if (filters.price?.length) {
+      result = result.filter((p) => {
+        const price = p.retail;
+
+        return filters.price.some((range) => {
+          if (range === "₱0 - ₱1,000") return price <= 1000;
+          if (range === "₱1,001 - ₱2,000") return price <= 2000 && price >= 1001;
+          if (range === "₱2,001 - ₱3,000") return price <= 3000 && price >= 2001;
+          if (range === "₱3,001 - ₱5,000") return price <= 5000 && price >= 3001;
+          if (range === "₱5,000+") return price >= 5001;
+          return true;
+        });
+      });
+    }
+
+    // FITMENT FILTER (unchanged)
     if (fitment && Object.keys(fitment).length > 0) {
       result = result.filter((p) => {
         if (fitment.type === "tire") {
@@ -169,20 +197,24 @@ const CatalogBox = ({ filters }) => {
       });
     }
 
+    // SORTING
     switch (sortOption) {
       case "name-asc":
         return result.sort((a, b) => a.brand.localeCompare(b.brand));
       case "name-desc":
         return result.sort((a, b) => b.brand.localeCompare(a.brand));
       case "price-asc":
-        return result.sort((a, b) => a.retail - b.retail); // ✅ SORT BY RETAIL
+        return result.sort((a, b) => a.retail - b.retail);
       case "price-desc":
-        return result.sort((a, b) => b.retail - a.retail); // ✅ SORT BY RETAIL
+        return result.sort((a, b) => b.retail - a.retail);
       default:
         return result;
     }
-  }, [products, sortOption, fitment]);
+  }, [products, filters, sortOption, fitment]);
 
+  // ================================
+  // PAGINATION
+  // ================================
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(
     startIdx,
@@ -246,7 +278,7 @@ const CatalogBox = ({ filters }) => {
                 <p className="product-model">{product.model}</p>
 
                 <p className="product-price">
-                  ₱{product.retail.toLocaleString()} {/* ✅ NOW SHOWING RETAIL */}
+                  ₱{product.retail.toLocaleString()}
                 </p>
               </div>
             );

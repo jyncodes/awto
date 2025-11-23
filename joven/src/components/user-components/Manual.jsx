@@ -52,12 +52,15 @@ const Manual = () => {
     return () => unsubscribe();
   }, []);
 
-  // Reset selections
+  // ⭐ RESET selections + reset CatalogBox
   const handleClear = () => {
     setBrand("");
     setModel("");
     setType("");
     setSize("");
+
+    // 🔥 Reset CatalogBox (important!)
+    navigate("/user-dashboard", { replace: true });
   };
 
   // Dropdown options
@@ -116,7 +119,7 @@ const Manual = () => {
 
   return (
     <div className="fitment-container premium-fitment">
-      <h1 className="fitment-title">Manual Fitment Selector</h1>
+      <h1 className="fitment-title">Vehicle Fitment Recommendation</h1>
 
       {loading ? (
         <p className="loading-text">Loading fitment data...</p>
