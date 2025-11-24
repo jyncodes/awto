@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, getDoc, doc } from "firebase/firestore";
 import "../../styles/admin-styles/Analytics.css";
 
 const Analytics = () => {
@@ -67,15 +67,41 @@ const Analytics = () => {
       setTopStaff(sortedStaff);
     });
 
-    // ================= PRODUCTS =================
-    const unsubProducts = onSnapshot(collection(db, "products"), (snapshot) => {
-      const lowStock = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.stock <= 5) lowStock.push({ id: doc.id, ...data });
+    // ================= LOW STOCK PRODUCTS (UPDATED) =================
+    let combined = [];
+
+    const unsubTires = onSnapshot(collection(db, "products_tires"), (snapshot) => {
+      const tires = snapshot.docs.map((docItem) => {
+        const data = docItem.data();
+        return {
+          id: docItem.id,
+          type: "Tire",
+          ...data,
+        };
       });
-      setLowStockProducts(lowStock.slice(0, 5));
+
+      combined = [...tires, ...combined.filter((p) => p.type !== "Tire")];
+      updateLowStock(combined);
     });
+
+    const unsubMags = onSnapshot(collection(db, "products_mags"), (snapshot) => {
+      const mags = snapshot.docs.map((docItem) => {
+        const data = docItem.data();
+        return {
+          id: docItem.id,
+          type: "Mags",
+          ...data,
+        };
+      });
+
+      combined = [...combined.filter((p) => p.type !== "Mags"), ...mags];
+      updateLowStock(combined);
+    });
+
+    const updateLowStock = (list) => {
+      const low = list.filter((p) => Number(p.stock) <= 5).slice(0, 5);
+      setLowStockProducts(low);
+    };
 
     // ================= RESERVATIONS =================
     const qRes = query(collection(db, "reservations"), orderBy("preferredDate", "asc"));
@@ -97,7 +123,8 @@ const Analytics = () => {
 
     return () => {
       unsubSales();
-      unsubProducts();
+      unsubTires();
+      unsubMags();
       unsubRes();
     };
   }, []);
@@ -127,33 +154,6 @@ const Analytics = () => {
         </div>
       </div>
 
-      {/* TOP STAFF */}
-      <div className="table-card">
-        <h2>🏆 Top Performing Staff</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Staff Name</th>
-              <th>Total Sales</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topStaff.length > 0 ? (
-              topStaff.map((s, i) => (
-                <tr key={i}>
-                  <td>{s.name}</td>
-                  <td>{formatCurrency(s.total)}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="2">No staff sales recorded yet.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
       {/* LOW STOCK */}
       <div className="table-card">
         <h2>⚠️ Low Stock Products</h2>
@@ -161,78 +161,86 @@ const Analytics = () => {
           <thead>
             <tr>
               <th>Product</th>
+              <th>Type</th>
               <th>Stock</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {lowStockProducts.length > 0 ? (
-              lowStockProducts.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.name}</td>
-                  <td>{item.stock}</td>
-                  <td>
-                    <button
-                      className="restock-btn"
-                      onClick={() => navigate("/admin-dashboard/inventory")}
-                    >
-                      Restock
-                    </button>
-                    <button
-                      className="contact-supplier-btn"
-                      onClick={() => navigate("/admin-dashboard/suppliers")}
-                    >
-                      Contact Supplier
-                    </button>
-                  </td>
-                </tr>
-              ))
+              lowStockProducts.map((item) => {
+                const productName =
+                  item.type === "Tire"
+                    ? `${item.brand} ${item.model} ${item.tireWidth}/${item.aspectRatio}R${item.rimDiameter}`
+                    : `${item.brand} ${item.model} ${item.wheelDiameter}x${item.wheelWidth}`;
+
+                return (
+                  <tr key={item.id}>
+                    <td>{productName}</td>
+                    <td>{item.type}</td>
+                    <td>{item.stock}</td>
+                    <td>
+                      <button
+                        className="restock-btn"
+                        onClick={() => navigate("/admin-dashboard/inventory")}
+                      >
+                        Restock
+                      </button>
+                      <button
+                        className="contact-supplier-btn"
+                        onClick={() => navigate("/admin-dashboard/suppliers")}
+                      >
+                        Contact Supplier
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan="3">All stocks are sufficient.</td>
+                <td colSpan="4">All stocks are sufficient.</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* UPCOMING RESERVATIONS */}
-      <div className="table-card">
-        <h2>📅 Upcoming Reservations</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Service</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {upcomingReservations.length > 0 ? (
-              upcomingReservations.map((res) => {
-                const date = res.preferredDate?.seconds
-                  ? new Date(res.preferredDate.seconds * 1000)
-                  : new Date(res.preferredDate);
-                return (
-                  <tr
-                    key={res.id}
-                    onClick={handleRowClick}
-                    className="clickable-row"
-                  >
-                    <td>{res.userName || res.customerName || "N/A"}</td>
-                    <td>{res.serviceType || "N/A"}</td>
-                    <td>{date.toLocaleDateString()}</td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="3">No upcoming reservations.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+{/* UPCOMING RESERVATIONS */}
+<div className="table-card">
+  <h2>📅 Upcoming Reservations</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Reservation ID</th>
+        <th>Product</th>
+        <th>View</th>
+      </tr>
+    </thead>
+    <tbody>
+      {upcomingReservations.length > 0 ? (
+        upcomingReservations.map((res) => (
+          <tr key={res.id}>
+            <td>{res.id}</td>
+            <td>{res.productName || "N/A"}</td>
+            <td>
+              <button
+                className="view-btn"
+                onClick={() => navigate("/admin-dashboard/reservations")}
+              >
+                👁 View
+              </button>
+            </td>
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td colSpan="3">No upcoming reservations.</td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
+
     </div>
   );
 };
