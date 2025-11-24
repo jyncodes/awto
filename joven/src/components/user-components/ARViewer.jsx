@@ -22,18 +22,17 @@ const ARViewer = ({ src }) => {
   const controlsRef = useRef(null);
   const glbModelRef = useRef(null);
 
-  // pinch scaling ref
   const lastPinchDistanceRef = useRef(null);
 
   const DEBUG_DRAW_TEST_BOX = false;
 
   /* ------------------------------------------
-   * 1. Load TensorFlow model
+   * Load COCO model
    ------------------------------------------- */
   useEffect(() => {
     let cancelled = false;
 
-    const loadModel = async () => {
+    (async () => {
       try {
         await tf.ready();
         const model = await cocoSsd.load({ base: "lite_mobilenet_v2" });
@@ -42,29 +41,25 @@ const ARViewer = ({ src }) => {
         console.error(err);
         setError(true);
       }
-    };
+    })();
 
-    loadModel();
     return () => (cancelled = true);
   }, []);
 
   /* ------------------------------------------
-   * 2. Start camera
+   * Start camera
    ------------------------------------------- */
   useEffect(() => {
     let mounted = true;
 
-    const startCamera = async () => {
+    (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
           audio: false,
         });
 
-        if (!mounted) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
+        if (!mounted) return;
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -74,20 +69,17 @@ const ARViewer = ({ src }) => {
         console.error(err);
         setError(true);
       }
-    };
-
-    startCamera();
+    })();
 
     return () => {
       mounted = false;
-      const tracks = videoRef.current?.srcObject?.getTracks();
-      tracks?.forEach((t) => t.stop());
+      videoRef.current?.srcObject?.getTracks()?.forEach((t) => t.stop());
       cancelAnimationFrame(animationFrameRef.current);
     };
   }, []);
 
   /* ------------------------------------------
-   * 3. Setup Three.js Scene
+   * Setup Scene
    ------------------------------------------- */
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -127,68 +119,54 @@ const ARViewer = ({ src }) => {
     dir.position.set(5, 10, 5);
     scene.add(dir);
 
-    let debugBox = null;
-    if (DEBUG_DRAW_TEST_BOX) {
-      debugBox = new THREE.Mesh(
-        new THREE.BoxGeometry(0.5, 0.5, 0.5),
-        new THREE.MeshStandardMaterial()
-      );
-      scene.add(debugBox);
-    }
-
-    // Load GLB model
+    // Load GLB
     const loader = new GLTFLoader();
-    let cancelLoad = false;
+    let cancelled = false;
 
     loader.load(
       src,
       (gltf) => {
-        if (cancelLoad) return;
+        if (cancelled) return;
         const model = gltf.scene;
 
         model.scale.set(0.12, 0.12, 0.12);
-        model.position.set(0, 0, -2.5); // Fixed position (no auto movement)
-        model.visible = true;
+        model.position.set(0, 0, -2.5);
+        model.visible = false;
 
         glbModelRef.current = model;
         scene.add(model);
         setModelReady(true);
       },
       undefined,
-      (err) => console.error("GLB load error:", err)
+      (err) => console.error("GLB Error:", err)
     );
 
-    // PINCH-TO-SCALE
+    /* Pinch scaling */
     const handleTouchMove = (e) => {
       if (!glbModelRef.current) return;
+
       if (e.touches.length !== 2) {
         lastPinchDistanceRef.current = null;
         return;
       }
 
-      const t1 = e.touches[0];
-      const t2 = e.touches[1];
-
+      const [t1, t2] = e.touches;
       const dx = t2.clientX - t1.clientX;
       const dy = t2.clientY - t1.clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (lastPinchDistanceRef.current === null) {
+      if (!lastPinchDistanceRef.current) {
         lastPinchDistanceRef.current = dist;
         return;
       }
 
       const delta = dist - lastPinchDistanceRef.current;
-      const scaleFactor = 1 + delta * 0.003;
-
-      glbModelRef.current.scale.multiplyScalar(scaleFactor);
-
+      glbModelRef.current.scale.multiplyScalar(1 + delta * 0.003);
       lastPinchDistanceRef.current = dist;
     };
 
     canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
 
-    // Resize
     const onResize = () => {
       renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
       camera.aspect = canvas.clientWidth / canvas.clientHeight;
@@ -198,7 +176,7 @@ const ARViewer = ({ src }) => {
     window.addEventListener("resize", onResize);
 
     return () => {
-      cancelLoad = true;
+      cancelled = true;
       window.removeEventListener("resize", onResize);
       canvas.removeEventListener("touchmove", handleTouchMove);
       renderer.dispose();
@@ -206,7 +184,7 @@ const ARViewer = ({ src }) => {
   }, [src]);
 
   /* ------------------------------------------
-   * 4. SIMPLE STATIC RENDER LOOP (no auto move)
+   * Detection → Show/Hide GLB
    ------------------------------------------- */
   useEffect(() => {
     if (!rendererRef.current) return;
@@ -214,10 +192,18 @@ const ARViewer = ({ src }) => {
     const renderer = rendererRef.current;
     const scene = sceneRef.current;
     const camera = cameraRef.current;
-    const controls = controlsRef.current;
 
-    const loop = () => {
-      controls.update();
+    const loop = async () => {
+      if (videoRef.current?.readyState >= 2 && cocoModel && glbModelRef.current) {
+        const predictions = await cocoModel.detect(videoRef.current);
+
+        const vehicles = predictions.filter((p) =>
+          ["car", "truck", "bus"].includes(p.class)
+        );
+
+        glbModelRef.current.visible = vehicles.length > 0;
+      }
+
       renderer.render(scene, camera);
       animationFrameRef.current = requestAnimationFrame(loop);
     };
@@ -225,14 +211,14 @@ const ARViewer = ({ src }) => {
     loop();
 
     return () => cancelAnimationFrame(animationFrameRef.current);
-  }, []);
+  }, [cocoModel]);
 
   /* ------------------------------------------
-   * Render UI
+   * UI
    ------------------------------------------- */
   if (error) {
     return (
-      <div style={{ color: "white", background: "black", height: "100vh" }}>
+      <div style={{ height: "100vh", color: "white", background: "black" }}>
         ❌ AR Viewer Error
       </div>
     );
@@ -240,6 +226,8 @@ const ARViewer = ({ src }) => {
 
   return (
     <div style={{ height: "100vh", width: "100%", position: "relative" }}>
+
+      {/* Camera feed */}
       <video
         ref={videoRef}
         autoPlay
@@ -254,6 +242,7 @@ const ARViewer = ({ src }) => {
         }}
       />
 
+      {/* AR Canvas */}
       <canvas
         ref={canvasRef}
         style={{
@@ -261,23 +250,29 @@ const ARViewer = ({ src }) => {
           width: "100%",
           height: "100%",
           zIndex: 2,
-          pointerEvents: "auto",   // IMPORTANT for pinch scaling
+          pointerEvents: "auto",
           background: "transparent",
         }}
       />
 
+      {/* ⭐ FIXED MESSAGE — now visible on MOBILE */}
       <div
         style={{
           position: "absolute",
-          bottom: "10px",
+          bottom: "60px",   // ⬅ moved higher for phones
           width: "100%",
           color: "white",
           textAlign: "center",
-          zIndex: 3,
+          fontSize: "18px",
+          fontWeight: "600",
+          textShadow: "0 0 6px black",
+          zIndex: 9999,    // ⬅ ensures visible
+          padding: "10px",
         }}
       >
-        📏 Pinch to Scale the Wheel
+        📏 Pinch to Scale — GLB Appears Only When Vehicle is Detected
       </div>
+
     </div>
   );
 };
