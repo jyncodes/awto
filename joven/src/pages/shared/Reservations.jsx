@@ -66,7 +66,6 @@ const Reservations = ({ role }) => {
 
       const now = new Date();
 
-      // ⭐ UPDATED FOR NEW STATUSES
       for (const r of list) {
         const date = r.preferredDate?.seconds
           ? new Date(r.preferredDate.seconds * 1000)
@@ -134,6 +133,7 @@ const Reservations = ({ role }) => {
       }
 
       if (newStatus === "Completed") {
+        // ⭐ CHANGED price → retail
         await addDoc(collection(db, "sales"), {
           reservationId: id,
           customerName:
@@ -147,11 +147,11 @@ const Reservations = ({ role }) => {
               brand: reservation?.brand || "",
               model: reservation?.model || "",
               type: reservation?.type || "",
-              price: reservation?.price || 0,
+              price: reservation?.retail || 0,      // ⭐ UPDATED
               qty: 1,
             },
           ],
-          totalAmount: reservation?.price || 0,
+          totalAmount: reservation?.retail || 0,     // ⭐ UPDATED
           paymentMode: reservation?.paymentMethod || "Reservation",
           type: "reservation",
           createdAt: Timestamp.now(),
@@ -269,7 +269,6 @@ const Reservations = ({ role }) => {
                         value={res.status || "Downpayment Pending"}
                         onChange={(e) => handleStatusChange(res.id, e.target.value)}
                       >
-                        {/* ⭐ Updated status options */}
                         <option value="Downpayment Pending">Downpayment Pending</option>
                         <option value="Downpayment Paid">Downpayment Paid</option>
                         <option value="Approved">Approved</option>
@@ -313,25 +312,39 @@ const Reservations = ({ role }) => {
         <div className="reservation-modal">
           <div className="modal-content">
             <h2>Reservation Details</h2>
+
             <p><strong>ID:</strong> {viewModal.id}</p>
             <p><strong>Product:</strong> {viewModal.productName}</p>
             <p><strong>Brand:</strong> {viewModal.brand}</p>
             <p><strong>Model:</strong> {viewModal.model}</p>
-            <p><strong>Price:</strong> ₱{viewModal.price}</p>
-            <p><strong>Stock:</strong> {productStocks[viewModal.model] || productStocks[viewModal.productName] || "—"}</p>
+
+            {/* ⭐ UPDATED: price → retail */}
+            <p><strong>Price:</strong> ₱{viewModal.retail}</p>
+
+            <p>
+              <strong>Stock:</strong>{" "}
+              {productStocks[viewModal.model] ||
+                productStocks[viewModal.productName] ||
+                "—"}
+            </p>
+
             <p><strong>Status:</strong> {viewModal.status}</p>
             <p><strong>Customer:</strong> {viewModal.userName}</p>
-            <p><strong>Schedule:</strong>{" "}
+            <p>
+              <strong>Schedule:</strong>{" "}
               {new Date(
                 viewModal.preferredDate?.seconds
                   ? viewModal.preferredDate.seconds * 1000
                   : viewModal.preferredDate
               ).toLocaleString()}
             </p>
+
             <p><strong>Note:</strong> {viewModal.note || "—"}</p>
+
             <button className="close-btn" onClick={() => setViewModal(null)}>
               Close
             </button>
+
           </div>
         </div>
       )}
