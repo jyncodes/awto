@@ -24,11 +24,6 @@ const ARViewer = ({ src }) => {
 
   const lastPinchDistanceRef = useRef(null);
 
-  const DEBUG_DRAW_TEST_BOX = false;
-
-  /* ------------------------------------------
-   * Load COCO model
-   ------------------------------------------- */
   useEffect(() => {
     let cancelled = false;
 
@@ -46,9 +41,7 @@ const ARViewer = ({ src }) => {
     return () => (cancelled = true);
   }, []);
 
-  /* ------------------------------------------
-   * Start camera
-   ------------------------------------------- */
+  /* Start camera */
   useEffect(() => {
     let mounted = true;
 
@@ -78,9 +71,7 @@ const ARViewer = ({ src }) => {
     };
   }, []);
 
-  /* ------------------------------------------
-   * Setup Scene
-   ------------------------------------------- */
+  /* Setup Scene */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -129,9 +120,35 @@ const ARViewer = ({ src }) => {
         if (cancelled) return;
         const model = gltf.scene;
 
-        model.scale.set(0.12, 0.12, 0.12);
-        model.position.set(0, 0, -2.5);
+        /* ⭐ FIXED AUTO-SCALE FOR WHEELS / TIRES ⭐ */
+
+        // Ensure transforms applied
+        model.updateMatrixWorld(true);
+
+        // Compute bounding box AFTER world matrices updated
+        const box = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+
+        // FORCE realistic wheel diameter target in AR
+        const targetDiameter = 1.2; // adjust (0.8–1.4) to tune AR size
+        const scaleFactor = targetDiameter / maxDim;
+
+        model.scale.setScalar(scaleFactor);
+
+        // Center model
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        model.position.sub(center);
+
+        // Move slightly downward & forward
+        model.position.set(0, -0.3, -2.2);
+
         model.visible = false;
+
+        /* ⭐ END FIX ⭐ */
 
         glbModelRef.current = model;
         scene.add(model);
@@ -183,9 +200,7 @@ const ARViewer = ({ src }) => {
     };
   }, [src]);
 
-  /* ------------------------------------------
-   * Detection → Show/Hide GLB
-   ------------------------------------------- */
+  /* Detection → Show/Hide GLB */
   useEffect(() => {
     if (!rendererRef.current) return;
 
@@ -213,9 +228,6 @@ const ARViewer = ({ src }) => {
     return () => cancelAnimationFrame(animationFrameRef.current);
   }, [cocoModel]);
 
-  /* ------------------------------------------
-   * UI
-   ------------------------------------------- */
   if (error) {
     return (
       <div style={{ height: "100vh", color: "white", background: "black" }}>
@@ -226,8 +238,6 @@ const ARViewer = ({ src }) => {
 
   return (
     <div style={{ height: "100vh", width: "100%", position: "relative" }}>
-
-      {/* Camera feed */}
       <video
         ref={videoRef}
         autoPlay
@@ -242,7 +252,6 @@ const ARViewer = ({ src }) => {
         }}
       />
 
-      {/* AR Canvas */}
       <canvas
         ref={canvasRef}
         style={{
@@ -255,24 +264,22 @@ const ARViewer = ({ src }) => {
         }}
       />
 
-      {/* ⭐ FIXED MESSAGE — now visible on MOBILE */}
       <div
         style={{
           position: "absolute",
-          bottom: "60px",   // ⬅ moved higher for phones
+          bottom: "60px",
           width: "100%",
           color: "white",
           textAlign: "center",
           fontSize: "18px",
           fontWeight: "600",
           textShadow: "0 0 6px black",
-          zIndex: 9999,    // ⬅ ensures visible
+          zIndex: 9999,
           padding: "10px",
         }}
       >
         📏 Pinch to Scale — GLB Appears Only When Vehicle is Detected
       </div>
-
     </div>
   );
 };
