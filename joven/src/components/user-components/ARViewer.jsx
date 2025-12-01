@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
 import * as tf from "@tensorflow/tfjs";
 
@@ -11,7 +10,6 @@ const ARViewer = ({ src }) => {
   const canvasRef = useRef(null);
 
   const [cocoModel, setCocoModel] = useState(null);
-  const [modelReady, setModelReady] = useState(false);
   const [error, setError] = useState(false);
 
   const animationFrameRef = useRef(null);
@@ -19,11 +17,14 @@ const ARViewer = ({ src }) => {
   const sceneRef = useRef(null);
   const rendererRef = useRef(null);
   const cameraRef = useRef(null);
-  const controlsRef = useRef(null);
   const glbModelRef = useRef(null);
+  const shadeRef = useRef(null);
 
   const lastPinchDistanceRef = useRef(null);
+  const lastTouchXRef = useRef(null);
+  const lastTouchYRef = useRef(null);
 
+  /* Load COCO */
   useEffect(() => {
     let cancelled = false;
 
@@ -41,7 +42,7 @@ const ARViewer = ({ src }) => {
     return () => (cancelled = true);
   }, []);
 
-  /* Start camera */
+  /* Start Camera */
   useEffect(() => {
     let mounted = true;
 
@@ -71,7 +72,7 @@ const ARViewer = ({ src }) => {
     };
   }, []);
 
-  /* Setup Scene */
+  /* Scene Setup */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -84,6 +85,11 @@ const ARViewer = ({ src }) => {
 
     renderer.setPixelRatio(window.devicePixelRatio || 1);
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+
+    /* ⭐ Brighter rendering */
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMappingExposure = 1.4;
 
     rendererRef.current = renderer;
 
@@ -99,18 +105,15 @@ const ARViewer = ({ src }) => {
     camera.position.set(0, 0, 3);
     cameraRef.current = camera;
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controlsRef.current = controls;
+    /* Better lighting */
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x777777, 1.4));
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    scene.add(hemi);
-
-    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+    const dir = new THREE.DirectionalLight(0xffffff, 1.45);
     dir.position.set(5, 10, 5);
+    dir.castShadow = false;
     scene.add(dir);
 
-    // Load GLB
+    /* Load GLB */
     const loader = new GLTFLoader();
     let cancelled = false;
 
@@ -118,50 +121,87 @@ const ARViewer = ({ src }) => {
       src,
       (gltf) => {
         if (cancelled) return;
+
         const model = gltf.scene;
 
-        /* ⭐ FIXED AUTO-SCALE FOR WHEELS / TIRES ⭐ */
-
-        // Ensure transforms applied
+        // Auto scale
         model.updateMatrixWorld(true);
-
-        // Compute bounding box AFTER world matrices updated
         const box = new THREE.Box3().setFromObject(model);
         const size = new THREE.Vector3();
         box.getSize(size);
-
         const maxDim = Math.max(size.x, size.y, size.z);
-
-        // FORCE realistic wheel diameter target in AR
-        const targetDiameter = 1.2; // adjust (0.8–1.4) to tune AR size
-        const scaleFactor = targetDiameter / maxDim;
-
+        const scaleFactor = 1.2 / maxDim;
         model.scale.setScalar(scaleFactor);
 
-        // Center model
+        // Center the model
         const center = new THREE.Vector3();
         box.getCenter(center);
         model.position.sub(center);
 
-        // Move slightly downward & forward
-        model.position.set(0, -0.3, -2.2);
+        // ⭐ START EXACTLY AT THE CENTER (not bottom)
+        model.position.set(0, 0, -2.2);
 
         model.visible = false;
 
-        /* ⭐ END FIX ⭐ */
+        /* ⭐ Brighten model materials */
+        model.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.color.multiplyScalar(1.4);
+            child.material.metalness = 0.35;
+            child.material.roughness = 0.25;
+            child.material.needsUpdate = true;
+          }
+        });
 
         glbModelRef.current = model;
         scene.add(model);
-        setModelReady(true);
+
+        /* Shade overlay */
+        const shade = new THREE.Mesh(
+          new THREE.CircleGeometry(1.2, 64),
+          new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            opacity: 0.85,
+            transparent: true,
+          })
+        );
+        shade.position.set(0, 0, -2.25);
+        shade.rotation.x = Math.PI;
+        shade.visible = false;
+        shadeRef.current = shade;
+        scene.add(shade);
       },
       undefined,
       (err) => console.error("GLB Error:", err)
     );
 
-    /* Pinch scaling */
-    const handleTouchMove = (e) => {
+    /* TOUCH CONTROLS */
+    const handleTouchMoveRotate = (e) => {
       if (!glbModelRef.current) return;
 
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+
+        if (lastTouchXRef.current == null) lastTouchXRef.current = t.clientX;
+        const dx = t.clientX - lastTouchXRef.current;
+        glbModelRef.current.rotation.y += dx * 0.01;
+        lastTouchXRef.current = t.clientX;
+
+        if (lastTouchYRef.current == null) lastTouchYRef.current = t.clientY;
+        const dy = t.clientY - lastTouchYRef.current;
+        glbModelRef.current.position.y -= dy * 0.005;
+        if (shadeRef.current) shadeRef.current.position.y -= dy * 0.005;
+        lastTouchYRef.current = t.clientY;
+      }
+    };
+
+    const handleTouchEndRotate = () => {
+      lastTouchXRef.current = null;
+      lastTouchYRef.current = null;
+    };
+
+    const handleTouchMoveScale = (e) => {
+      if (!glbModelRef.current) return;
       if (e.touches.length !== 2) {
         lastPinchDistanceRef.current = null;
         return;
@@ -178,11 +218,17 @@ const ARViewer = ({ src }) => {
       }
 
       const delta = dist - lastPinchDistanceRef.current;
-      glbModelRef.current.scale.multiplyScalar(1 + delta * 0.003);
+      const scaleAmount = 1 + delta * 0.003;
+
+      glbModelRef.current.scale.multiplyScalar(scaleAmount);
+      if (shadeRef.current) shadeRef.current.scale.multiplyScalar(scaleAmount);
+
       lastPinchDistanceRef.current = dist;
     };
 
-    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    canvas.addEventListener("touchmove", handleTouchMoveRotate, { passive: false });
+    canvas.addEventListener("touchmove", handleTouchMoveScale, { passive: false });
+    canvas.addEventListener("touchend", handleTouchEndRotate);
 
     const onResize = () => {
       renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
@@ -195,12 +241,14 @@ const ARViewer = ({ src }) => {
     return () => {
       cancelled = true;
       window.removeEventListener("resize", onResize);
-      canvas.removeEventListener("touchmove", handleTouchMove);
+      canvas.removeEventListener("touchmove", handleTouchMoveRotate);
+      canvas.removeEventListener("touchmove", handleTouchMoveScale);
+      canvas.removeEventListener("touchend", handleTouchEndRotate);
       renderer.dispose();
     };
   }, [src]);
 
-  /* Detection → Show/Hide GLB */
+  /* Detection Loop */
   useEffect(() => {
     if (!rendererRef.current) return;
 
@@ -209,14 +257,21 @@ const ARViewer = ({ src }) => {
     const camera = cameraRef.current;
 
     const loop = async () => {
-      if (videoRef.current?.readyState >= 2 && cocoModel && glbModelRef.current) {
+      if (
+        videoRef.current?.readyState >= 2 &&
+        cocoModel &&
+        glbModelRef.current
+      ) {
         const predictions = await cocoModel.detect(videoRef.current);
 
         const vehicles = predictions.filter((p) =>
           ["car", "truck", "bus"].includes(p.class)
         );
 
-        glbModelRef.current.visible = vehicles.length > 0;
+        const show = vehicles.length > 0;
+        glbModelRef.current.visible = show;
+
+        if (shadeRef.current) shadeRef.current.visible = show;
       }
 
       renderer.render(scene, camera);
@@ -267,18 +322,18 @@ const ARViewer = ({ src }) => {
       <div
         style={{
           position: "absolute",
-          bottom: "60px",
+          bottom: "50px",
           width: "100%",
           color: "white",
           textAlign: "center",
-          fontSize: "18px",
+          fontSize: "17px",
           fontWeight: "600",
           textShadow: "0 0 6px black",
           zIndex: 9999,
           padding: "10px",
         }}
       >
-        📏 Pinch to Scale — GLB Appears Only When Vehicle is Detected
+        🔄 Rotate: Swipe Left/Right • ↕ Move: Swipe Up/Down • 📏 Scale: Pinch
       </div>
     </div>
   );
