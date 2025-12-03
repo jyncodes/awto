@@ -7,20 +7,13 @@ require("dotenv").config();
 const app = express();
 
 /* ======================================================
-   🔥 RAW BODY PARSER FOR PAYMONGO SIGNATURE VERIFICATION
+   🔥 GLOBAL MIDDLEWARE (JSON for ALL normal routes)
 ====================================================== */
-app.use(
-  express.json({
-    verify: (req, res, buf) => {
-      req.rawBody = buf.toString(); // PayMongo requires this
-    },
-  })
-);
-
 app.use(cors());
+app.use(express.json()); // JSON parser for all non-webhook routes
 
 /* ======================================================
-   🔥 FIREBASE SETUP (for updating reservation status)
+   🔥 FIREBASE SETUP
 ====================================================== */
 const { initializeApp } = require("firebase/app");
 const { getFirestore, doc, updateDoc } = require("firebase/firestore");
@@ -30,7 +23,7 @@ const firebaseConfig = {
   authDomain: process.env.FB_AUTH_DOMAIN,
   projectId: process.env.FB_PROJECT_ID,
   storageBucket: process.env.FB_STORAGE_BUCKET,
-  messagingSenderId: process.env.FB_SENDER_ID,
+  messagingSenderId: process.env.FB_MESSAGING_SENDER_ID,
   appId: process.env.FB_APP_ID,
 };
 
@@ -38,7 +31,7 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
 /* ======================================================
-   📩 BREVO - Send Email
+   📩 BREVO — SEND EMAIL
 ====================================================== */
 app.post("/send-email", async (req, res) => {
   const { to, name, subject, htmlContent } = req.body;
@@ -71,13 +64,12 @@ app.post("/send-email", async (req, res) => {
 });
 
 /* ======================================================
-   🔥 PAYPAL — Generate OAuth Token
+   🔥 PAYPAL TOKEN
 ====================================================== */
 const getPayPalToken = async () => {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const secret = process.env.PAYPAL_SECRET;
-
-  const auth = Buffer.from(`${clientId}:${secret}`).toString("base64");
+  const auth = Buffer.from(
+    `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+  ).toString("base64");
 
   const res = await axios.post(
     "https://api-m.paypal.com/v1/oauth2/token",
@@ -94,12 +86,11 @@ const getPayPalToken = async () => {
 };
 
 /* ======================================================
-   🔥 PAYPAL — Create Invoice
+   🔥 PAYPAL INVOICE
 ====================================================== */
 app.post("/create-paypal-invoice", async (req, res) => {
   try {
     const { amount, customerEmail, customerName, reservationId } = req.body;
-
     const token = await getPayPalToken();
 
     const invoiceData = {
@@ -108,7 +99,6 @@ app.post("/create-paypal-invoice", async (req, res) => {
         invoice_number: `INV-${Date.now()}`,
         reference: reservationId,
         note: "Joven Tire Enterprise Reservation Payment",
-        term: "Due on receipt",
       },
       invoicer: {
         name: { given_name: "Joven Tire Enterprise" },
@@ -127,10 +117,7 @@ app.post("/create-paypal-invoice", async (req, res) => {
           name: "Reservation Downpayment",
           description: "Tire/Wheel Reservation",
           quantity: "1",
-          unit_amount: {
-            currency_code: "PHP",
-            value: String(amount),
-          },
+          unit_amount: { currency_code: "PHP", value: String(amount) },
         },
       ],
     };
@@ -146,29 +133,23 @@ app.post("/create-paypal-invoice", async (req, res) => {
       }
     );
 
-    const invoiceId = response.data.id;
-
     res.send({
       success: true,
-      invoiceId,
+      invoiceId: response.data.id,
       message: "Invoice created successfully",
     });
   } catch (err) {
     console.error("❌ PayPal Create Invoice Error:", err.response?.data || err);
-    res.status(500).json({ success: false, error: err.response?.data || err });
+    res.status(500).json({ success: false });
   }
 });
 
-/* ======================================================
-   🔥 PAYPAL — Send Invoice
-====================================================== */
 app.post("/send-paypal-invoice", async (req, res) => {
   try {
     const { invoiceId } = req.body;
-
     const token = await getPayPalToken();
 
-    const response = await axios.post(
+    await axios.post(
       `https://api-m.paypal.com/v2/invoicing/invoices/${invoiceId}/send`,
       {},
       {
@@ -179,25 +160,18 @@ app.post("/send-paypal-invoice", async (req, res) => {
       }
     );
 
-    res.send({
-      success: true,
-      message: "Invoice sent successfully",
-    });
+    res.send({ success: true, message: "Invoice sent successfully" });
   } catch (err) {
     console.error("❌ PayPal Send Invoice Error:", err.response?.data || err);
-    res.status(500).json({ success: false, error: err.response?.data || err });
+    res.status(500).json({ success: false });
   }
 });
 
 /* ======================================================
-   💳 PAYMONGO - Create Checkout Session (LIVE READY)
+   💳 PAYMONGO CHECKOUT SESSION
 ====================================================== */
 app.post("/create-payment", async (req, res) => {
   const { amount, description, email, reservationId } = req.body;
-
-  console.log("💰 Creating payment with amount:", amount);
-  console.log("🧾 Reservation ID:", reservationId);
-  console.log("📧 Customer Email:", email);
 
   try {
     const response = await axios.post(
@@ -214,17 +188,11 @@ app.post("/create-payment", async (req, res) => {
               },
             ],
             payment_method_types: ["card", "gcash", "grab_pay"],
-            description: description || "Reservation Payment",
             send_email_receipt: true,
-
-            billing: {
-              email,
-              name: email,
-            },
-
+            description: description || "Reservation Payment",
+            billing: { email, name: email },
             success_url: "https://awto.vercel.app/payment-success",
             cancel_url: "https://awto.vercel.app/payment-failed",
-
             metadata: { reservationId },
           },
         },
@@ -246,57 +214,67 @@ app.post("/create-payment", async (req, res) => {
     res.status(200).send({ success: true, checkoutUrl });
   } catch (error) {
     console.error("❌ FULL PayMongo ERROR:", error.response?.data || error);
-    res.status(500).send({
-      success: false,
-      error: error.response?.data || error.message,
-    });
+    res.status(500).send({ success: false });
   }
 });
 
 /* ======================================================
-   🔔 PAYMONGO WEBHOOK - PAYMENT VERIFIED
+   🔔 PAYMONGO WEBHOOK (RAW BODY)
 ====================================================== */
-app.post("/webhook/paymongo", async (req, res) => {
-  try {
-    const signature = req.headers["paymongo-signature"];
-    const secret = process.env.PAYMONGO_WEBHOOK_SECRET;
+app.post(
+  "/webhook/paymongo",
+  express.raw({ type: "*/*" }), // raw ONLY for webhook
+  async (req, res) => {
+    try {
+      const signature = req.headers["paymongo-signature"];
+      const secret = process.env.PAYMONGO_WEBHOOK_SECRET;
 
-    const computed = crypto
-      .createHmac("sha256", secret)
-      .update(req.rawBody)
-      .digest("hex");
+      const computed = crypto
+        .createHmac("sha256", secret)
+        .update(req.body)
+        .digest("hex");
 
-    if (computed !== signature) {
-      return res.status(400).send("Invalid signature");
-    }
+      if (computed !== signature) {
+        console.log("❌ Invalid signature");
+        return res.status(400).send("Invalid signature");
+      }
 
-    const event = req.body;
-    const eventType = event.data?.attributes?.type;
+      const event = JSON.parse(req.body.toString());
+      const eventType = event.data?.attributes?.type;
 
-    if (eventType === "payment.paid") {
-      const paymentAttributes = event.data.attributes.data.attributes;
-      const reservationId = paymentAttributes.metadata.reservationId;
+      console.log("🚀 Webhook received:", eventType);
 
-      if (reservationId) {
-        const reservationRef = doc(db, "reservations", reservationId);
-        await updateDoc(reservationRef, {
+      if (eventType === "checkout_session.payment.paid") {
+        const attributes = event.data.attributes.data.attributes;
+        const reservationId = attributes.metadata.reservationId;
+
+        await updateDoc(doc(db, "reservations", reservationId), {
           paymentStatus: "paid",
           paidAt: new Date(),
         });
-      }
-    }
 
-    res.status(200).send("OK");
-  } catch (error) {
-    console.error("❌ Webhook error:", error);
-    res.status(500).send("Webhook error");
+        console.log("✔ Payment verified & Firestore updated:", reservationId);
+      }
+
+      res.status(200).send("OK");
+    } catch (error) {
+      console.error("❌ Webhook error:", error);
+      res.status(500).send("Webhook error");
+    }
   }
+);
+
+/* ======================================================
+   🧪 TEST ROUTE
+====================================================== */
+app.get("/test", (req, res) => {
+  res.send("Backend is working!");
 });
 
 /* ======================================================
-   🚀 SERVER START
+   🚀 START SERVER
 ====================================================== */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
-  console.log(`✅ Backend server running on port ${PORT}`)
+  console.log(`✅ Backend running on port ${PORT}`)
 );
