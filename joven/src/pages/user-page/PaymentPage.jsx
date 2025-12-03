@@ -14,9 +14,19 @@ const PaymentPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // --------------------------
-  // AUTH CHECK
-  // --------------------------
+  // Backend URL (from Vercel)
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+  console.log("🔍 Loaded BACKEND_URL =", BACKEND_URL);
+
+  // Ensure backend URL exists
+  if (!BACKEND_URL) {
+    console.error("❌ VITE_BACKEND_URL is missing in your environment variables.");
+  }
+
+  /* -----------------------------------------
+     AUTH CHECK
+  ----------------------------------------- */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) return navigate("/login");
@@ -25,9 +35,9 @@ const PaymentPage = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // --------------------------
-  // FETCH RESERVATION
-  // --------------------------
+  /* -----------------------------------------
+     FETCH RESERVATION DATA
+  ----------------------------------------- */
   useEffect(() => {
     const fetchReservation = async () => {
       try {
@@ -40,6 +50,7 @@ const PaymentPage = () => {
         }
 
         const data = snap.data();
+
         if (data.userId !== auth.currentUser?.uid) {
           alert("You are not allowed to view this reservation.");
           return navigate("/profile?tab=reservations");
@@ -58,43 +69,61 @@ const PaymentPage = () => {
     if (reservationId && currentUser) fetchReservation();
   }, [reservationId, currentUser, navigate]);
 
-  // --------------------------
-  // PAY NOW (PAYMONGO CHECKOUT)
-  // --------------------------
+  /* -----------------------------------------
+     PAY USING PAYMONGO
+  ----------------------------------------- */
   const handlePayMongo = async () => {
+    if (!reservation.downpayment) {
+      alert("Downpayment amount missing.");
+      return;
+    }
+
     try {
-      const response = await fetch(
-        "https://awto-backend.onrender.com/create-payment",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: reservation.downpayment,
-            description: reservation.productName || "Downpayment",
-            email: currentUser.email,
-            reservationId,
-          }),
-        }
-      );
+      // FINAL URL FIX (prevents 404)
+      const apiUrl = `${BACKEND_URL.replace(/\/$/, "")}/create-payment`;
+
+      console.log("📡 Sending payment request to:", apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: reservation.downpayment,
+          description: reservation.productName || "Downpayment",
+          email: currentUser.email,
+          reservationId,
+        }),
+      });
+
+      console.log("📥 Response Status =", response.status);
+
+      if (!response.ok) {
+        console.error("HTTP Error:", response.status);
+        alert("Payment server error.");
+        return;
+      }
 
       const data = await response.json();
+
+      console.log("📦 PayMongo Response:", data);
 
       if (!data.success) {
         alert("Payment creation failed.");
         return;
       }
 
-      // Redirect to PayMongo checkout page
+      // Redirect user to PayMongo checkout page
       window.location.href = data.checkoutUrl;
+
     } catch (err) {
-      console.error(err);
+      console.error("❌ Fetch error:", err);
       alert("Error connecting to payment server.");
     }
   };
 
-  // --------------------------
-  // CANCEL RESERVATION
-  // --------------------------
+  /* -----------------------------------------
+     CANCEL RESERVATION
+  ----------------------------------------- */
   const handleCancelReservation = async () => {
     const confirmCancel = window.confirm(
       "Are you sure you want to cancel this reservation?"
@@ -116,9 +145,9 @@ const PaymentPage = () => {
     }
   };
 
-  // --------------------------
-  // LOADING
-  // --------------------------
+  /* -----------------------------------------
+     UI LOADING
+  ----------------------------------------- */
   if (loading) return <div className="payment-page">Loading...</div>;
   if (!reservation) return null;
 
@@ -171,7 +200,6 @@ const PaymentPage = () => {
 
         {/* RIGHT COLUMN */}
         <div className="payment-right">
-
           <div className="payment-warning">
             <p style={{ color: "red", fontWeight: "bold" }}>
               ⚠ You can cancel only BEFORE payment. Once paid, the reservation is non-refundable.
@@ -186,7 +214,7 @@ const PaymentPage = () => {
             </button>
           </div>
 
-          {/* Pay Now (PayMongo) */}
+          {/* PAYMONGO BUTTON */}
           <button
             className="pay-button"
             onClick={handlePayMongo}
