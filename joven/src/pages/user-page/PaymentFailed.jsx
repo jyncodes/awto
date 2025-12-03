@@ -1,15 +1,16 @@
+// src/pages/user-page/PaymentFailed.jsx
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "../../styles/user-styles/PaymentPage.css"; // reuse existing styling
+import "../../styles/user-styles/PaymentPage.css";
 
 const PaymentFailed = () => {
   const navigate = useNavigate();
 
-  // ❌ Auto redirect after 5 seconds
+  // Auto redirect back
   useEffect(() => {
     const timer = setTimeout(() => {
       navigate("/profile?tab=reservations");
-    }, 5000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [navigate]);
@@ -19,7 +20,7 @@ const PaymentFailed = () => {
       <h2>❌ Payment Failed</h2>
 
       <div className="payment-card">
-        <p>Your payment was not completed.</p>
+        <p>Your PayMongo payment was not completed.</p>
         <p>Please try again or choose another payment method.</p>
         <p style={{ marginTop: "10px", opacity: 0.7 }}>
           Redirecting you back to your reservations...

@@ -1,13 +1,7 @@
 // src/pages/user-page/PaymentPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/PaymentPage.css";
@@ -19,11 +13,6 @@ const PaymentPage = () => {
   const [reservation, setReservation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
-  const [transactionNumber, setTransactionNumber] = useState("");
-
-  // ✅ Your personal manual PayPal invoice link
-  const PAYPAL_INVOICE_LINK =
-    "https://www.paypal.com/invoice/p/#MF7NLAUBP47DZLBB";
 
   // --------------------------
   // AUTH CHECK
@@ -70,43 +59,36 @@ const PaymentPage = () => {
   }, [reservationId, currentUser, navigate]);
 
   // --------------------------
-  // PAY NOW (Manual PayPal Invoice)
+  // PAY NOW (PAYMONGO CHECKOUT)
   // --------------------------
-  const handlePayNow = () => {
+  const handlePayMongo = async () => {
     try {
-      window.open(PAYPAL_INVOICE_LINK, "_blank");
-    } catch (error) {
-      console.error(error);
-      alert("Error opening PayPal Invoice.");
-    }
-  };
+      const response = await fetch(
+        "https://awto-backend.onrender.com/create-payment",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: reservation.downpayment,
+            description: reservation.productName || "Downpayment",
+            email: currentUser.email,
+            reservationId,
+          }),
+        }
+      );
 
-  // --------------------------
-  // CONFIRM PAYMENT PROOF
-  // --------------------------
-  const handleSubmitPaymentProof = async () => {
-    if (!transactionNumber.trim()) {
-      alert("⚠ Please enter your PayPal transaction number before confirming.");
-      return;
-    }
+      const data = await response.json();
 
-    try {
-      await setDoc(doc(db, "payments", reservationId), {
-        reservationId,
-        userId: currentUser.uid,
-        transactionNumber: transactionNumber.trim(),
-        timestamp: serverTimestamp(),
-      });
+      if (!data.success) {
+        alert("Payment creation failed.");
+        return;
+      }
 
-      await updateDoc(doc(db, "reservations", reservationId), {
-        status: "Downpayment Paid",
-        paymentMethod: "PayPal Invoice",
-      });
-
-      navigate("/payment-success");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to confirm payment.");
+      // Redirect to PayMongo checkout page
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      console.error(err);
+      alert("Error connecting to payment server.");
     }
   };
 
@@ -135,7 +117,7 @@ const PaymentPage = () => {
   };
 
   // --------------------------
-  // LOADING HANDLING
+  // LOADING
   // --------------------------
   if (loading) return <div className="payment-page">Loading...</div>;
   if (!reservation) return null;
@@ -148,7 +130,7 @@ const PaymentPage = () => {
     ? reservation.createdAt.toDate().toLocaleString()
     : "N/A";
 
-  const isPaid = reservation.status === "Downpayment Paid";
+  const isPaid = reservation.paymentStatus === "paid";
 
   return (
     <div className="payment-page">
@@ -200,19 +182,17 @@ const PaymentPage = () => {
               onClick={handleCancelReservation}
               disabled={isPaid}
             >
-              {isPaid
-                ? "Cancel Reservation (Disabled - Already Paid)"
-                : "Cancel Reservation"}
+              {isPaid ? "Cancel Reservation (Disabled - Already Paid)" : "Cancel Reservation"}
             </button>
           </div>
 
-          {/* Pay with PayPal Invoice */}
+          {/* Pay Now (PayMongo) */}
           <button
             className="pay-button"
-            onClick={handlePayNow}
+            onClick={handlePayMongo}
             disabled={isPaid}
           >
-            {isPaid ? "Already Paid" : "Pay Now via PayPal Invoice"}
+            {isPaid ? "Already Paid" : "Pay Now (GCash / Card)"}
           </button>
 
           <button
@@ -223,33 +203,9 @@ const PaymentPage = () => {
             Pay Later
           </button>
 
-          <div className="payment-card">
-            <h3>Submit Payment Proof</h3>
-
-            <label>Transaction Number:</label>
-            <input
-              type="text"
-              className="tx-input"
-              placeholder="Enter PayPal Transaction Number"
-              value={transactionNumber}
-              onChange={(e) => setTransactionNumber(e.target.value)}
-              disabled={isPaid}
-            />
-
-            <button
-              className="pay-button"
-              style={{ backgroundColor: "#28a745" }}
-              onClick={handleSubmitPaymentProof}
-              disabled={isPaid}
-            >
-              {isPaid ? "Already Submitted" : "Confirm"}
-            </button>
-          </div>
-
           <button className="back-btn" onClick={() => navigate(-1)}>
             ← Back
           </button>
-
         </div>
       </div>
     </div>

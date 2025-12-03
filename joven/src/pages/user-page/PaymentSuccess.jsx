@@ -1,15 +1,16 @@
+// src/pages/user-page/PaymentSuccess.jsx
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "../../styles/user-styles/PaymentPage.css"; // reuse existing styling
+import "../../styles/user-styles/PaymentPage.css";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
 
-  // ✅ Auto redirect after 5 seconds
+  // Auto redirect to reservations
   useEffect(() => {
     const timer = setTimeout(() => {
       navigate("/profile?tab=reservations");
-    }, 5000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [navigate]);
@@ -19,7 +20,7 @@ const PaymentSuccess = () => {
       <h2>🎉 Payment Successful!</h2>
 
       <div className="payment-card">
-        <p>Your payment has been processed successfully.</p>
+        <p>Your payment has been successfully processed via PayMongo.</p>
         <p>Redirecting you to your reservations...</p>
         <p style={{ marginTop: "10px", opacity: 0.7 }}>
           If not redirected, click the button below.
