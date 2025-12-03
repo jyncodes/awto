@@ -6,6 +6,9 @@ import Footer from "../components/user-components/Footer";
 import LoginSection from "../components/LoginSection";
 import Manual from "../components/user-components/Manual";
 import { useNavigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
+
 import {
   Wrench,
   Settings,
@@ -15,7 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-// Brand images (keep your existing assets)
+// Brand images
 import arivoImg from "../pages/user-page/images/brands/arivo.png";
 import sailunImg from "../pages/user-page/images/brands/sailun.png";
 import michelinImg from "../pages/user-page/images/brands/michelin.png";
@@ -27,6 +30,21 @@ const LandingPage = () => {
   const [showLogin, setShowLogin] = useState(false);
   const brandScrollRef = useRef(null);
   const navigate = useNavigate();
+
+  // TRACK AUTH STATE
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsub();
+  }, []);
+
+  // ✅ LISTEN TO "open-login" EVENT from Manual.jsx
+  useEffect(() => {
+    const openLoginHandler = () => setShowLogin(true);
+    window.addEventListener("open-login", openLoginHandler);
+    return () => window.removeEventListener("open-login", openLoginHandler);
+  }, []);
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
@@ -41,9 +59,20 @@ const LandingPage = () => {
     { name: "Bridgestone", image: bridgestoneImg },
   ];
 
+  // ⛔ IF NOT LOGGED IN → SHOW LOGIN POPUP
+  const guardNavigation = (callback) => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+    callback();
+  };
+
   const handleBrandClick = (brandName) => {
-    localStorage.setItem("selectedBrand", brandName);
-    navigate("/user-dashboard");
+    guardNavigation(() => {
+      localStorage.setItem("selectedBrand", brandName);
+      navigate("/user-dashboard");
+    });
   };
 
   const services = [
@@ -57,11 +86,31 @@ const LandingPage = () => {
   ];
 
   const handleServiceClick = (serviceName) => {
-    localStorage.setItem("selectedService", serviceName);
-    navigate("/services", { state: { serviceName } });
+    guardNavigation(() => {
+      localStorage.setItem("selectedService", serviceName);
+      navigate("/services", { state: { serviceName } });
+    });
   };
 
-  // Section fade-in
+  // HERO BUTTONS GUARD
+  const goToServices = () => {
+    guardNavigation(() => navigate("/services"));
+  };
+
+  const scrollToBrands = () => {
+    guardNavigation(() => {
+      document
+        .getElementById("brand")
+        ?.scrollIntoView({ behavior: "smooth" });
+    });
+  };
+
+  // ABOUT SECTION GUARD
+  const goToAbout = () => {
+    guardNavigation(() => navigate("/about-us"));
+  };
+
+  // AUTO FADE-IN
   useEffect(() => {
     const sections = document.querySelectorAll(".section");
     const observer = new IntersectionObserver(
@@ -79,6 +128,7 @@ const LandingPage = () => {
   return (
     <>
       <Navbar user={user} onLoginClick={() => setShowLogin(true)} />
+
       {showLogin && (
         <LoginSection
           onClose={() => setShowLogin(false)}
@@ -87,57 +137,44 @@ const LandingPage = () => {
       )}
 
       <main className="landing-main">
+        {/* ⭐ FITMENT (Manual) — protected also by internal check */}
         <Manual />
 
-      {/* HERO */}
-      <section className="section hero-section">
-        <div className="hero-inner">
+        {/* HERO */}
+        <section className="section hero-section">
+          <div className="hero-inner">
+            <div className="hero-copy">
+              <h1 className="hero-title">Premium Tires & Professional Care</h1>
 
-          {/* LEFT COPY */}
-          <div className="hero-copy">
-            <h1 className="hero-title">Premium Tires & Professional Care</h1>
+              <p className="hero-sub">
+                Joven Tire Enterprise — delivering trusted fitment, precise alignment,
+                and complete vehicle care.
+              </p>
 
-            <p className="hero-sub">
-              Joven Tire Enterprise — delivering trusted fitment, precise alignment,
-              and complete vehicle care. Quality parts. Honest service. Fast and reliable.
-            </p>
+              <div className="hero-cta">
+                <button className="btn btn-primary" onClick={goToServices}>
+                  Services
+                </button>
 
-            <div className="hero-cta">
-              <button
-                className="btn btn-primary"
-                onClick={() => navigate("/services")}
-              >
-                Services
-              </button>
-
-              <button
-                className="btn btn-outline"
-                onClick={() =>
-                  document.getElementById("brand")?.scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                Shop Brands
-              </button>
+                <button className="btn btn-outline" onClick={scrollToBrands}>
+                  Shop Brands
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* RIGHT ART (Stats Removed) */}
-          <div className="hero-art">
-            <div className="hero-card">
-              <div className="hero-card-inner">
-                {/* Removed the stats completely */}
+            <div className="hero-art">
+              <div className="hero-card">
+                <div className="hero-card-inner"></div>
               </div>
             </div>
           </div>
-
-        </div>
-      </section>
+        </section>
 
         {/* TOP BRANDS */}
         <section id="brand" className="section brand-section">
           <div className="section-header">
             <h2 className="section-title">Top Brands</h2>
-            <p className="section-sub">Get tires you can trust from leading makers</p>
+            <p className="section-sub">Get tires you can trust</p>
           </div>
 
           <div className="brand-row">
@@ -148,10 +185,6 @@ const LandingPage = () => {
                 role="button"
                 tabIndex={0}
                 onClick={() => handleBrandClick(brand.name)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" ? handleBrandClick(brand.name) : null
-                }
-                aria-label={`Open ${brand.name}`}
               >
                 <img src={brand.image} alt={brand.name} />
                 <div className="brand-overlay">
@@ -162,33 +195,28 @@ const LandingPage = () => {
           </div>
         </section>
 
+        {/* SERVICES */}
+        <section id="services" className="section services-row-section">
+          <div className="section-header">
+            <h2 className="section-title">Services Offered</h2>
+            <p className="section-sub">Reliable service, done right</p>
+          </div>
 
-      {/* SERVICES */}
-      <section id="services" className="section services-row-section">
-        <div className="section-header">
-          <h2 className="section-title">Services Offered</h2>
-          <p className="section-sub">Reliable service, done right — every time</p>
-        </div>
-
-        <div className="services-row">
-          {services.map((service) => (
-            <div
-              key={service.name}
-              className="service-card"
-              role="button"
-              tabIndex={0}
-              onClick={() => handleServiceClick(service.name)}
-              onKeyDown={(e) =>
-                e.key === "Enter" ? handleServiceClick(service.name) : null
-              }
-            >
-              <div className="service-icon-overlay">{service.icon}</div>
-              <p>{service.name}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
+          <div className="services-row">
+            {services.map((service) => (
+              <div
+                key={service.name}
+                className="service-card"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleServiceClick(service.name)}
+              >
+                <div className="service-icon-overlay">{service.icon}</div>
+                <p>{service.name}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
           {/* ABOUT US */}
           <section
@@ -256,11 +284,9 @@ const LandingPage = () => {
           </section>
           </main>
 
-        <Footer />
-      </>
-      );
-    };
+      <Footer />
+    </>
+  );
+};
 
 export default LandingPage;
-
-

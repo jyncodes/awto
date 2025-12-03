@@ -1,0 +1,150 @@
+/* ================= Register Page ================= */
+.login-form {
+  background-color: #ffffff;
+  padding: 2.5rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  font-family: 'Poppins', sans-serif;
+  max-width: 500px;
+  margin: 4rem auto;
+}
+
+.login-form h2 {
+  color: #ffb75b;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border 0.3s, box-shadow 0.3s;
+}
+
+.form-input:focus {
+  border-color: #ffb75b;
+  box-shadow: 0 0 0 3px rgba(255, 183, 91, 0.2);
+  outline: none;
+}
+
+.input-error {
+  border-color: #ff4d4d !important;
+}
+
+.error-text {
+  color: #ff4d4d;
+  font-size: 0.85rem;
+  margin-top: -0.5rem;
+  margin-bottom: 0.7rem;
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #ffb75b;
+}
+
+select.form-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color: #fff;
+  padding-right: 2.5rem;
+}
+
+.register-button {
+  width: 100%;
+  padding: 0.85rem;
+  background-color: #ffb75b;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.register-button:hover:not(:disabled) {
+  background-color: #ff9f2c;
+  transform: translateY(-2px);
+}
+
+.register-button:disabled {
+  background-color: #ffb75b80;
+  cursor: not-allowed;
+}
+
+input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+  accent-color: #ffb75b;
+}
+
+label[for="terms"] {
+  font-size: 0.95rem;
+  color: #333;
+}
+
+/* ================ Responsive ================ */
+@media (max-width: 768px) {
+  .login-form {
+    padding: 2rem 1.5rem;
+    margin: 2rem 1rem;
+  }
+
+  .form-input {
+    font-size: 0.95rem;
+    padding: 0.6rem 0.9rem;
+  }
+
+  .register-button {
+    font-size: 0.95rem;
+    padding: 0.7rem;
+  }
+
+  .login-form h2 {
+    font-size: 1.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-form {
+    padding: 1.5rem 1rem;
+    margin: 1rem 0.5rem;
+  }
+
+  .form-input {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.8rem;
+  }
+
+  .register-button {
+    font-size: 0.9rem;
+    padding: 0.65rem;
+  }
+
+  .login-form h2 {
+    font-size: 1.5rem;
+  }
+}

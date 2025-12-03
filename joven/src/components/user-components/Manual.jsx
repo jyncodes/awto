@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "../../firebase";
+import { db, auth } from "../../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import "../../styles/user-styles/Manual.css";
 
 const Manual = () => {
@@ -15,7 +16,17 @@ const Manual = () => {
   const [type, setType] = useState("");
   const [size, setSize] = useState("");
 
-  // 🔄 Fetch real-time fitment data
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // 🔐 Detect login state
+  useEffect(() => {
+    const unlisten = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unlisten();
+  }, []);
+
+  // 🔄 Fetch fitment data
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "vehicleFitment"),
@@ -52,14 +63,12 @@ const Manual = () => {
     return () => unsubscribe();
   }, []);
 
-  // ⭐ RESET selections + reset CatalogBox
+  // ⭐ RESET selections
   const handleClear = () => {
     setBrand("");
     setModel("");
     setType("");
     setSize("");
-
-    // 🔥 Reset CatalogBox (important!)
     navigate("/user-dashboard", { replace: true });
   };
 
@@ -68,7 +77,6 @@ const Manual = () => {
   const modelOptions = brand ? Object.keys(vehicleData[brand] || {}) : [];
   const typeOptions = ["Tire", "Wheel"];
 
-  // Size options
   const sizeOptions =
     brand && model && type
       ? type === "Tire"
@@ -85,10 +93,17 @@ const Manual = () => {
   const selectedFitmentObj = sizeOptions.find((s) => s.label === size);
   const selectedFitment = selectedFitmentObj?.fitment || null;
 
-  // Navigate to CatalogBox with selected fitment
+  // ⭐ SHOP NOW with login-check logic
   const handleShopNow = (e) => {
     e.preventDefault();
 
+    // ❌ If not logged in → open login popup
+    if (!currentUser) {
+      window.dispatchEvent(new Event("open-login")); // <-- triggers LandingPage login modal
+      return;
+    }
+
+    // ✔ Logged in → continue normal flow
     if (!brand || !model || !type || !size) {
       alert("⚠️ Please select all fields before proceeding.");
       return;
@@ -103,11 +118,14 @@ const Manual = () => {
       state: {
         selectionType: "fitment",
         vehicleLabel: `${brand} ${model} - ${type} ${size}`,
-        size: sizeOptions.map((s) => s.label), // pass all available sizes
+        size: sizeOptions.map((s) => s.label),
         fitment: {
           type: type.toLowerCase(),
           size,
-          rimDiameter: selectedFitment.rimDiameter || selectedFitment.wheelDiameter || "",
+          rimDiameter:
+            selectedFitment.rimDiameter ||
+            selectedFitment.wheelDiameter ||
+            "",
           width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
           boltPattern: selectedFitment.boltPattern || "",
           tireWidth: selectedFitment.tireWidth || "",
@@ -119,7 +137,7 @@ const Manual = () => {
 
   return (
     <div className="fitment-container premium-fitment">
-      <h1 className="fitment-title">Vehicle Fitment Recommendation</h1>
+      <h1 className="fitment-title">Find the Right Fit for Your Vehicle</h1>
 
       {loading ? (
         <p className="loading-text">Loading fitment data...</p>
@@ -133,7 +151,9 @@ const Manual = () => {
             >
               <option value="">Select Brand</option>
               {brandOptions.map((b) => (
-                <option key={b} value={b}>{b}</option>
+                <option key={b} value={b}>
+                  {b}
+                </option>
               ))}
             </select>
 
@@ -145,7 +165,9 @@ const Manual = () => {
             >
               <option value="">Select Model</option>
               {modelOptions.map((m) => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m} value={m}>
+                  {m}
+                </option>
               ))}
             </select>
 
@@ -157,7 +179,9 @@ const Manual = () => {
             >
               <option value="">Select Type</option>
               {typeOptions.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
 
@@ -169,7 +193,9 @@ const Manual = () => {
             >
               <option value="">Select Size</option>
               {sizeOptions.map((s) => (
-                <option key={s.id} value={s.label}>{s.label}</option>
+                <option key={s.id} value={s.label}>
+                  {s.label}
+                </option>
               ))}
             </select>
 
@@ -195,21 +221,35 @@ const Manual = () => {
       {selectedFitment && (
         <div className="fitment-preview premium-preview">
           <h3>Selected Vehicle</h3>
-          <p className="vehicle-label">{brand} {model} — {type} {size}</p>
+          <p className="vehicle-label">
+            {brand} {model} — {type} {size}
+          </p>
 
           <h4>Fitment Details</h4>
           <ul>
             {type === "Tire" ? (
               <>
-                {selectedFitment.tireWidth && <li>Tire Width: {selectedFitment.tireWidth}</li>}
-                {selectedFitment.aspectRatio && <li>Aspect Ratio: {selectedFitment.aspectRatio}</li>}
-                {selectedFitment.rimDiameter && <li>Rim Diameter: {selectedFitment.rimDiameter}</li>}
+                {selectedFitment.tireWidth && (
+                  <li>Tire Width: {selectedFitment.tireWidth}</li>
+                )}
+                {selectedFitment.aspectRatio && (
+                  <li>Aspect Ratio: {selectedFitment.aspectRatio}</li>
+                )}
+                {selectedFitment.rimDiameter && (
+                  <li>Rim Diameter: {selectedFitment.rimDiameter}</li>
+                )}
               </>
             ) : (
               <>
-                {selectedFitment.wheelDiameter && <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>}
-                {selectedFitment.wheelWidth && <li>Wheel Width: {selectedFitment.wheelWidth}</li>}
-                {selectedFitment.boltPattern && <li>Bolt Pattern: {selectedFitment.boltPattern}</li>}
+                {selectedFitment.wheelDiameter && (
+                  <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>
+                )}
+                {selectedFitment.wheelWidth && (
+                  <li>Wheel Width: {selectedFitment.wheelWidth}</li>
+                )}
+                {selectedFitment.boltPattern && (
+                  <li>Bolt Pattern: {selectedFitment.boltPattern}</li>
+                )}
               </>
             )}
           </ul>
