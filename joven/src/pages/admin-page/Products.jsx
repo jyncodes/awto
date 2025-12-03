@@ -33,10 +33,11 @@ const INITIAL_FORM = {
   offset: "",
   boltPattern: "",
   centerBore: "",
+  cost: "",
   price: "",
-  retail: "",
   description: "",
   supplierId: "",
+  unitsPerSet: 1,
 };
 
 const INITIAL_SERVICE_FORM = {
@@ -118,12 +119,25 @@ const Products = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    if (name === "price") {
-      const priceNum = Number(value) || 0;
-      const retail = (priceNum * 1.25).toFixed(2);
-      setFormData((prev) => ({ ...prev, price: value, retail }));
-      return;
-    }
+  if (name === "cost") {
+    const costNum = Number(value) || 0;
+
+      if (formData.type === "Mags") {
+    const costPerPiece = costNum / 4;
+    const pricePerPiece = costPerPiece * 1.25;
+
+    setFormData((prev) => ({
+      ...prev,
+      cost: value, 
+      price: (pricePerPiece * 4).toFixed(2), 
+    }));
+    return;
+  }
+
+    const price = (costNum * 1.25).toFixed(2); // auto markup
+    setFormData((prev) => ({ ...prev, cost: value, price }));
+    return;
+  }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -153,14 +167,31 @@ const Products = () => {
         prefix = result.prefix;
       }
 
-      const payload = {
-        ...formData,
-        productId: isEditMode ? formData.productId : generatedId,
-        price: Number(formData.price) || 0,
-        retail: Number(formData.retail) || 0,
-        updatedAt: serverTimestamp(),
-        ...(isEditMode ? {} : { createdAt: serverTimestamp() }),
-      };
+              let costPerPiece, pricePerPiece;
+
+        if (formData.type === "Mags") {
+          // cost entered = per set (4 pcs)
+          costPerPiece = Number(formData.cost) / 4;
+          pricePerPiece = Number(formData.price) / 4;
+        } else {
+          // tires: cost = per piece
+          costPerPiece = Number(formData.cost);
+          pricePerPiece = Number(formData.price);
+    }
+
+        const payload = {
+          ...formData,
+          productId: isEditMode ? formData.productId : generatedId,
+
+            costPerPiece,
+            pricePerPiece,
+
+          cost: Number(formData.cost) || 0,
+          price: Number(formData.price) || 0,
+          unitsPerSet: formData.type === "Mags" ? 4 : 1,
+          updatedAt: serverTimestamp(),
+          ...(isEditMode ? {} : { createdAt: serverTimestamp() }),
+        };
 
       const collectionName =
         formData.type === "Tire" ? "products_tires" : "products_mags";
@@ -192,7 +223,7 @@ const Products = () => {
 
   const handleEdit = (product, type) => {
     setSelectedProduct(product);
-    setFormData({ ...INITIAL_FORM, ...product, type });
+    setFormData({ ...INITIAL_FORM, ...product, type,   unitsPerSet: type === "Mags" ? 4 : 1, });
     setNextProductId(product.productId || "");
     setIsEditMode(true);
     setIsModalOpen(true);
@@ -268,8 +299,8 @@ const Products = () => {
                   <th>Aspect</th>
                   <th>Rim</th>
                   <th>Supplier</th>
+                  <th>Cost</th>
                   <th>Price</th>
-                  <th>Retail</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -285,8 +316,8 @@ const Products = () => {
                       <td>{p.aspectRatio}</td>
                       <td>{p.rimDiameter}</td>
                       <td>{supplier ? supplier.name : "—"}</td>
+                      <td>{p.cost}</td>
                       <td>{p.price}</td>
-                      <td>{p.retail}</td>
                       <td>
                         <button onClick={() => handleEdit(p, "Tire")}>Edit</button>
                         <button onClick={() => handleDelete(p, "Tire")}>
@@ -305,7 +336,7 @@ const Products = () => {
       {/* ------------------ MAGS TABLE ------------------ */}
       {currentView === "mags" && (
         <div className="product-table-wrapper">
-          <h2>Mags</h2>
+          <h2>Mags (Per Set)</h2>
           {filterProducts(mags).length === 0 ? (
             <p>No mags found.</p>
           ) : (
@@ -321,8 +352,8 @@ const Products = () => {
                   <th>Bolt Pattern</th>
                   <th>Center Bore</th>
                   <th>Supplier</th>
+                  <th>Cost</th>
                   <th>Price</th>
-                  <th>Retail</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -340,8 +371,8 @@ const Products = () => {
                       <td>{p.boltPattern}</td>
                       <td>{p.centerBore}</td>
                       <td>{supplier ? supplier.name : "—"}</td>
+                      <td>{p.cost}</td>
                       <td>{p.price}</td>
-                      <td>{p.retail}</td>
                       <td>
                         <button onClick={() => handleEdit(p, "Mags")}>Edit</button>
                         <button onClick={() => handleDelete(p, "Mags")}>
@@ -581,19 +612,24 @@ const Products = () => {
               </div>
 
               <div className="form-group">
+                  <label>Cost</label>
+              <input
+                type="number"
+                name="cost"
+                value={formData.cost}
+                onChange={handleInputChange}
+                required
+              />
+              </div>
+
+              <div className="form-group">
                 <label>Price</label>
                 <input
                   type="number"
                   name="price"
                   value={formData.price}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Retail (Auto Markup)</label>
-                <input type="number" name="retail" value={formData.retail} readOnly />
+                  readOnly
+                />                
               </div>
 
               <div className="form-group full-span">

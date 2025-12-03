@@ -63,21 +63,34 @@
   border-color: #007bff;
 }
 
-.restock-btn {
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  padding: 0.7rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
+/* ================= FILTER TABS (NEW) ================= */
+.inventory-filter-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-.restock-btn:hover {
-  background-color: #0056b3;
-  transform: translateY(-2px);
+.inventory-filter-tabs button {
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #475569;
+  transition: 0.25s ease;
+}
+
+.inventory-filter-tabs button:hover {
+  background-color: #e2e8f0;
+}
+
+.inventory-filter-tabs .active-tab {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
 /* ================= INVENTORY TABLE ================= */
@@ -144,7 +157,8 @@
 }
 
 .btn-edit,
-.btn-contact {
+.btn-contact,
+.btn-restock {
   display: inline-block;
   padding: 0.5rem 1.1rem;
   border: none;
@@ -175,6 +189,17 @@
 
 .btn-contact:hover {
   background-color: #d97706;
+  transform: scale(1.05);
+}
+
+/* RESTOCK BUTTON */
+.btn-restock {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.btn-restock:hover {
+  background-color: #2563eb;
   transform: scale(1.05);
 }
 
@@ -230,7 +255,7 @@
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
 }
 
-/* ================= MODAL BUTTONS ================= */
+/* ================= MODAL ACTIONS ================= */
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -268,18 +293,6 @@
   background-color: #9f1239;
 }
 
-/* ================= ANIMATIONS ================= */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* ================= RESPONSIVE ================= */
 @media (max-width: 1024px) {
   .inventory-page-container {
@@ -292,10 +305,6 @@
 
   .inventory-page-title {
     font-size: 1.6rem;
-  }
-
-  .restock-btn {
-    width: 100%;
   }
 }
 
@@ -325,9 +334,15 @@
   }
 
   .btn-edit,
-  .btn-contact {
+  .btn-contact,
+  .btn-restock {
     font-size: 0.85rem;
     padding: 0.4rem 0.8rem;
+  }
+
+  .inventory-filter-tabs button {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
   }
 }
 
@@ -341,10 +356,20 @@
   }
 
   .btn-edit,
-  .btn-contact {
+  .btn-contact,
+  .btn-restock {
     display: block;
     width: 100%;
     margin: 0.3rem 0;
+  }
+
+  .inventory-filter-tabs {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .inventory-filter-tabs button {
+    width: 100%;
   }
 
   .modal-actions {

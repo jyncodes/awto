@@ -73,6 +73,7 @@ export default function POS({ role }) {
         ...d.data(),
         type: "product",
         category: "tires",
+        unitsPerSet: d.data().unitsPerSet || 1,
       }));
       setProducts((prev) => {
         const magsOnly = prev.filter((p) => p.category === "mags");
@@ -88,6 +89,7 @@ export default function POS({ role }) {
         ...d.data(),
         type: "product",
         category: "mags",
+        unitsPerSet: d.data().unitsPerSet || 4,
       }));
       setProducts((prev) => {
         const tiresOnly = prev.filter((p) => p.category === "tires");
@@ -144,38 +146,45 @@ export default function POS({ role }) {
   }, [search, products]);
 
   // ================= CART LOGIC =================
-  const addToCart = (product) => {
-    const existing = cart.find((c) => c.id === product.id && c.type === "product");
-    if (existing) {
-      if (existing.qty + 1 > (product.stock || 0)) {
-        alert("Not enough stock.");
-        return;
-      }
-      setCart(
-        cart.map((c) =>
-          c.id === product.id && c.type === "product"
-            ? { ...c, qty: c.qty + 1 }
-            : c
-        )
-      );
-    } else {
-      if ((product.stock || 0) <= 0) {
-        alert("Not enough stock.");
-        return;
-      }
-      setCart([
-        {
-          id: product.id,
-          name: `${product.brand} ${product.model}`,
-          price: Number(product.price || 0),
-          qty: 1,
-          stock: product.stock || 0,
-          type: "product",
-        },
-        ...cart,
-      ]);
+const addToCart = (product) => {
+  const unitsPerSet = product.unitsPerSet || 1;
+
+  const existing = cart.find(
+    (c) => c.id === product.id && c.type === "product"
+  );
+
+  // STOCK CHECK per SET
+  if (existing) {
+    if (existing.qty + 1 > product.stock) {
+      return alert("Not enough stock (per set/item).");
     }
-  };
+
+    setCart(
+      cart.map((c) =>
+        c.id === product.id && c.type === "product"
+          ? { ...c, qty: c.qty + 1 }
+          : c
+      )
+    );
+  } else {
+    if (product.stock <= 0) {
+      return alert("Not enough stock.");
+    }
+
+    setCart([
+      {
+        id: product.id,
+        name: `${product.brand} ${product.model}`,
+        price: Number(product.price),     // price already per set or per piece
+        qty: 1,
+        stock: product.stock,           // stock = number of sets (for mags)
+        unitsPerSet,
+        type: "product",
+      },
+      ...cart,
+    ]);
+  }
+};
 
   const addServiceToCart = (svc) => {
     const existing = cart.find((c) => c.id === svc.id && c.type === "service");
@@ -293,6 +302,18 @@ export default function POS({ role }) {
         reservationApplied: Boolean(reservationFeeApplied),
         reservationId: reservationId || null,
       };
+
+            for (const item of cart.filter((c) => c.type === "product")) {
+        const ref = doc(
+          db,
+          item.unitsPerSet === 4 ? "products_mags" : "products_tires",
+          item.id
+        );
+
+        const newStock = item.stock - item.qty; // Deduct per set or per piece
+
+        await updateDoc(ref, { stock: newStock });
+      }
 
       const docRef = await addDoc(collection(db, "sales"), saleData);
       setLastReceipt({ id: docRef.id, ...saleData });
