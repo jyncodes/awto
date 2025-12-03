@@ -7,24 +7,10 @@ require("dotenv").config();
 const app = express();
 
 /* ======================================================
-   🔥 RAW BODY PARSER — REQUIRED BY PAYMONGO WEBHOOKS
+   🔥 GLOBAL MIDDLEWARE (normal JSON routes)
 ====================================================== */
-
-// 1) Capture raw body BEFORE json parser
-app.use(
-  express.raw({ type: "*/*" })  // <--- REQUIRED
-);
-
-// 2) After raw parser, enable JSON parsing while keeping rawBody
-app.use(
-  express.json({
-    verify: (req, res, buf) => {
-      req.rawBody = buf.toString(); // PayMongo uses this for signature check
-    },
-  })
-);
-
 app.use(cors());
+app.use(express.json()); // JSON parser for non-webhook routes
 
 /* ======================================================
    🔥 FIREBASE SETUP
@@ -78,13 +64,12 @@ app.post("/send-email", async (req, res) => {
 });
 
 /* ======================================================
-   🔥 PAYPAL — TOKEN + INVOICE
+   🔥 PAYPAL TOKEN
 ====================================================== */
 const getPayPalToken = async () => {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const secret = process.env.PAYPAL_CLIENT_SECRET;
-
-  const auth = Buffer.from(`${clientId}:${secret}`).toString("base64");
+  const auth = Buffer.from(
+    `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+  ).toString("base64");
 
   const res = await axios.post(
     "https://api-m.paypal.com/v1/oauth2/token",
@@ -100,10 +85,12 @@ const getPayPalToken = async () => {
   return res.data.access_token;
 };
 
+/* ======================================================
+   🔥 PAYPAL INVOICE
+====================================================== */
 app.post("/create-paypal-invoice", async (req, res) => {
   try {
     const { amount, customerEmail, customerName, reservationId } = req.body;
-
     const token = await getPayPalToken();
 
     const invoiceData = {
@@ -153,14 +140,13 @@ app.post("/create-paypal-invoice", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ PayPal Create Invoice Error:", err.response?.data || err);
-    res.status(500).json({ success: false, error: err.response?.data || err });
+    res.status(500).json({ success: false });
   }
 });
 
 app.post("/send-paypal-invoice", async (req, res) => {
   try {
     const { invoiceId } = req.body;
-
     const token = await getPayPalToken();
 
     await axios.post(
@@ -177,12 +163,12 @@ app.post("/send-paypal-invoice", async (req, res) => {
     res.send({ success: true, message: "Invoice sent successfully" });
   } catch (err) {
     console.error("❌ PayPal Send Invoice Error:", err.response?.data || err);
-    res.status(500).json({ success: false, error: err.response?.data || err });
+    res.status(500).json({ success: false });
   }
 });
 
 /* ======================================================
-   💳 PAYMONGO — CHECKOUT SESSION
+   💳 PAYMONGO CHECKOUT SESSION
 ====================================================== */
 app.post("/create-payment", async (req, res) => {
   const { amount, description, email, reservationId } = req.body;
@@ -228,52 +214,55 @@ app.post("/create-payment", async (req, res) => {
     res.status(200).send({ success: true, checkoutUrl });
   } catch (error) {
     console.error("❌ FULL PayMongo ERROR:", error.response?.data || error);
-    res.status(500).send({
-      success: false,
-      error: error.response?.data || error.message,
-    });
+    res.status(500).send({ success: false });
   }
 });
 
 /* ======================================================
-   🔔 PAYMONGO WEBHOOK — PAYMENT VERIFIED
+   🔔 PAYMONGO WEBHOOK (RAW BODY)
 ====================================================== */
-app.post("/webhook/paymongo", async (req, res) => {
-  try {
-    const signature = req.headers["paymongo-signature"];
-    const secret = process.env.PAYMONGO_WEBHOOK_SECRET;
+app.post(
+  "/webhook/paymongo",
+  express.raw({ type: "*/*" }), // raw ONLY for webhook
+  async (req, res) => {
+    try {
+      const signature = req.headers["paymongo-signature"];
+      const secret = process.env.PAYMONGO_WEBHOOK_SECRET;
 
-    const computed = crypto
-      .createHmac("sha256", secret)
-      .update(req.rawBody)
-      .digest("hex");
+      const computed = crypto
+        .createHmac("sha256", secret)
+        .update(req.body)
+        .digest("hex");
 
-    if (computed !== signature) {
-      return res.status(400).send("Invalid signature");
-    }
+      if (computed !== signature) {
+        console.log("❌ Invalid signature");
+        return res.status(400).send("Invalid signature");
+      }
 
-    const event = req.body;
-    const eventType = event.data?.attributes?.type;
+      const event = JSON.parse(req.body.toString());
+      const eventType = event.data?.attributes?.type;
 
-    if (eventType === "checkout_session.payment.paid") {
-      const attributes = event.data.attributes.data.attributes;
-      const reservationId = attributes.metadata.reservationId;
+      console.log("🚀 Webhook received:", eventType);
 
-      if (reservationId) {
-        const ref = doc(db, "reservations", reservationId);
-        await updateDoc(ref, {
+      if (eventType === "checkout_session.payment.paid") {
+        const attributes = event.data.attributes.data.attributes;
+        const reservationId = attributes.metadata.reservationId;
+
+        await updateDoc(doc(db, "reservations", reservationId), {
           paymentStatus: "paid",
           paidAt: new Date(),
         });
-      }
-    }
 
-    res.status(200).send("OK");
-  } catch (error) {
-    console.error("❌ Webhook error:", error);
-    res.status(500).send("Webhook error");
+        console.log("✔ Payment verified & Firestore updated:", reservationId);
+      }
+
+      res.status(200).send("OK");
+    } catch (error) {
+      console.error("❌ Webhook error:", error);
+      res.status(500).send("Webhook error");
+    }
   }
-});
+);
 
 /* ======================================================
    🚀 START SERVER
