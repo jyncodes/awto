@@ -337,6 +337,6 @@ const ARViewer = ({ src }) => {
       </div>
     </div>
   );
-};
+}; W
 
 export default ARViewer;
