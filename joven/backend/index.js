@@ -7,10 +7,10 @@ require("dotenv").config();
 const app = express();
 
 /* ======================================================
-   🔥 GLOBAL MIDDLEWARE (normal JSON routes)
+   🔥 GLOBAL MIDDLEWARE (JSON for ALL normal routes)
 ====================================================== */
 app.use(cors());
-app.use(express.json()); // JSON parser for non-webhook routes
+app.use(express.json()); // JSON parser for all non-webhook routes
 
 /* ======================================================
    🔥 FIREBASE SETUP
@@ -23,7 +23,7 @@ const firebaseConfig = {
   authDomain: process.env.FB_AUTH_DOMAIN,
   projectId: process.env.FB_PROJECT_ID,
   storageBucket: process.env.FB_STORAGE_BUCKET,
-  messagingSenderId: process.env.FB_SENDER_ID,
+  messagingSenderId: process.env.FB_MESSAGING_SENDER_ID,
   appId: process.env.FB_APP_ID,
 };
 
@@ -263,6 +263,13 @@ app.post(
     }
   }
 );
+
+/* ======================================================
+   🧪 TEST ROUTE
+====================================================== */
+app.get("/test", (req, res) => {
+  res.send("Backend is working!");
+});
 
 /* ======================================================
    🚀 START SERVER
