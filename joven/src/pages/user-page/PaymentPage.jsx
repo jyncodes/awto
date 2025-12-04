@@ -103,6 +103,9 @@ const PaymentPage = () => {
 
   const downpaymentAmount = Number(reservation.downpayment || 0).toFixed(2);
 
+  // 🔥 TEMPORARY TEST VALUE — REMOVE AFTER DEMO
+const paypalTestAmount = 100; // For testing purposes only
+
   /* -----------------------------------------
      RENDER
   ----------------------------------------- */
@@ -207,7 +210,8 @@ const PaymentPage = () => {
                   {
                     amount: {
                       currency_code: "PHP",
-                      value: downpaymentAmount,
+                      // value: downpaymentAmount, 
+                      value: paypalTestAmount,
                     },
                     description: reservation.productName || "Reservation Downpayment",
                   },
