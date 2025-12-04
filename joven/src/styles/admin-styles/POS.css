@@ -114,6 +114,7 @@
   max-width: 70%;
 }
 
+
 /* ================= CART SECTION ================= */
 .pos-cart {
   flex: 1;
@@ -181,10 +182,12 @@
   background-color: #007bff;
   color: #fff;
   border: none;
-  padding: 0.45rem 0.8rem;
-  border-radius: 8px;
+  padding: 0.9rem 1.4rem; /* ⬅ Bigger button */
+  border-radius: 10px;
+  font-size: 1.1rem; /* ⬅ Larger text */
   font-weight: 600;
   cursor: pointer;
+  transition: 0.2s ease-in-out;
 }
 
 .btn-cancel {

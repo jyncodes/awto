@@ -2,18 +2,27 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
-import { collection, onSnapshot, query, orderBy, getDoc, doc } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"; // <-- Recharts imported
 import "../../styles/admin-styles/Analytics.css";
 
 const Analytics = () => {
   const navigate = useNavigate();
   const [salesData, setSalesData] = useState([]);
+  const [chartData, setChartData] = useState([]); // <-- chart state added
   const [todaySales, setTodaySales] = useState(0);
   const [weeklySales, setWeeklySales] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [upcomingReservations, setUpcomingReservations] = useState([]);
-  const [recentSales, setRecentSales] = useState([]);
-  const [topStaff, setTopStaff] = useState([]);
 
   const formatCurrency = (amount) =>
     `₱${Number(amount || 0).toLocaleString(undefined, {
@@ -21,14 +30,27 @@ const Analytics = () => {
     })}`;
 
   useEffect(() => {
-    // ================= SALES =================
+    // ================= SALES LISTENER =================
     const qSales = query(collection(db, "sales"), orderBy("createdAt", "desc"));
     const unsubSales = onSnapshot(qSales, (snapshot) => {
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       setSalesData(data);
-      setRecentSales(data.slice(0, 5));
 
-      // Calculate totals
+      // ------- Compute Chart Data -------
+      const grouped = {};
+      data.forEach((s) => {
+        if (!s.createdAt?.seconds) return;
+        const date = new Date(s.createdAt.seconds * 1000).toLocaleDateString();
+        grouped[date] = (grouped[date] || 0) + (s.totalAmount || 0);
+      });
+
+      const formatted = Object.entries(grouped)
+        .map(([date, total]) => ({ date, total }))
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      setChartData(formatted); // update for chart
+
+      // ------- Compute Today + Weekly Totals -------
       const now = new Date();
       const today = now.toDateString();
       const startOfWeek = new Date(now);
@@ -37,7 +59,6 @@ const Analytics = () => {
 
       let todayTotal = 0;
       let weekTotal = 0;
-      const staffSales = {};
 
       data.forEach((sale) => {
         const total = sale.totalAmount || 0;
@@ -45,55 +66,26 @@ const Analytics = () => {
           ? new Date(sale.createdAt.seconds * 1000)
           : null;
 
-        if (date) {
-          if (date.toDateString() === today) todayTotal += total;
-          if (date >= startOfWeek) weekTotal += total;
-        }
-
-        // Track top staff
-        if (sale.createdByName) {
-          const name = sale.createdByName;
-          staffSales[name] = (staffSales[name] || 0) + total;
-        }
+        if (!date) return;
+        if (date.toDateString() === today) todayTotal += total;
+        if (date >= startOfWeek) weekTotal += total;
       });
 
       setTodaySales(todayTotal);
       setWeeklySales(weekTotal);
-
-      const sortedStaff = Object.entries(staffSales)
-        .map(([name, total]) => ({ name, total }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 5);
-      setTopStaff(sortedStaff);
     });
 
-    // ================= LOW STOCK PRODUCTS (UPDATED) =================
+    // ================= LOW STOCK =================
     let combined = [];
 
     const unsubTires = onSnapshot(collection(db, "products_tires"), (snapshot) => {
-      const tires = snapshot.docs.map((docItem) => {
-        const data = docItem.data();
-        return {
-          id: docItem.id,
-          type: "Tire",
-          ...data,
-        };
-      });
-
+      const tires = snapshot.docs.map((d) => ({ id: d.id, type: "Tire", ...d.data() }));
       combined = [...tires, ...combined.filter((p) => p.type !== "Tire")];
       updateLowStock(combined);
     });
 
     const unsubMags = onSnapshot(collection(db, "products_mags"), (snapshot) => {
-      const mags = snapshot.docs.map((docItem) => {
-        const data = docItem.data();
-        return {
-          id: docItem.id,
-          type: "Mags",
-          ...data,
-        };
-      });
-
+      const mags = snapshot.docs.map((d) => ({ id: d.id, type: "Mags", ...d.data() }));
       combined = [...combined.filter((p) => p.type !== "Mags"), ...mags];
       updateLowStock(combined);
     });
@@ -112,8 +104,6 @@ const Analytics = () => {
         .filter((r) => {
           const date = r.preferredDate?.seconds
             ? new Date(r.preferredDate.seconds * 1000)
-            : r.preferredDate
-            ? new Date(r.preferredDate)
             : null;
           return date && date >= now;
         })
@@ -128,8 +118,6 @@ const Analytics = () => {
       unsubRes();
     };
   }, []);
-
-  const handleRowClick = () => navigate("/admin-dashboard/reservations");
 
   return (
     <div className="analytics-container">
@@ -151,6 +139,21 @@ const Analytics = () => {
         </div>
       </div>
 
+      {/* 🔹 SALES TREND CHART */}
+      <div className="chart-card">
+        <h2>📊 Sales Trend</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis />
+            <Tooltip formatter={(value) => `₱${value.toLocaleString()}`} />
+            <Legend />
+            <Line type="monotone" dataKey="total" stroke="#007bff" strokeWidth={3} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
       {/* LOW STOCK */}
       <div className="table-card">
         <h2>⚠️ Low Stock Products</h2>
@@ -164,74 +167,56 @@ const Analytics = () => {
             </tr>
           </thead>
           <tbody>
-            {lowStockProducts.length > 0 ? (
-              lowStockProducts.map((item) => {
-                const productName =
-                  item.type === "Tire"
-                    ? `${item.brand} ${item.model} ${item.tireWidth}/${item.aspectRatio}R${item.rimDiameter}`
-                    : `${item.brand} ${item.model} ${item.wheelDiameter}x${item.wheelWidth}`;
-
-                return (
-                  <tr key={item.id}>
-                    <td>{productName}</td>
-                    <td>{item.type}</td>
-                    <td>{item.stock}</td>
-                    <td>
-                      <button
-                        className="restock-btn"
-                        onClick={() => navigate("/admin-dashboard/inventory")}
-                      >
-                        Restock
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
+            {lowStockProducts.length ? (
+              lowStockProducts.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.brand} {item.model}</td>
+                  <td>{item.type}</td>
+                  <td>{item.stock}</td>
+                  <td>
+                    <button className="restock-btn" onClick={() => navigate("/admin-dashboard/inventory")}>
+                      Restock
+                    </button>
+                  </td>
+                </tr>
+              ))
             ) : (
-              <tr>
-                <td colSpan="4">All stocks are sufficient.</td>
-              </tr>
+              <tr><td colSpan="4">All stocks are sufficient.</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-{/* UPCOMING RESERVATIONS */}
-<div className="table-card">
-  <h2>📅 Upcoming Reservations</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Reservation ID</th>
-        <th>Product</th>
-        <th>View</th>
-      </tr>
-    </thead>
-    <tbody>
-      {upcomingReservations.length > 0 ? (
-        upcomingReservations.map((res) => (
-          <tr key={res.id}>
-            <td>{res.id}</td>
-            <td>{res.productName || "N/A"}</td>
-            <td>
-              <button
-                className="view-btn"
-                onClick={() => navigate("/admin-dashboard/reservations")}
-              >
-                👁 View
-              </button>
-            </td>
-          </tr>
-        ))
-      ) : (
-        <tr>
-          <td colSpan="3">No upcoming reservations.</td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
-
+      {/* UPCOMING RESERVATIONS */}
+      <div className="table-card">
+        <h2>📅 Upcoming Reservations</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Reservation ID</th>
+              <th>Product</th>
+              <th>View</th>
+            </tr>
+          </thead>
+          <tbody>
+            {upcomingReservations.length ? (
+              upcomingReservations.map((res) => (
+                <tr key={res.id}>
+                  <td>{res.id}</td>
+                  <td>{res.productName || "N/A"}</td>
+                  <td>
+                    <button className="view-btn" onClick={() => navigate("/admin-dashboard/reservations")}>
+                      👁 View
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan="3">No upcoming reservations.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
