@@ -194,19 +194,27 @@ app.post("/paypal-complete", async (req, res) => {
       }
     );
 
+
     const order = orderRes.data;
+    
+        console.log("🔍 PayPal response status:", order.status);
 
-      const validStatuses = ["COMPLETED", "PENDING", "ON_HOLD"];
 
-      if (!validStatuses.includes(order.status)) {
-        console.log("❌ PayPal order not valid:", order.status);
-        return res.status(400).json({ success: false, message: "Order not finished" });
-      }
+    // Accept PayPal statuses that mean payment is captured or pending review
+    const validStatuses = ["COMPLETED", "PAYER_ACTION_REQUIRED", "PENDING", "APPROVED"];
+
+    if (!validStatuses.includes(order.status)) {
+      console.log("❌ PayPal order rejected:", order.status);
+      return res.status(400).json({ success: false });
+    }
 
     // Update Firestore reservation
       await updateDoc(doc(db, "reservations", reservationId), {
         paymentStatus: "paid",
-        status: order.status === "ON_HOLD" ? "Payment Under Review" : "Paid",
+        status: order.status === "COMPLETED"
+          ? "Paid"
+          : "Payment Under Review",
+
         paypalStatus: order.status,
         paidAt: new Date(),
         paypalOrderId: orderId,
