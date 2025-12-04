@@ -36,8 +36,14 @@ const UserProfile = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const formatTimestamp = (ts) =>
-    ts?.toDate ? ts.toDate().toLocaleString() : "N/A";
+  const formatTimestamp = (ts) => {
+    if (!ts?.toDate) return "N/A";
+    return ts.toDate().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
   const fetchUserData = async (uid) => {
     const userRef = doc(db, "users", uid);
