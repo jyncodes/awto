@@ -76,15 +76,24 @@ const CatalogBox = ({ filters = {} }) => {
               brand: p.brand,
               model: p.model,
               type: p.type,
-              price: p.price,
-              retail: p.retail,
               sizes: [],
+              prices: [],  // NEW: store all prices
+              minPrice: p.retail,
+              maxPrice: p.retail,
               tireWidth: p.tireWidth,
               wheelWidth: p.wheelWidth,
               rimDiameter: p.rimDiameter,
               boltPattern: p.boltPattern,
             };
           }
+
+          
+            // Collect prices
+            merged[key].prices.push(p.retail);
+
+            // Update min/max
+            merged[key].minPrice = Math.min(merged[key].minPrice, p.retail);
+            merged[key].maxPrice = Math.max(merged[key].maxPrice, p.retail);
 
           if (p.sizeString) {
             merged[key].sizes.push(p.sizeString);
@@ -278,7 +287,9 @@ const CatalogBox = ({ filters = {} }) => {
                 <p className="product-model">{product.model}</p>
 
                 <p className="product-price">
-                  ₱{product.retail.toLocaleString()}
+                  {product.minPrice === product.maxPrice
+                    ? `₱${product.minPrice.toLocaleString()}`
+                    : `₱${product.minPrice.toLocaleString()} – ₱${product.maxPrice.toLocaleString()}`}
                 </p>
               </div>
             );
