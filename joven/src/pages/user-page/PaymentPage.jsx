@@ -18,8 +18,7 @@ const PaymentPage = () => {
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // ⚠ Temporary test value — replace with real downpayment later
-  const paypalTestAmount = 30;
+  const paypalTestAmount = 30; // Replace later with reservation.downpayment
 
   /* -----------------------------------------
      AUTH CHECK
@@ -108,7 +107,7 @@ const PaymentPage = () => {
   const disablePayments = isPaid || isPendingReview || isPaying;
 
   /* -----------------------------------------
-     RENDER UI
+     RENDER
   ----------------------------------------- */
   return (
     <div className="payment-page">
@@ -149,9 +148,7 @@ const PaymentPage = () => {
 
           {/* CANCEL BUTTON */}
           <div className="payment-warning">
-            <p style={{ color: "red", fontWeight: "bold" }}>
-              ⚠ Cancellation allowed only BEFORE payment.
-            </p>
+            <p style={{ color: "red", fontWeight: "bold" }}>⚠ Cancellation allowed only BEFORE payment.</p>
 
             <button
               className="cancel-btn"
@@ -162,7 +159,7 @@ const PaymentPage = () => {
             </button>
           </div>
 
-          {/* PAYPAL BUTTON (ONLY IF PAYMENT IS ALLOWED) */}
+          {/* PAYPAL */}
           {!disablePayments && (
             <div className="paypal-section">
               <h4>Pay with PayPal / Card</h4>
@@ -178,30 +175,40 @@ const PaymentPage = () => {
                 disabled={isPaying}
                 createOrder={(data, actions) => {
                   return actions.order.create({
-                    purchase_units: [
-                      {
-                        amount: {
-                          currency_code: "PHP",
-                          value: paypalTestAmount.toString(),
-                        },
-                        description: reservation.productName || "Reservation Downpayment",
+                    purchase_units: [{
+                      amount: {
+                        currency_code: "PHP",
+                        value: paypalTestAmount.toString(),
                       },
-                    ],
+                      description: reservation.productName || "Reservation Downpayment",
+                    }],
                   });
                 }}
                 onApprove={async (data, actions) => {
                   try {
                     setIsPaying(true);
+
                     const order = await actions.order.capture();
 
-                    const resp = await fetch(`${BACKEND_URL.replace(/\/$/, "")}/paypal-complete`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ orderId: order.id, reservationId }),
-                    });
+                    const resp = await fetch(
+                      `${BACKEND_URL.replace(/\/$/, "")}/paypal-complete`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ orderId: order.id, reservationId }),
+                      }
+                    );
 
                     const result = await resp.json();
-                    navigate(result.success ? "/payment-success" : "/payment-failed");
+                    console.log("PAYPAL SERVER RESULT:", result);
+
+                    if (!result.success) {
+                      alert("Backend could not verify payment.");
+                      return navigate("/payment-failed");
+                    }
+
+                    return navigate("/payment-success");
+
                   } catch (err) {
                     console.error("PayPal error:", err);
                     navigate("/payment-failed");
@@ -214,31 +221,12 @@ const PaymentPage = () => {
             </div>
           )}
 
-          {/* PAYMENT STATUS BADGES */}
-          {isPaid && (
-            <button className="pay-button" disabled style={{ background: "#4CAF50" }}>
-              ✅ Paid
-            </button>
-          )}
+          {/* STATUS */}
+          {isPaid && <button className="pay-button" disabled style={{ background: "#4CAF50" }}>✅ Paid</button>}
+          {isPendingReview && <button className="pay-button" disabled style={{ background: "#f4a300" }}>⏳ Payment Under Review</button>}
 
-          {isPendingReview && (
-            <button className="pay-button" disabled style={{ background: "#f4a300" }}>
-              ⏳ Payment Under Review
-            </button>
-          )}
-
-          {/* OTHER BUTTONS */}
-          <button
-            className="pay-later-button"
-            onClick={() => navigate("/profile?tab=reservations")}
-            disabled={disablePayments}
-          >
-            Pay Later
-          </button>
-
-          <button className="back-btn" onClick={() => navigate(-1)}>
-            ← Back
-          </button>
+          <button className="pay-later-button" onClick={() => navigate("/profile?tab=reservations")}>Pay Later</button>
+          <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
         </div>
       </div>
     </div>
