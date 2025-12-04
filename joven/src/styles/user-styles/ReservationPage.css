@@ -1,203 +1,211 @@
-/* ================= GENERAL STYLES ================= */
+/* ReservationPage.css */
+
+/* ===================== GENERAL PAGE ===================== */
 .reservation-page {
   max-width: 900px;
-  margin: auto;
-  padding: 1rem 1.5rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
   font-family: 'Poppins', sans-serif;
   color: #111;
+  background-color: #fff;
 }
 
-h2 {
-  margin-bottom: 1.5rem;
-  font-size: 1.8rem;
-  font-weight: 600;
+.reservation-page h2 {
+  margin-bottom: 2rem;
+  font-size: 2rem;
   text-align: center;
+  color: #333;
 }
 
-/* ================= BACK BUTTON ================= */
 .back-button {
   display: inline-block;
-  margin-bottom: 1rem;
-  padding: 0.5rem 1rem;
-  background-color: #eee;
-  border: none;
-  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  padding: 0.6rem 1.2rem;
+  background-color: #f3f3f3;
+  border: 1px solid #ccc;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.3s;
-}
-.back-button:hover {
-  background-color: #ddd;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
-/* ================= FORM ================= */
+.back-button:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-1px);
+}
+
+/* ===================== FORM ===================== */
 .reservation-form {
-  background: #fafafa;
-  padding: 1.5rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .reservation-form label {
   font-weight: 500;
-  margin-top: 1rem;
-  display: block;
   margin-bottom: 0.5rem;
+  color: #444;
 }
 
-/* ================= VEHICLE INFO ROW ================= */
+/* ===================== VEHICLE ROW ===================== */
 .vehicle-row {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 0.5rem;
 }
 
 .vehicle-row input {
   flex: 1;
-  padding: 0.5rem 0.7rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #ddd;
+  border-radius: 10px;
   font-size: 0.95rem;
-  transition: border 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
 }
+
 .vehicle-row input:focus {
   border-color: #ff69b4;
+  box-shadow: 0 0 6px rgba(255, 105, 180, 0.3);
   outline: none;
 }
+
 .disabled-input {
   background-color: #f3f3f3;
   cursor: not-allowed;
 }
 
-/* ================= PLATE NUMBER ================= */
+/* ===================== PLATE NUMBER ===================== */
 .plate-number-container {
-  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
-.plate-number-container input {
-  width: 100%;
-  padding: 0.5rem 0.7rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+.plate-label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: #444;
+}
+
+.plate-input {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #ddd;
+  border-radius: 10px;
   font-size: 0.95rem;
-  transition: border 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
 }
 
-.plate-number-container input.invalid {
-  border-color: red;
-}
-
-.plate-error {
-  color: red;
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
-  display: block;
-}
-
-/* ================= TEXTAREA ================= */
-textarea {
-  width: 100%;
-  padding: 0.5rem 0.7rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 0.95rem;
-  min-height: 80px;
-  resize: vertical;
-}
-textarea:focus {
+.plate-input:focus {
   border-color: #ff69b4;
+  box-shadow: 0 0 6px rgba(255, 105, 180, 0.3);
   outline: none;
 }
 
-/* ================= CALENDAR ================= */
-.react-calendar {
-  width: 100%;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  font-family: 'Poppins', sans-serif;
-  margin-bottom: 1rem;
-}
-.react-calendar__tile:disabled {
-  background-color: #f0f0f0;
-  color: #999;
-  cursor: not-allowed;
+.invalid {
+  border-color: #ff4d4d !important;
+  box-shadow: 0 0 6px rgba(255, 77, 77, 0.3) !important;
 }
 
-/* ================= PRICE SUMMARY ================= */
-.price-summary {
-  margin-top: 1rem;
-  background-color: #fff0f5;
-  padding: 1rem;
+.plate-error {
+  color: #ff4d4d;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+/* ===================== CALENDAR ===================== */
+.react-calendar {
+  width: 50%;
+  border: 1px solid #ddd;
   border-radius: 10px;
-  border: 1px solid #ffb6c1;
+  font-family: 'Poppins', sans-serif;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+}
+
+.react-calendar__tile {
+  transition: all 0.2s ease;
+  border-radius: 6px;
+}
+
+.react-calendar__tile:hover {
+  background-color: #ffe4e6;
+}
+
+.react-calendar__tile--now {
+  background: #ffedf2;
+  border-radius: 50%;
+  color: #ff69b4;
+}
+
+.react-calendar__tile--active {
+  background: #ff69b4;
+  color: #fff;
+  border-radius: 50%;
+}
+
+/* ===================== NOTES ===================== */
+textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  resize: vertical;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+
+textarea:focus {
+  border-color: #ff69b4;
+  box-shadow: 0 0 6px rgba(255, 105, 180, 0.3);
+  outline: none;
+}
+
+/* ===================== PRICE SUMMARY ===================== */
+.price-summary {
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .price-summary p {
-  margin: 0.3rem 0;
   font-size: 0.95rem;
-  line-height: 1.4;
 }
 
-/* ================= SUBMIT BUTTON ================= */
+/* ===================== SUBMIT BUTTON ===================== */
 .submit-btn {
-  margin-top: 1.2rem;
-  padding: 0.75rem;
-  width: 100%;
-  background-color: #ff69b4;
+  margin-top: 1rem;
+  padding: 0.75rem 1.2rem;
+  background-color: #f39c12;
   color: #fff;
-  font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 1rem;
-  transition: background 0.3s;
-}
-.submit-btn:hover {
-  background-color: #ff85c1;
-}
-.submit-btn:disabled {
-  background-color: #ffb6c1;
-  cursor: not-allowed;
+  font-weight: 500;
+  box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+  transition: all 0.3s ease;
 }
 
-/* ================= MOBILE RESPONSIVE ================= */
-@media (max-width: 768px) {
+.submit-btn:hover {
+  background-color: #e08e0b;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(243, 156, 18, 0.5);
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media screen and (max-width: 768px) {
   .vehicle-row {
     flex-direction: column;
   }
-  .reservation-page {
-    padding: 1rem;
-  }
-  h2 {
-    font-size: 1.5rem;
-  }
-  .submit-btn {
-    font-size: 0.95rem;
-    padding: 0.65rem;
-  }
-  .price-summary p {
-    font-size: 0.9rem;
-  }
-}
 
-@media (max-width: 480px) {
-  .reservation-page {
-    padding: 0.8rem;
-  }
-  h2 {
-    font-size: 1.3rem;
-  }
-  .vehicle-row input,
-  .plate-number-container input,
-  textarea {
-    font-size: 0.9rem;
-    padding: 0.45rem 0.6rem;
-  }
+  .back-button,
   .submit-btn {
-    font-size: 0.9rem;
-    padding: 0.6rem;
-  }
-  .price-summary p {
-    font-size: 0.85rem;
+    width: 100%;
+    text-align: center;
   }
 }
