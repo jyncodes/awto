@@ -28,13 +28,10 @@ const ReservationPage = () => {
   const navigate = useNavigate();
 
   const passedProduct = location.state?.product || null;
-
   const selectedSize = location.state?.selectedSize || null;
   const selectedDocId = location.state?.selectedDocId || null;
-
   const pricePerItem =
     location.state?.pricePerItem ?? (passedProduct?.price ?? 0);
-
   const quantity = location.state?.quantity || 1;
 
   const [product, setProduct] = useState(passedProduct);
@@ -58,9 +55,7 @@ const ReservationPage = () => {
   const BREVO_SERVER_URL =
     import.meta.env.VITE_BREVO_SERVER_URL || "http://localhost:5000";
 
-  // ================================
-  // 🔥 LOAD DOWNPAYMENT
-  // ================================
+  // ================= LOAD DOWNPAYMENT =================
   useEffect(() => {
     const loadDownpayment = async () => {
       try {
@@ -77,9 +72,7 @@ const ReservationPage = () => {
     loadDownpayment();
   }, []);
 
-  // ================================
-  // 🔥 AUTO-FILL BRAND & MODEL FROM vehicleLabel
-  // ================================
+  // ================= AUTO-FILL BRAND & MODEL =================
   useEffect(() => {
     if (typeof passedVehicle === "string") {
       const [brandModel] = passedVehicle.split(" - ");
@@ -93,17 +86,13 @@ const ReservationPage = () => {
     }
   }, [passedVehicle]);
 
-  // ================================
-  // 🔥 LOAD USER
-  // ================================
+  // ================= LOAD USER =================
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, setUser);
     return () => unsub();
   }, []);
 
-  // ================================
-  // 🔥 LOAD PRODUCT
-  // ================================
+  // ================= LOAD PRODUCT =================
   useEffect(() => {
     const fetchProduct = async () => {
       if (passedProduct) {
@@ -128,9 +117,7 @@ const ReservationPage = () => {
     fetchProduct();
   }, [productId, passedProduct]);
 
-  // ================================
-  // 🔥 FULLY BOOKED DATES
-  // ================================
+  // ================= FULLY BOOKED DATES =================
   useEffect(() => {
     const fetchFullyBooked = async () => {
       try {
@@ -162,9 +149,7 @@ const ReservationPage = () => {
     fetchFullyBooked();
   }, [productId]);
 
-  // ================================
-  // 🔥 RESERVATION ID
-  // ================================
+  // ================= GENERATE RESERVATION ID =================
   const generateReservationId = async () => {
     const counterRef = doc(db, "counters", "reservations");
     return await runTransaction(db, async (transaction) => {
@@ -177,9 +162,7 @@ const ReservationPage = () => {
     });
   };
 
-  // ================================
-  // 🔥 SEND EMAIL
-  // ================================
+  // ================= SEND EMAIL =================
   const sendReservationEmail = async (
     email,
     name,
@@ -207,9 +190,7 @@ const ReservationPage = () => {
     }
   };
 
-  // ================================
-  // 🔥 BUILD PRODUCT DETAILS
-  // ================================
+  // ================= BUILD PRODUCT DETAILS =================
   const buildProductDetails = (prod) => {
     if (!prod) return { productName: "Unknown Product", size: "", type: "" };
 
@@ -247,9 +228,7 @@ const ReservationPage = () => {
     };
   };
 
-  // ================================
-  // 🔥 SUBMIT RESERVATION
-  // ================================
+  // ================= SUBMIT RESERVATION =================
   const handleSubmit = async () => {
     if (!user) return alert("You must be logged in to reserve.");
     if (
@@ -324,9 +303,7 @@ const ReservationPage = () => {
     }
   };
 
-  // ================================
-  // 🔥 DISABLE DATES
-  // ================================
+  // ================= DISABLE DATES =================
   const tileDisabled = ({ date }) => {
     const now = new Date();
     const key = date.toDateString();
@@ -335,9 +312,7 @@ const ReservationPage = () => {
     return false;
   };
 
-  // ================================
-  // 🔥 RENDER
-  // ================================
+  // ================= RENDER =================
   if (loading || loadingDownpayment)
     return <div className="reservation-page">Loading...</div>;
 
@@ -355,26 +330,20 @@ const ReservationPage = () => {
 
       <div className="reservation-form">
         <label>Vehicle Info</label>
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+        <div className="vehicle-row">
           <input
             value={vehicleBrand}
             onChange={(e) => setVehicleBrand(e.target.value)}
             placeholder="Brand"
-            style={{
-              backgroundColor: passedVehicle ? "#f3f3f3" : "#fff",
-              cursor: passedVehicle ? "not-allowed" : "text",
-            }}
             disabled={!!passedVehicle}
+            className={passedVehicle ? "disabled-input" : ""}
           />
           <input
             value={vehicleModel}
             onChange={(e) => setVehicleModel(e.target.value)}
             placeholder="Model"
-            style={{
-              backgroundColor: passedVehicle ? "#f3f3f3" : "#fff",
-              cursor: passedVehicle ? "not-allowed" : "text",
-            }}
             disabled={!!passedVehicle}
+            className={passedVehicle ? "disabled-input" : ""}
           />
           <input
             value={vehicleYear}
@@ -383,7 +352,6 @@ const ReservationPage = () => {
               if (year.length > 4) year = year.slice(0, 4);
               setVehicleYear(year);
 
-              // inline validation
               if (year && (year < 2000 || year > 2026)) {
                 setPlateError("Year must be between 2000 and 2026");
               } else {
@@ -424,10 +392,19 @@ const ReservationPage = () => {
         </div>
 
         <label>Preferred Date</label>
-        <Calendar onChange={setPreferredDate} value={preferredDate} minDate={new Date()} tileDisabled={tileDisabled} />
+        <Calendar
+          onChange={setPreferredDate}
+          value={preferredDate}
+          minDate={new Date()}
+          tileDisabled={tileDisabled}
+        />
 
         <label>Additional Notes</label>
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Request or instruction..." />
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Request or instruction..."
+        />
 
         <div className="price-summary">
           <p>
