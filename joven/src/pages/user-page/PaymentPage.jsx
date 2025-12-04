@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../firebase";
+import { PayPalButtons } from "@paypal/react-paypal-js";
 import "../../styles/user-styles/PaymentPage.css";
 
 const PaymentPage = () => {
@@ -13,6 +14,7 @@ const PaymentPage = () => {
   const [reservation, setReservation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isPaying, setIsPaying] = useState(false);
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -62,48 +64,6 @@ const PaymentPage = () => {
   }, [reservationId, currentUser, navigate]);
 
   /* -----------------------------------------
-     PAY USING PAYMONGO
-  ----------------------------------------- */
-  const handlePayMongo = async () => {
-    if (!reservation.downpayment) {
-      alert("Downpayment amount missing.");
-      return;
-    }
-
-    try {
-      const apiUrl = `${BACKEND_URL.replace(/\/$/, "")}/create-payment`;
-
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: reservation.downpayment,
-          description: reservation.productName || "Downpayment",
-          email: currentUser.email,
-          reservationId,
-        }),
-      });
-
-      if (!response.ok) {
-        alert("Payment server error.");
-        return;
-      }
-
-      const data = await response.json();
-
-      if (!data.success) {
-        alert("Payment creation failed.");
-        return;
-      }
-
-      window.location.href = data.checkoutUrl;
-    } catch (err) {
-      console.error(err);
-      alert("Error connecting to payment server.");
-    }
-  };
-
-  /* -----------------------------------------
      CANCEL RESERVATION
   ----------------------------------------- */
   const handleCancelReservation = async () => {
@@ -141,6 +101,14 @@ const PaymentPage = () => {
 
   const isPaid = reservation.paymentStatus === "paid";
 
+  const downpaymentAmount = Number(reservation.downpayment || 0).toFixed(2);
+
+  // 🔥 TEMPORARY TEST VALUE — REMOVE AFTER DEMO
+const paypalTestAmount = 100; // For testing purposes only
+
+  /* -----------------------------------------
+     RENDER
+  ----------------------------------------- */
   return (
     <div className="payment-page">
       <h2>Reservation Invoice</h2>
@@ -149,30 +117,57 @@ const PaymentPage = () => {
         {/* LEFT */}
         <div className="payment-left">
           <div className="payment-card">
-            <p><strong>Invoice ID:</strong> {reservationId}</p>
-            <p><strong>Created At:</strong> {createdAt}</p>
-            <p><strong>Appointment:</strong> {readableDate}</p>
+            <p>
+              <strong>Invoice ID:</strong> {reservationId}
+            </p>
+            <p>
+              <strong>Created At:</strong> {createdAt}
+            </p>
+            <p>
+              <strong>Appointment:</strong> {readableDate}
+            </p>
 
             <hr />
 
             <h3>Customer Vehicle</h3>
-            <p><strong>Brand:</strong> {reservation.vehicleBrand}</p>
-            <p><strong>Model:</strong> {reservation.vehicleModel}</p>
-            <p><strong>Year:</strong> {reservation.vehicleYear}</p>
-            <p><strong>Plate No.:</strong> {reservation.plateNumber}</p>
+            <p>
+              <strong>Brand:</strong> {reservation.vehicleBrand}
+            </p>
+            <p>
+              <strong>Model:</strong> {reservation.vehicleModel}
+            </p>
+            <p>
+              <strong>Year:</strong> {reservation.vehicleYear}
+            </p>
+            <p>
+              <strong>Plate No.:</strong> {reservation.plateNumber}
+            </p>
 
             <hr />
 
             <h3>Product Details</h3>
-            <p><strong>Product:</strong> {reservation.productName}</p>  
+            <p>
+              <strong>Product:</strong> {reservation.productName}
+            </p>
 
             <hr />
 
             <h3>Pricing</h3>
-            <p><strong>Price per Item:</strong> ₱{reservation.price.toLocaleString()}</p>
-            <p><strong>Quantity:</strong> {reservation.quantity}</p>
-            <p><strong>Total Price:</strong> ₱{reservation.totalPrice.toLocaleString()}</p>
-            <p><strong>Downpayment:</strong> ₱{reservation.downpayment.toLocaleString()}</p>
+            <p>
+              <strong>Price per Item:</strong> ₱
+              {reservation.price.toLocaleString()}
+            </p>
+            <p>
+              <strong>Quantity:</strong> {reservation.quantity}
+            </p>
+            <p>
+              <strong>Total Price:</strong> ₱
+              {reservation.totalPrice.toLocaleString()}
+            </p>
+            <p>
+              <strong>Downpayment:</strong> ₱
+              {reservation.downpayment.toLocaleString()}
+            </p>
           </div>
         </div>
 
@@ -186,20 +181,93 @@ const PaymentPage = () => {
             <button
               className="cancel-btn"
               onClick={handleCancelReservation}
-              disabled={isPaid}
+              disabled={isPaid || isPaying}
             >
               {isPaid ? "Already Paid" : "Cancel Reservation"}
             </button>
           </div>
 
-          <button className="pay-button" onClick={handlePayMongo} disabled={isPaid}>
-            {isPaid ? "Paid" : "Pay Now (GCash / Card)"}
-          </button>
+          {/* PAYPAL SMART CHECKOUT */}
+          {!isPaid && (
+            <div className="paypal-section">
+              <h4>Pay with PayPal / Card</h4>
+              {isPaying && (
+                  <p style={{ color: "#0a84ff", fontWeight: "bold", marginBottom: "10px" }}>
+                    Processing Payment... Please wait.
+                  </p>
+                )}
+            <PayPalButtons
+            style={{ layout: "vertical" }}
+            disabled={isPaying}
+            createOrder={(data, actions) => {
+              if (!reservation.downpayment) {
+                alert("Downpayment amount missing.");
+                return;
+              }
+
+              return actions.order.create({
+                purchase_units: [
+                  {
+                    amount: {
+                      currency_code: "PHP",
+                      // value: downpaymentAmount, 
+                      value: paypalTestAmount,
+                    },
+                    description: reservation.productName || "Reservation Downpayment",
+                  },
+                ],
+              });
+            }}
+            onApprove={async (data, actions) => {
+              try {
+                setIsPaying(true);
+                const order = await actions.order.capture(); // Capture PayPal payment
+
+                // send orderId and reservationId to backend to verify
+                const resp = await fetch(`${BACKEND_URL.replace(/\/$/, "")}/paypal-complete`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    orderId: order.id,
+                    reservationId,
+                  }),
+                });
+
+                const result = await resp.json();
+
+                if (result.success) {
+                  // Firestore updated successfully
+                  navigate("/payment-success"); 
+                } else {
+                  // Payment captured by PayPal but backend verification failed
+                  navigate("/payment-failed");
+                }
+              } catch (err) {
+                console.error("PayPal onApprove error:", err);
+                navigate("/payment-failed");
+              } finally {
+                setIsPaying(false);
+              }
+            }}
+            onError={(err) => {
+              console.error("PayPal error:", err);
+              navigate("/payment-failed");
+            }}
+          />
+
+            </div>
+          )}
+
+          {isPaid && (
+            <button className="pay-button" disabled>
+              Paid
+            </button>
+          )}
 
           <button
             className="pay-later-button"
             onClick={() => navigate("/profile?tab=reservations")}
-            disabled={isPaid}
+            disabled={isPaid || isPaying}
           >
             Pay Later
           </button>
