@@ -10,26 +10,23 @@ const app = express();
    🔥 GLOBAL MIDDLEWARE (JSON for ALL normal routes)
 ====================================================== */
 app.use(cors());
-app.use(express.json()); // JSON parser for all non-webhook routes
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); 
 
 /* ======================================================
-   🔥 FIREBASE SETUP
+   🔥 FIREBASE ADMIN SETUP (SERVER-SIDE)
 ====================================================== */
-const { initializeApp } = require("firebase/app");
-const { getFirestore, doc, updateDoc } = require("firebase/firestore");
+const admin = require("firebase-admin");
 
-// use the VITE_FIREBASE_ envs you already have in .env
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID,
-};
+if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
+const db = admin.firestore();
 
 /* ======================================================
    📩 BREVO — SEND EMAIL
@@ -87,7 +84,7 @@ const getPayPalToken = async () => {
 };
 
 /* ======================================================
-   🔥 PAYPAL INVOICE (STILL HERE IF YOU NEED IT)
+   🔥 PAYPAL INVOICE (OPTIONAL)
 ====================================================== */
 app.post("/create-paypal-invoice", async (req, res) => {
   try {
@@ -145,45 +142,22 @@ app.post("/create-paypal-invoice", async (req, res) => {
   }
 });
 
-app.post("/send-paypal-invoice", async (req, res) => {
-  try {
-    const { invoiceId } = req.body;
-    const token = await getPayPalToken();
-
-    await axios.post(
-      `https://api-m.paypal.com/v2/invoicing/invoices/${invoiceId}/send`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.send({ success: true, message: "Invoice sent successfully" });
-  } catch (err) {
-    console.error("❌ PayPal Send Invoice Error:", err.response?.data || err);
-    res.status(500).json({ success: false });
-  }
-});
-
 /* ======================================================
-   ✅ PAYPAL SMART CHECKOUT COMPLETE (NEW)
+   📦 SMART CHECKOUT COMPLETION
 ====================================================== */
 app.post("/paypal-complete", async (req, res) => {
   try {
     const { orderId, reservationId } = req.body;
 
     if (!orderId || !reservationId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing orderId or reservationId" });
+      return res.status(400).json({
+        success: false,
+        message: "Missing orderId or reservationId",
+      });
     }
 
     const token = await getPayPalToken();
 
-    // Get order details from PayPal (LIVE)
     const orderRes = await axios.get(
       `https://api-m.paypal.com/v2/checkout/orders/${orderId}`,
       {
@@ -194,14 +168,11 @@ app.post("/paypal-complete", async (req, res) => {
       }
     );
 
-
     const order = orderRes.data;
-    
-        console.log("🔍 PayPal response status:", order.status);
 
+    console.log("🔍 PayPal response status:", order.status);
 
-    // Accept PayPal statuses that mean payment is captured or pending review
-      const validStatuses = [
+    const validStatuses = [
       "COMPLETED",
       "PENDING",
       "APPROVED",
@@ -209,7 +180,7 @@ app.post("/paypal-complete", async (req, res) => {
       "HELD",
       "ONHOLD",
       "PARTIALLY_CAPTURED",
-      "AWAITING_SELLER_ACTION"
+      "AWAITING_SELLER_ACTION",
     ];
 
     if (!validStatuses.includes(order.status)) {
@@ -217,19 +188,16 @@ app.post("/paypal-complete", async (req, res) => {
       return res.status(400).json({ success: false });
     }
 
-    // Update Firestore reservation
-      await updateDoc(doc(db, "reservations", reservationId), {
-        paymentStatus: "paid",
-        paypalStatus: order.status,
-        status:
-          order.status === "COMPLETED"
-            ? "Paid"
-            : "Payment Under Review",
-        paidAt: new Date(),
-        paypalOrderId: orderId,
-      });
+    await db.collection("reservations").doc(reservationId).update({
+      paymentStatus: "paid",
+      paypalStatus: order.status,
+      status:
+        order.status === "COMPLETED" ? "Paid" : "Payment Under Review",
+      paidAt: new Date(),
+      paypalOrderId: orderId,
+    });
 
-    console.log("✔ PayPal payment verified & Firestore updated:", reservationId);
+    console.log("✔ Firestore updated for:", reservationId);
 
     res.json({ success: true });
   } catch (err) {
@@ -239,7 +207,7 @@ app.post("/paypal-complete", async (req, res) => {
 });
 
 /* ======================================================
-   💳 PAYMONGO CHECKOUT SESSION (LEGACY, CAN DELETE LATER)
+   💳 PAYMONGO (LEGACY)
 ====================================================== */
 app.post("/create-payment", async (req, res) => {
   const { amount, description, email, reservationId } = req.body;
@@ -272,7 +240,9 @@ app.post("/create-payment", async (req, res) => {
         headers: {
           Authorization:
             "Basic " +
-            Buffer.from(process.env.PAYMONGO_SECRET_KEY + ":").toString("base64"),
+            Buffer.from(process.env.PAYMONGO_SECRET_KEY + ":").toString(
+              "base64"
+            ),
           "Content-Type": "application/json",
         },
       }
@@ -288,52 +258,6 @@ app.post("/create-payment", async (req, res) => {
     res.status(500).send({ success: false });
   }
 });
-
-/* ======================================================
-   🔔 PAYMONGO WEBHOOK (LEGACY)
-====================================================== */
-app.post(
-  "/webhook/paymongo",
-  express.raw({ type: "*/*" }), // raw ONLY for webhook
-  async (req, res) => {
-    try {
-      const signature = req.headers["paymongo-signature"];
-      const secret = process.env.PAYMONGO_WEBHOOK_SECRET;
-
-      const computed = crypto
-        .createHmac("sha256", secret)
-        .update(req.body)
-        .digest("hex");
-
-      if (computed !== signature) {
-        console.log("❌ Invalid signature");
-        return res.status(400).send("Invalid signature");
-      }
-
-      const event = JSON.parse(req.body.toString());
-      const eventType = event.data?.attributes?.type;
-
-      console.log("🚀 Webhook received:", eventType);
-
-      if (eventType === "checkout_session.payment.paid") {
-        const attributes = event.data.attributes.data.attributes;
-        const reservationId = attributes.metadata.reservationId;
-
-        await updateDoc(doc(db, "reservations", reservationId), {
-          paymentStatus: "paid",
-          paidAt: new Date(),
-        });
-
-        console.log("✔ Payment verified & Firestore updated:", reservationId);
-      }
-
-      res.status(200).send("OK");
-    } catch (error) {
-      console.error("❌ Webhook error:", error);
-      res.status(500).send("Webhook error");
-    }
-  }
-);
 
 /* ======================================================
    🧪 TEST ROUTE

@@ -54,8 +54,7 @@ const ReservationPage = () => {
   const [loadingDownpayment, setLoadingDownpayment] = useState(true);
 
   const MAX_BOOKINGS_PER_DATE = 3;
-  const BREVO_SERVER_URL =
-    import.meta.env.VITE_BREVO_SERVER_URL || "http://localhost:5000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
   // ================= LOAD DOWNPAYMENT =================
   useEffect(() => {
@@ -173,7 +172,7 @@ const ReservationPage = () => {
     productName
   ) => {
     try {
-      await axios.post(`${BREVO_SERVER_URL}/send-email`, {
+      await axios.post(`${BACKEND_URL.replace(/\/$/, "")}/send-email`, {
         to: email,
         name,
         subject: `Reservation Confirmed - ${reservationId}`,

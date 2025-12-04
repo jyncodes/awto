@@ -18,7 +18,7 @@ const PaymentPage = () => {
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // 🔥 Temporary test amount — remove before deployment
+  // ⚠ Temporary test value — replace with real downpayment later
   const paypalTestAmount = 30;
 
   /* -----------------------------------------
@@ -89,7 +89,7 @@ const PaymentPage = () => {
   };
 
   /* -----------------------------------------
-     UI LOADING
+     UI STATUS STATES
   ----------------------------------------- */
   if (loading) return <div className="payment-page">Loading...</div>;
   if (!reservation) return null;
@@ -102,17 +102,20 @@ const PaymentPage = () => {
     ? reservation.createdAt.toDate().toLocaleString()
     : "N/A";
 
-  const isPaid = reservation.paymentStatus === "paid";
+  const isPaid = reservation.status === "Paid";
+  const isPendingReview = reservation.status === "Payment Under Review";
+
+  const disablePayments = isPaid || isPendingReview || isPaying;
 
   /* -----------------------------------------
-     RENDER
+     RENDER UI
   ----------------------------------------- */
   return (
     <div className="payment-page">
       <h2>Reservation Invoice</h2>
 
       <div className="payment-layout">
-        {/* LEFT */}
+        {/* LEFT SIDE */}
         <div className="payment-left">
           <div className="payment-card">
             <p><strong>Invoice ID:</strong> {reservationId}</p>
@@ -128,7 +131,7 @@ const PaymentPage = () => {
 
             <hr />
 
-            <h3>Product Details</h3>
+            <h3>Product</h3>
             <p><strong>Product:</strong> {reservation.productName}</p>
 
             <hr />
@@ -141,8 +144,10 @@ const PaymentPage = () => {
           </div>
         </div>
 
-        {/* RIGHT */}
+        {/* RIGHT SIDE */}
         <div className="payment-right">
+
+          {/* CANCEL BUTTON */}
           <div className="payment-warning">
             <p style={{ color: "red", fontWeight: "bold" }}>
               ⚠ Cancellation allowed only BEFORE payment.
@@ -151,17 +156,22 @@ const PaymentPage = () => {
             <button
               className="cancel-btn"
               onClick={handleCancelReservation}
-              disabled={isPaid || isPaying}
+              disabled={disablePayments}
             >
-              {isPaid ? "Already Paid" : "Cancel Reservation"}
+              {isPaid || isPendingReview ? "Cannot Cancel" : "Cancel Reservation"}
             </button>
           </div>
 
-          {/* PAYPAL */}
-          {!isPaid && (
+          {/* PAYPAL BUTTON (ONLY IF PAYMENT IS ALLOWED) */}
+          {!disablePayments && (
             <div className="paypal-section">
               <h4>Pay with PayPal / Card</h4>
-              {isPaying && <p style={{ color: "#0a84ff", fontWeight: "bold" }}>Processing Payment...</p>}
+
+              {isPaying && (
+                <p style={{ color: "#0a84ff", fontWeight: "bold" }}>
+                  Processing Payment...
+                </p>
+              )}
 
               <PayPalButtons
                 style={{ layout: "vertical" }}
@@ -191,7 +201,6 @@ const PaymentPage = () => {
                     });
 
                     const result = await resp.json();
-
                     navigate(result.success ? "/payment-success" : "/payment-failed");
                   } catch (err) {
                     console.error("PayPal error:", err);
@@ -205,17 +214,31 @@ const PaymentPage = () => {
             </div>
           )}
 
-          {isPaid && <button className="pay-button" disabled>Paid</button>}
+          {/* PAYMENT STATUS BADGES */}
+          {isPaid && (
+            <button className="pay-button" disabled style={{ background: "#4CAF50" }}>
+              ✅ Paid
+            </button>
+          )}
 
+          {isPendingReview && (
+            <button className="pay-button" disabled style={{ background: "#f4a300" }}>
+              ⏳ Payment Under Review
+            </button>
+          )}
+
+          {/* OTHER BUTTONS */}
           <button
             className="pay-later-button"
             onClick={() => navigate("/profile?tab=reservations")}
-            disabled={isPaid || isPaying}
+            disabled={disablePayments}
           >
             Pay Later
           </button>
 
-          <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            ← Back
+          </button>
         </div>
       </div>
     </div>
