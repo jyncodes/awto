@@ -201,7 +201,16 @@ app.post("/paypal-complete", async (req, res) => {
 
 
     // Accept PayPal statuses that mean payment is captured or pending review
-    const validStatuses = ["COMPLETED", "PAYER_ACTION_REQUIRED", "PENDING", "APPROVED"];
+      const validStatuses = [
+      "COMPLETED",
+      "PENDING",
+      "APPROVED",
+      "PAYER_ACTION_REQUIRED",
+      "HELD",
+      "ONHOLD",
+      "PARTIALLY_CAPTURED",
+      "AWAITING_SELLER_ACTION"
+    ];
 
     if (!validStatuses.includes(order.status)) {
       console.log("❌ PayPal order rejected:", order.status);
@@ -211,11 +220,11 @@ app.post("/paypal-complete", async (req, res) => {
     // Update Firestore reservation
       await updateDoc(doc(db, "reservations", reservationId), {
         paymentStatus: "paid",
-        status: order.status === "COMPLETED"
-          ? "Paid"
-          : "Payment Under Review",
-
         paypalStatus: order.status,
+        status:
+          order.status === "COMPLETED"
+            ? "Paid"
+            : "Payment Under Review",
         paidAt: new Date(),
         paypalOrderId: orderId,
       });

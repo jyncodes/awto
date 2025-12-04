@@ -19,7 +19,7 @@ const PaymentPage = () => {
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   // 🔥 Temporary test amount — remove before deployment
-  const paypalTestAmount = 50;
+  const paypalTestAmount = 30;
 
   /* -----------------------------------------
      AUTH CHECK
