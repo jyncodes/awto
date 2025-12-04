@@ -204,11 +204,12 @@ app.post("/paypal-complete", async (req, res) => {
     }
 
     // Update Firestore reservation
-    await updateDoc(doc(db, "reservations", reservationId), {
-      paymentStatus: "paid",
-      paidAt: new Date(),
-      paypalOrderId: orderId,
-    });
+      await updateDoc(doc(db, "reservations", reservationId), {
+        paymentStatus: "paid",
+        status: "Paid",
+        paidAt: new Date(),
+        paypalOrderId: orderId,
+      });
 
     console.log("✔ PayPal payment verified & Firestore updated:", reservationId);
 

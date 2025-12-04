@@ -188,71 +188,69 @@ const PaymentPage = () => {
           {!isPaid && (
             <div className="paypal-section">
               <h4>Pay with PayPal / Card</h4>
-              <PayPalButtons
-                style={{ layout: "vertical" }}
-                disabled={isPaying}
-                createOrder={(data, actions) => {
-                  if (!reservation.downpayment) {
-                    alert("Downpayment amount missing.");
-                    return;
-                  }
+              {isPaying && (
+                  <p style={{ color: "#0a84ff", fontWeight: "bold", marginBottom: "10px" }}>
+                    Processing Payment... Please wait.
+                  </p>
+                )}
+            <PayPalButtons
+            style={{ layout: "vertical" }}
+            disabled={isPaying}
+            createOrder={(data, actions) => {
+              if (!reservation.downpayment) {
+                alert("Downpayment amount missing.");
+                return;
+              }
 
-                  return actions.order.create({
-                    purchase_units: [
-                      {
-                        amount: {
-                          currency_code: "PHP",
-                          value: downpaymentAmount,
-                        },
-                        description:
-                          reservation.productName || "Reservation Downpayment",
-                      },
-                    ],
-                  });
-                }}
-                onApprove={async (data, actions) => {
-                  try {
-                    setIsPaying(true);
-                    const order = await actions.order.capture();
+              return actions.order.create({
+                purchase_units: [
+                  {
+                    amount: {
+                      currency_code: "PHP",
+                      value: downpaymentAmount,
+                    },
+                    description: reservation.productName || "Reservation Downpayment",
+                  },
+                ],
+              });
+            }}
+            onApprove={async (data, actions) => {
+              try {
+                setIsPaying(true);
+                const order = await actions.order.capture(); // Capture PayPal payment
 
-                    const resp = await fetch(
-                      `${BACKEND_URL.replace(
-                        /\/$/,
-                        ""
-                      )}/paypal-complete`,
-                      {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          orderId: order.id,
-                          reservationId,
-                        }),
-                      }
-                    );
+                // send orderId and reservationId to backend to verify
+                const resp = await fetch(`${BACKEND_URL.replace(/\/$/, "")}/paypal-complete`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    orderId: order.id,
+                    reservationId,
+                  }),
+                });
 
-                    const result = await resp.json();
+                const result = await resp.json();
 
-                    if (result.success) {
-                      alert("Payment successful!");
-                      // Reload reservation data or redirect
-                      window.location.reload();
-                    } else {
-                      alert(
-                        "Payment completed in PayPal, but system update failed. Please contact support."
-                      );
-                    }
-                  } catch (err) {
-                    console.error("PayPal onApprove error:", err);
-                    alert("Error finalizing payment. Please try again.");
-                  } finally {
-                    setIsPaying(false);
-                  }
-                }}
-                onError={(err) => {
-                  console.error("PayPal error:", err);
-                  alert("PayPal error. Please try again.");
-                }}
-              />
+                if (result.success) {
+                  // Firestore updated successfully
+                  navigate("/payment-success"); 
+                } else {
+                  // Payment captured by PayPal but backend verification failed
+                  navigate("/payment-failed");
+                }
+              } catch (err) {
+                console.error("PayPal onApprove error:", err);
+                navigate("/payment-failed");
+              } finally {
+                setIsPaying(false);
+              }
+            }}
+            onError={(err) => {
+              console.error("PayPal error:", err);
+              navigate("/payment-failed");
+            }}
+          />
+
             </div>
           )}
 

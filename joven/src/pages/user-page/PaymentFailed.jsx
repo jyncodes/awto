@@ -10,7 +10,7 @@ const PaymentFailed = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       navigate("/profile?tab=reservations");
-    }, 4000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [navigate]);
@@ -20,10 +20,11 @@ const PaymentFailed = () => {
       <h2>❌ Payment Failed</h2>
 
       <div className="payment-card">
-        <p>Your PayMongo payment was not completed.</p>
-        <p>Please try again or choose another payment method.</p>
-        <p style={{ marginTop: "10px", opacity: 0.7 }}>
-          Redirecting you back to your reservations...
+        <p>Your PayPal transaction was not completed.</p>
+        <p>Please try again or use another payment option.</p>
+
+        <p style={{ marginTop: "12px", fontSize: "14px", opacity: 0.6 }}>
+          Returning you to your reservations...
         </p>
       </div>
 

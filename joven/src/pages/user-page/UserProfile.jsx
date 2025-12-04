@@ -215,8 +215,29 @@ const UserProfile = () => {
                     <p><strong>Brand:</strong> {res.brand}</p>
                     <p><strong>Size:</strong> {res.size}</p>
                     <p><strong>Date:</strong> {formatTimestamp(res.preferredDate)}</p>
-                    <p><strong>Status:</strong> {res.status}</p>
-                    <p><strong>Payment:</strong> {res.paymentStatus || "unpaid"}</p>
+                    <p>
+                      <strong>Status:</strong>{" "}
+                      <span
+                        style={{
+                          color: res.status === "Paid" ? "green" : "orange",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {res.status || "Pending"}
+                      </span>
+                    </p>
+
+                    <p>
+                      <strong>Payment:</strong>{" "}
+                      <span
+                        style={{
+                          color: res.paymentStatus === "paid" ? "green" : "red",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {res.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                      </span>
+                    </p>
 
                     {res.paymentStatus === "paid" ? (
                       <button
