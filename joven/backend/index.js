@@ -196,17 +196,18 @@ app.post("/paypal-complete", async (req, res) => {
 
     const order = orderRes.data;
 
-    if (order.status !== "COMPLETED") {
-      console.log("❌ PayPal order not completed:", order.status);
-      return res
-        .status(400)
-        .json({ success: false, message: "Order not completed" });
-    }
+      const validStatuses = ["COMPLETED", "PENDING", "ON_HOLD"];
+
+      if (!validStatuses.includes(order.status)) {
+        console.log("❌ PayPal order not valid:", order.status);
+        return res.status(400).json({ success: false, message: "Order not finished" });
+      }
 
     // Update Firestore reservation
       await updateDoc(doc(db, "reservations", reservationId), {
         paymentStatus: "paid",
-        status: "Paid",
+        status: order.status === "ON_HOLD" ? "Payment Under Review" : "Paid",
+        paypalStatus: order.status,
         paidAt: new Date(),
         paypalOrderId: orderId,
       });
