@@ -41,6 +41,8 @@ const ReservationPage = () => {
   const [vehicleBrand, setVehicleBrand] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
   const [vehicleYear, setVehicleYear] = useState("");
+  const [vehicleYearError, setVehicleYearError] = useState("");
+
   const [plateNumber, setPlateNumber] = useState("");
   const [plateError, setPlateError] = useState("");
 
@@ -241,6 +243,8 @@ const ReservationPage = () => {
       return alert("Fill out all required fields.");
     if (!product) return alert("Product not found.");
 
+    if (vehicleYearError || plateError) return alert("Fix errors before submitting.");
+
     const chosenDate = new Date(preferredDate);
     chosenDate.setHours(0, 0, 0, 0);
 
@@ -353,17 +357,17 @@ const ReservationPage = () => {
               setVehicleYear(year);
 
               if (year && (year < 2000 || year > 2026)) {
-                setPlateError("Year must be between 2000 and 2026");
+                setVehicleYearError("Year must be between 2000 and 2026");
               } else {
-                setPlateError("");
+                setVehicleYearError("");
               }
             }}
             placeholder="Year (2000–2026)"
-            className={plateError ? "invalid" : ""}
+            className={vehicleYearError ? "invalid" : ""}
           />
         </div>
 
-        {plateError && <span className="plate-error">{plateError}</span>}
+        {vehicleYearError && <span className="plate-error">{vehicleYearError}</span>}
 
         <div className="plate-number-container">
           <label className="plate-label">Plate Number</label>
