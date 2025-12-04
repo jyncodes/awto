@@ -69,7 +69,8 @@ export default function POS({ role }) {
 
     const unsubTires = onSnapshot(tiresRef, (snap) => {
       const list = snap.docs.map((d) => ({
-        id: d.id,
+        firestoreId: d.id,
+        productId: d.data().productId,
         ...d.data(),
         type: "product",
         category: "tires",
@@ -149,10 +150,9 @@ export default function POS({ role }) {
 const addToCart = (product) => {
   const unitsPerSet = product.unitsPerSet || 1;
 
-  const existing = cart.find(
-    (c) => c.id === product.id && c.type === "product"
-  );
-
+    const existing = cart.find(
+      (c) => c.firestoreId === product.firestoreId && c.type === "product"
+    );
   // STOCK CHECK per SET
   if (existing) {
     if (existing.qty + 1 > product.stock) {
@@ -173,7 +173,8 @@ const addToCart = (product) => {
 
     setCart([
       {
-        id: product.id,
+        id: product.productId,
+        firestoreId: product.firestoreId,
         name: `${product.brand} ${product.model}`,
         price: Number(product.price),     // price already per set or per piece
         qty: 1,
@@ -307,7 +308,7 @@ const addToCart = (product) => {
         const ref = doc(
           db,
           item.unitsPerSet === 4 ? "products_mags" : "products_tires",
-          item.id
+          item.firestoreId
         );
 
         const newStock = item.stock - item.qty; // Deduct per set or per piece

@@ -7,7 +7,6 @@ import {
   updateDoc,
   getDoc,
   serverTimestamp,
-  addDoc,
 } from "firebase/firestore";
 import "../../styles/shared/Inventory.css";
 import Restock from "../../components/admin-components/Restock";
@@ -20,26 +19,21 @@ const Inventory = ({ role }) => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("id-asc");
+  const [currentView, setCurrentView] = useState("Tire");
 
-  const [currentView, setCurrentView] = useState("Tires");
-
-  // Restock modal states
+  // Restock modal
   const [isRestockOpen, setIsRestockOpen] = useState(false);
   const [restockList, setRestockList] = useState([]);
   const [restockSearch, setRestockSearch] = useState("");
 
-  // Edit modal
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editData, setEditData] = useState(null);
-
-  // =========================
-  // FETCH TIRES + MAGS SEPARATELY
-  // =========================
+  // ============================================
+  // FETCH TIRES + MAGS
+  // ============================================
   useEffect(() => {
     const unsubTires = onSnapshot(collection(db, "products_tires"), async (snap) => {
-      const tireList = await Promise.all(
-        snap.docs.map(async (docItem) => {
-          const data = docItem.data();
+      const list = await Promise.all(
+        snap.docs.map(async (d) => {
+          const data = d.data();
 
           let supplierName = "—";
           let supplierContact = "";
@@ -47,17 +41,18 @@ const Inventory = ({ role }) => {
 
           if (supplierId) {
             try {
-              const supplierRef = doc(db, "suppliers", supplierId);
-              const supplierSnap = await getDoc(supplierRef);
-              if (supplierSnap.exists()) {
-                supplierName = supplierSnap.data().name;
-                supplierContact = supplierSnap.data().contact || "";
+              const supRef = doc(db, "suppliers", supplierId);
+              const supSnap = await getDoc(supRef);
+              if (supSnap.exists()) {
+                supplierName = supSnap.data().name;
+                supplierContact = supSnap.data().contact || "";
               }
             } catch {}
           }
 
           return {
-            id: docItem.id,
+            firestoreId: d.id,
+            id: data.productId || "",
             type: "Tire",
             supplierName,
             supplierContact,
@@ -66,13 +61,13 @@ const Inventory = ({ role }) => {
         })
       );
 
-      setTires(tireList);
+      setTires(list);
     });
 
     const unsubMags = onSnapshot(collection(db, "products_mags"), async (snap) => {
-      const magsList = await Promise.all(
-        snap.docs.map(async (docItem) => {
-          const data = docItem.data();
+      const list = await Promise.all(
+        snap.docs.map(async (d) => {
+          const data = d.data();
 
           let supplierName = "—";
           let supplierContact = "";
@@ -80,17 +75,18 @@ const Inventory = ({ role }) => {
 
           if (supplierId) {
             try {
-              const supplierRef = doc(db, "suppliers", supplierId);
-              const supplierSnap = await getDoc(supplierRef);
-              if (supplierSnap.exists()) {
-                supplierName = supplierSnap.data().name;
-                supplierContact = supplierSnap.data().contact || "";
+              const supRef = doc(db, "suppliers", supplierId);
+              const supSnap = await getDoc(supRef);
+              if (supSnap.exists()) {
+                supplierName = supSnap.data().name;
+                supplierContact = supSnap.data().contact || "";
               }
             } catch {}
           }
 
           return {
-            id: docItem.id,
+            firestoreId: d.id,
+            id: data.productId || "",
             type: "Mags",
             supplierName,
             supplierContact,
@@ -99,7 +95,7 @@ const Inventory = ({ role }) => {
         })
       );
 
-      setMags(magsList);
+      setMags(list);
     });
 
     return () => {
@@ -108,58 +104,61 @@ const Inventory = ({ role }) => {
     };
   }, []);
 
-  // =========================
-  // MERGE TIRES + MAGS INTO products[]
-  // =========================
+  // ============================================
+  // MERGE PRODUCTS
+  // ============================================
   useEffect(() => {
     setProducts([...tires, ...mags]);
   }, [tires, mags]);
 
-  // =========================
+  // ============================================
   // FILTER + SORT
-  // =========================
+  // ============================================
   useEffect(() => {
     let filtered = [...products];
 
     if (searchTerm.trim() !== "") {
-      const lower = searchTerm.toLowerCase();
+      const t = searchTerm.toLowerCase();
       filtered = filtered.filter((p) =>
-        `${p.productId || ""} ${p.brand || ""} ${p.model || ""}`
-          .toLowerCase()
-          .includes(lower)
+        `${p.id} ${p.brand} ${p.model}`.toLowerCase().includes(t)
       );
     }
 
     switch (sortOption) {
       case "id-asc":
-        filtered.sort((a, b) => (a.productId || "").localeCompare(b.productId || ""));
+        filtered.sort((a, b) => (a.id || "").localeCompare(b.id || ""));
         break;
       case "id-desc":
-        filtered.sort((a, b) => (b.productId || "").localeCompare(a.productId || ""));
+        filtered.sort((a, b) => (b.id || "").localeCompare(a.id || ""));
         break;
       case "stock-asc":
-        filtered.sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
+        filtered.sort((a, b) => Number(a.stock) - Number(b.stock));
         break;
       case "stock-desc":
-        filtered.sort((a, b) => Number(b.stock || 0) - Number(a.stock || 0));
+        filtered.sort((a, b) => Number(b.stock) - Number(a.stock));
         break;
       case "modified-latest":
         filtered.sort((a, b) => {
-          const aTime = a.updatedAt?.toMillis?.() || 0;
-          const bTime = b.updatedAt?.toMillis?.() || 0;
-          return bTime - aTime;
+          const A = a.updatedAt?.toMillis?.() || 0;
+          const B = b.updatedAt?.toMillis?.() || 0;
+          return B - A;
         });
         break;
     }
 
     setFilteredProducts(filtered);
-  }, [products, searchTerm, sortOption, currentView]);
+  }, [products, searchTerm, sortOption]);
 
-  // =========================
+  // ============================================
   // RESTOCK HANDLERS
-  // =========================
-  const openRestockModal = () => {
-    setRestockList([]);
+  // ============================================
+  const openRestockModal = (product = null) => {
+    if (product) {
+      setRestockList([{ ...product, qty: 1 }]);
+    } else {
+      setRestockList([]);
+    }
+
     setRestockSearch("");
     setIsRestockOpen(true);
   };
@@ -168,18 +167,22 @@ const Inventory = ({ role }) => {
 
   const handleSearchRestockProduct = () => {
     const term = restockSearch.toLowerCase();
-    const result = products
+
+    const results = products
       .filter((p) =>
-        `${p.productId || ""} ${p.brand || ""} ${p.model || ""}`.toLowerCase().includes(term)
+        `${p.id} ${p.brand} ${p.model}`.toLowerCase().includes(term)
       )
       .map((p) => ({ ...p, qty: 0 }));
-    setRestockList(result);
+
+    setRestockList(results);
   };
 
-  const handleRestockInput = (e, id) => {
+  const handleRestockInput = (e, firestoreId) => {
     const qty = parseInt(e.target.value || 0);
     setRestockList((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, qty } : item))
+      prev.map((it) =>
+        it.firestoreId === firestoreId ? { ...it, qty } : it
+      )
     );
   };
 
@@ -187,10 +190,9 @@ const Inventory = ({ role }) => {
     try {
       for (const item of restockList) {
         if (item.qty > 0) {
-          const collectionName = item.type === "Tire" ? "products_tires" : "products_mags";
-          const ref = doc(db, collectionName, item.firestoreId);
-          const current = products.find((p) => p.id === item.firestoreId);
-          const newStock = Number(current.stock || 0) + Number(item.qty);
+          const colName = item.type === "Tire" ? "products_tires" : "products_mags";
+          const ref = doc(db, colName, item.firestoreId);
+          const newStock = Number(item.stock || 0) + Number(item.qty);
 
           await updateDoc(ref, {
             stock: newStock,
@@ -199,48 +201,16 @@ const Inventory = ({ role }) => {
         }
       }
 
-      alert("✅ Restock saved successfully!");
+      alert("✅ Restock saved!");
       closeRestockModal();
     } catch (err) {
-      alert("❌ Failed to save restocks.");
+      alert("❌ Failed to restock.");
     }
   };
 
-  // =========================
-  // CONTACT SUPPLIER
-  // =========================
-  const handleContactSupplier = async (product) => {
-    if (!product.supplierId) return alert("⚠️ No supplier linked.");
-
-    try {
-      const supplierRef = collection(
-        db,
-        "suppliers",
-        product.supplierId,
-        "requests"
-      );
-
-      await addDoc(supplierRef, {
-        productName:
-          product.type === "Tire"
-            ? `${product.brand} ${product.model} ${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`
-            : `${product.brand} ${product.model} ${product.wheelDiameter}x${product.wheelWidth}`,
-        quantity: 1,
-        sellingPrice: product.price || 0,
-        costPrice: 0,
-        status: "Pending",
-        createdAt: serverTimestamp(),
-      });
-
-      alert(`📩 Request sent to ${product.supplierName}!`);
-    } catch {
-      alert("❌ Failed to send request.");
-    }
-  };
-
-  // =========================
-  // RENDER UI
-  // =========================
+  // ============================================
+  // UI
+  // ============================================
   return (
     <div className="inventory-page-container">
       <h1 className="inventory-page-title">Inventory</h1>
@@ -248,7 +218,7 @@ const Inventory = ({ role }) => {
         Manage your current product stock, updates, and restocks.
       </p>
 
-      {/* Controls */}
+      {/* Search + Sort */}
       <div className="inventory-controls">
         <input
           type="text"
@@ -313,40 +283,26 @@ const Inventory = ({ role }) => {
                     : `${product.brand} ${product.model} ${product.wheelDiameter}x${product.wheelWidth}`;
 
                 const lowStock = product.type === "Tire" ? 3 : 1;
-                const status =
-                  Number(product.stock || 0) <= lowStock ? "Out of Stock" : "In Stock";
+                const isLowStock = Number(product.stock || 0) <= lowStock;
 
                 return (
-                  <tr key={product.id}>
-
-                    <td>{product.productId}</td>
+                  <tr key={product.firestoreId}>
+                    <td>{product.id}</td>
                     <td>{productName}</td>
                     <td>{product.stock || 0}</td>
 
-                    <td className={status === "Out of Stock" ? "text-red" : "text-green"}>
-                      {status}
+                    <td className={isLowStock ? "text-red" : "text-green"}>
+                      {isLowStock ? "Out of Stock" : "In Stock"}
                     </td>
 
                     <td className="actions-cell">
                       {(role === "admin" || role === "staff") && (
                         <>
-                          {Number(product.stock) <= lowStock && (
-                            <button
-                              className="btn-restock"
-                              onClick={() => {
-                                setRestockList([{ ...product, qty: 1 }]);
-                                setIsRestockOpen(true);
-                              }}
-                            >
-                              Restock
-                            </button>
-                          )}
-
                           <button
-                            className="btn-contact"
-                            onClick={() => handleContactSupplier(product)}
+                            className="btn-restock"
+                            onClick={() => openRestockModal(product)}
                           >
-                            Contact Supplier
+                            Restock
                           </button>
                         </>
                       )}
@@ -366,7 +322,7 @@ const Inventory = ({ role }) => {
         </table>
       </div>
 
-      {/* Restock Modal */}
+      {/* RESTOCK MODAL */}
       {isRestockOpen && (
         <div className="modal-overlay">
           <div className="modal-content">

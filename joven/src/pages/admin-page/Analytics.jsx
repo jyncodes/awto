@@ -137,9 +137,6 @@ const Analytics = () => {
       <div className="analytics-header">
         <h1>Business Analytics</h1>
         <p>Monitor daily performance, inventory status, and reservations.</p>
-        <button className="add-sale-btn" onClick={() => navigate("/pos")}>
-          ➕ Add Sale
-        </button>
       </div>
 
       {/* SALES OVERVIEW */}
@@ -185,12 +182,6 @@ const Analytics = () => {
                         onClick={() => navigate("/admin-dashboard/inventory")}
                       >
                         Restock
-                      </button>
-                      <button
-                        className="contact-supplier-btn"
-                        onClick={() => navigate("/admin-dashboard/suppliers")}
-                      >
-                        Contact Supplier
                       </button>
                     </td>
                   </tr>
