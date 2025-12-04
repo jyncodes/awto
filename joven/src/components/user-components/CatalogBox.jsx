@@ -38,7 +38,7 @@ const CatalogBox = ({ filters = {} }) => {
             const data = docSnap.data();
 
             // Build size string from fields
-            const tireSize =
+            let sizeString =
               data.size ||
               (data.tireWidth && data.rimDiameter
                 ? data.aspectRatio
@@ -46,13 +46,18 @@ const CatalogBox = ({ filters = {} }) => {
                   : `${data.tireWidth}R${data.rimDiameter}`
                 : null);
 
+            // ✅ Fallback for Mags
+            if (!sizeString && name === "Mags") {
+              sizeString = data.rimDiameter ? `R${data.rimDiameter}` : "Set";
+            }
+
             raw.push({
               id: docSnap.id,
               brand: data.brand || "Unbranded",
               model: data.model || "",
               type: data.type || name,
               retail: Number(data.retail ?? data.price ?? 0),
-              sizeString: tireSize || "",
+              sizeString: sizeString,
               stock: data.stock ?? 0,
               ...data,
             });
