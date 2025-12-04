@@ -27,16 +27,15 @@ const ReservationPage = () => {
 
   const navigate = useNavigate();
 
-const passedProduct = location.state?.product || null;
+  const passedProduct = location.state?.product || null;
 
-const selectedSize = location.state?.selectedSize || null;
-const selectedDocId = location.state?.selectedDocId || null;
+  const selectedSize = location.state?.selectedSize || null;
+  const selectedDocId = location.state?.selectedDocId || null;
 
-const pricePerItem =
-  location.state?.pricePerItem ??
-  (passedProduct?.price ?? 0);
+  const pricePerItem =
+    location.state?.pricePerItem ?? (passedProduct?.price ?? 0);
 
-const quantity = location.state?.quantity || 1;
+  const quantity = location.state?.quantity || 1;
 
   const [product, setProduct] = useState(passedProduct);
   const [user, setUser] = useState(null);
@@ -46,11 +45,12 @@ const quantity = location.state?.quantity || 1;
   const [vehicleModel, setVehicleModel] = useState("");
   const [vehicleYear, setVehicleYear] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
+  const [plateError, setPlateError] = useState("");
+
   const [preferredDate, setPreferredDate] = useState(null);
   const [fullyBookedDates, setFullyBookedDates] = useState([]);
   const [note, setNote] = useState("");
 
-  // 🔥 DYNAMIC DOWNPAYMENT
   const [downpayment, setDownpayment] = useState(0);
   const [loadingDownpayment, setLoadingDownpayment] = useState(true);
 
@@ -82,7 +82,7 @@ const quantity = location.state?.quantity || 1;
   // ================================
   useEffect(() => {
     if (typeof passedVehicle === "string") {
-      const [brandModel] = passedVehicle.split(" - "); // "Toyota Vios"
+      const [brandModel] = passedVehicle.split(" - ");
       if (brandModel) {
         const parts = brandModel.trim().split(" ");
         const brand = parts[0] || "";
@@ -211,13 +211,10 @@ const quantity = location.state?.quantity || 1;
   // 🔥 BUILD PRODUCT DETAILS
   // ================================
   const buildProductDetails = (prod) => {
-    if (!prod)
-      return { productName: "Unknown Product", size: "", type: "" };
+    if (!prod) return { productName: "Unknown Product", size: "", type: "" };
 
     const type =
-      prod.type ||
-      (prod.productId?.startsWith("MA-") ? "Mags" : "Tire") ||
-      "";
+      prod.type || (prod.productId?.startsWith("MA-") ? "Mags" : "Tire") || "";
 
     if (type.toLowerCase().includes("tire")) {
       const w = prod.tireWidth || prod.width || "";
@@ -226,8 +223,7 @@ const quantity = location.state?.quantity || 1;
       const size =
         w && ar ? `${w}/${ar}R${rim || ""}`.replace(/R$/, "") : prod.size || "";
       return {
-        productName:
-          `${prod.brand || ""} ${prod.model || ""} ${size}`.trim() || "Tire",
+        productName: `${prod.brand || ""} ${prod.model || ""} ${size}`.trim() || "Tire",
         size,
         type: "Tire",
       };
@@ -238,17 +234,14 @@ const quantity = location.state?.quantity || 1;
       const dia = prod.wheelDiameter || "";
       const size = w && dia ? `${w}x${dia}` : prod.size || "";
       return {
-        productName:
-          `${prod.brand || ""} ${prod.model || ""} ${size}`.trim() || "Mags",
+        productName: `${prod.brand || ""} ${prod.model || ""} ${size}`.trim() || "Mags",
         size,
         type: "Mags",
       };
     }
 
     return {
-      productName:
-        `${prod.brand || ""} ${prod.model || ""} ${prod.size || ""}`.trim() ||
-        "Product",
+      productName: `${prod.brand || ""} ${prod.model || ""} ${prod.size || ""}`.trim() || "Product",
       size: prod.size || "",
       type,
     };
@@ -348,8 +341,7 @@ const quantity = location.state?.quantity || 1;
   if (loading || loadingDownpayment)
     return <div className="reservation-page">Loading...</div>;
 
-  if (!product)
-    return <div className="reservation-page">Product not found.</div>;
+  if (!product) return <div className="reservation-page">Product not found.</div>;
 
   const { productName: headerName } = buildProductDetails(product);
 
@@ -364,58 +356,88 @@ const quantity = location.state?.quantity || 1;
       <div className="reservation-form">
         <label>Vehicle Info</label>
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-        <input
-          value={vehicleBrand}
-          disabled
-          style={{ backgroundColor: "#f3f3f3", cursor: "not-allowed" }}
-          placeholder="Brand"
-        />
-        <input
-          value={vehicleModel}
-          disabled
-          style={{ backgroundColor: "#f3f3f3", cursor: "not-allowed" }}
-          placeholder="Model"
-        />
+          <input
+            value={vehicleBrand}
+            onChange={(e) => setVehicleBrand(e.target.value)}
+            placeholder="Brand"
+            style={{
+              backgroundColor: passedVehicle ? "#f3f3f3" : "#fff",
+              cursor: passedVehicle ? "not-allowed" : "text",
+            }}
+            disabled={!!passedVehicle}
+          />
+          <input
+            value={vehicleModel}
+            onChange={(e) => setVehicleModel(e.target.value)}
+            placeholder="Model"
+            style={{
+              backgroundColor: passedVehicle ? "#f3f3f3" : "#fff",
+              cursor: passedVehicle ? "not-allowed" : "text",
+            }}
+            disabled={!!passedVehicle}
+          />
           <input
             value={vehicleYear}
-            onChange={(e) => setVehicleYear(e.target.value)}
-            placeholder="Year (e.g. 2020)"
+            onChange={(e) => {
+              let year = e.target.value.replace(/\D/g, "");
+              if (year.length > 4) year = year.slice(0, 4);
+              setVehicleYear(year);
+
+              // inline validation
+              if (year && (year < 2000 || year > 2026)) {
+                setPlateError("Year must be between 2000 and 2026");
+              } else {
+                setPlateError("");
+              }
+            }}
+            placeholder="Year (2000–2026)"
+            className={plateError ? "invalid" : ""}
           />
         </div>
 
-        <label>Plate Number</label>
-        <input
-          value={plateNumber}
-          onChange={(e) => setPlateNumber(e.target.value)}
-          placeholder="e.g. ABC 1234"
-        />
+        {plateError && <span className="plate-error">{plateError}</span>}
+
+        <div className="plate-number-container">
+          <label className="plate-label">Plate Number</label>
+
+          <input
+            className={`plate-input ${plateError ? "invalid" : ""}`}
+            value={plateNumber}
+            onChange={(e) => {
+              let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+              if (value.length > 7) value = value.slice(0, 7);
+              setPlateNumber(value);
+
+              const newPlate = /^[A-Z]{3}[0-9]{3,4}$/;
+              const isValid = newPlate.test(value);
+
+              if (!isValid && value !== "") {
+                setPlateError("Invalid plate number (Format: AAA123 or AAA1234)");
+              } else {
+                setPlateError("");
+              }
+            }}
+            placeholder="AAA123 or AAA1234"
+          />
+
+          {plateError && <span className="plate-error">{plateError}</span>}
+        </div>
 
         <label>Preferred Date</label>
-        <Calendar
-          onChange={setPreferredDate}
-          value={preferredDate}
-          minDate={new Date()}
-          tileDisabled={tileDisabled}
-        />
+        <Calendar onChange={setPreferredDate} value={preferredDate} minDate={new Date()} tileDisabled={tileDisabled} />
 
         <label>Additional Notes</label>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Request or instruction..."
-        />
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Request or instruction..." />
 
         <div className="price-summary">
           <p>
-          <strong>Price per Item:</strong> ₱
-          {pricePerItem.toLocaleString()}
-        </p>
+            <strong>Price per Item:</strong> ₱{pricePerItem.toLocaleString()}
+          </p>
           <p>
             <strong>Quantity:</strong> {quantity}
           </p>
-            <p>
-            <strong>Total Price:</strong> ₱
-            {(pricePerItem * quantity).toLocaleString()}
+          <p>
+            <strong>Total Price:</strong> ₱{(pricePerItem * quantity).toLocaleString()}
           </p>
           <p>
             <strong>Downpayment:</strong> ₱{downpayment}
