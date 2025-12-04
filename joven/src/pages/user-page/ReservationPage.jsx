@@ -23,9 +23,21 @@ import "../../styles/user-styles/ReservationPage.css";
 const ReservationPage = () => {
   const { productId } = useParams();
   const location = useLocation();
+  const passedVehicle = location.state?.vehicleLabel || null;
+
   const navigate = useNavigate();
 
-  const passedProduct = location.state?.product || null;
+const passedProduct = location.state?.product || null;
+
+const selectedSize = location.state?.selectedSize || null;
+const selectedDocId = location.state?.selectedDocId || null;
+
+const pricePerItem =
+  location.state?.pricePerItem ??
+  (passedProduct?.price ?? 0);
+
+const quantity = location.state?.quantity || 1;
+
   const [product, setProduct] = useState(passedProduct);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(!passedProduct);
@@ -38,7 +50,7 @@ const ReservationPage = () => {
   const [fullyBookedDates, setFullyBookedDates] = useState([]);
   const [note, setNote] = useState("");
 
-  // 🔥 DYNAMIC DOWNPAYMENT FROM FIRESTORE
+  // 🔥 DYNAMIC DOWNPAYMENT
   const [downpayment, setDownpayment] = useState(0);
   const [loadingDownpayment, setLoadingDownpayment] = useState(true);
 
@@ -64,6 +76,22 @@ const ReservationPage = () => {
     };
     loadDownpayment();
   }, []);
+
+  // ================================
+  // 🔥 AUTO-FILL BRAND & MODEL FROM vehicleLabel
+  // ================================
+  useEffect(() => {
+    if (typeof passedVehicle === "string") {
+      const [brandModel] = passedVehicle.split(" - "); // "Toyota Vios"
+      if (brandModel) {
+        const parts = brandModel.trim().split(" ");
+        const brand = parts[0] || "";
+        const model = parts.slice(1).join(" ") || "";
+        setVehicleBrand(brand);
+        setVehicleModel(model);
+      }
+    }
+  }, [passedVehicle]);
 
   // ================================
   // 🔥 LOAD USER
@@ -101,7 +129,7 @@ const ReservationPage = () => {
   }, [productId, passedProduct]);
 
   // ================================
-  // 🔥 LOAD FULLY BOOKED DATES
+  // 🔥 FULLY BOOKED DATES
   // ================================
   useEffect(() => {
     const fetchFullyBooked = async () => {
@@ -135,7 +163,7 @@ const ReservationPage = () => {
   }, [productId]);
 
   // ================================
-  // 🔥 GENERATE RESERVATION ID
+  // 🔥 RESERVATION ID
   // ================================
   const generateReservationId = async () => {
     const counterRef = doc(db, "counters", "reservations");
@@ -263,7 +291,11 @@ const ReservationPage = () => {
         model: product.model || "",
         size: size || "",
         type,
-        price: Number(product.price || 0),
+        price: Number(pricePerItem),
+        quantity: quantity,
+        totalPrice: Number(pricePerItem) * quantity,
+        selectedSize: selectedSize || "",
+        selectedDocId: selectedDocId || "",
         downpayment,
         vehicleBrand: vehicleBrand.trim(),
         vehicleModel: vehicleModel.trim(),
@@ -272,10 +304,8 @@ const ReservationPage = () => {
         preferredDate: Timestamp.fromDate(chosenDate),
         note: note.trim(),
 
-        // IMPORTANT FIXES
         paymentMethod: "PayPal Invoice",
         status: "Downpayment Pending",
-
         isCancelled: false,
         createdAt: serverTimestamp(),
       };
@@ -292,11 +322,9 @@ const ReservationPage = () => {
 
       alert("Reservation submitted!");
 
-      // ⭐ IMPORTANT FIX — Go to PaymentPage, NOT InvoicePage
       navigate(`/payment/${reservationId}`, {
         state: { reservation: reservationData },
       });
-
     } catch (err) {
       console.error("Reservation submission error:", err);
       alert("Failed to reserve.");
@@ -336,16 +364,18 @@ const ReservationPage = () => {
       <div className="reservation-form">
         <label>Vehicle Info</label>
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-          <input
-            value={vehicleBrand}
-            onChange={(e) => setVehicleBrand(e.target.value)}
-            placeholder="Brand (e.g. Toyota)"
-          />
-          <input
-            value={vehicleModel}
-            onChange={(e) => setVehicleModel(e.target.value)}
-            placeholder="Model (e.g. Vios)"
-          />
+        <input
+          value={vehicleBrand}
+          disabled
+          style={{ backgroundColor: "#f3f3f3", cursor: "not-allowed" }}
+          placeholder="Brand"
+        />
+        <input
+          value={vehicleModel}
+          disabled
+          style={{ backgroundColor: "#f3f3f3", cursor: "not-allowed" }}
+          placeholder="Model"
+        />
           <input
             value={vehicleYear}
             onChange={(e) => setVehicleYear(e.target.value)}
@@ -377,7 +407,15 @@ const ReservationPage = () => {
 
         <div className="price-summary">
           <p>
-            <strong>Price:</strong> ₱{product.price}
+          <strong>Price per Item:</strong> ₱
+          {pricePerItem.toLocaleString()}
+        </p>
+          <p>
+            <strong>Quantity:</strong> {quantity}
+          </p>
+            <p>
+            <strong>Total Price:</strong> ₱
+            {(pricePerItem * quantity).toLocaleString()}
           </p>
           <p>
             <strong>Downpayment:</strong> ₱{downpayment}

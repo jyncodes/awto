@@ -85,11 +85,6 @@ const ViewProduct = () => {
           const data = docSnap.data();
           setProduct({ ...data, id: docSnap.id });
 
-          // 🔥 AUTO-SELECT SIZE IF NO SIZE LIST PROVIDED
-          if (!sizes || sizes.length === 0) {
-            setSelectedSize("default");
-          }
-
           const pngUrl = `${SUPABASE_IMAGE_URL}/${id}.png`;
           const jpegUrl = `${SUPABASE_IMAGE_URL}/${id}.jpeg`;
 
@@ -107,18 +102,17 @@ const ViewProduct = () => {
             })
             .catch(() => setMainImage(null));
 
-          const defaultRetail = data.retail ?? data.price ?? null;
-          setSelectedPrice(defaultRetail);
-
-          setSelectedStock(
-            typeof data.stock === "number" ? data.stock : null
-          );
+          if (sizes.length === 0) {
+            const defaultRetail = data.retail ?? data.price ?? null;
+            setSelectedPrice(defaultRetail);
+            setSelectedStock(data.stock ?? null);
+          }
 
           const isTire =
             collectionName === "products_tires" ||
             (data.type && data.type.toLowerCase().includes("tire"));
 
-          setQuantity(isTire ? 4 : 1);
+          setQuantity(isTire ? 1 : 1);
         }
       } catch (err) {
         console.error("❌ Error fetching product:", err);
@@ -157,64 +151,29 @@ const ViewProduct = () => {
   // ================================
   // SIZE-SPECIFIC PRICE
   // ================================
-  useEffect(() => {
-    if (!product) return;
 
-    // If no size selector exists, ignore this logic
-    if (!sizes || sizes.length === 0) {
-      setSelectedPrice(product.retail ?? product.price ?? null);
-      setSelectedStock(product.stock ?? null);
-      return;
-    }
+      useEffect(() => {
+      if (!selectedSize) return;
 
-    if (!selectedSize) return;
-    const fetchSizeDoc = async () => {
-      try {
-        const colName =
-          getCollectionName(product.id) ||
-          (product.type && product.type.toLowerCase().includes("tire")
-            ? "products_tires"
-            : "products_mags");
+      const selectedObj = sizes.find((s) => s.size === selectedSize);
 
-        const colRef = collection(db, colName);
+      if (!selectedObj) return;
 
-        let qMain = query(
-          colRef,
-          where("size", "==", selectedSize),
-          where("brand", "==", passedBrand || product.brand || ""),
-          where("model", "==", passedModel || product.model || "")
-        );
+      setSelectedPrice(selectedObj.price);
+      setSelectedStock(selectedObj.stock);
+      setSelectedDocId(selectedObj.docId);
+    }, [selectedSize, sizes]);
 
-        let snapshot = await getDocs(qMain);
+        const decreaseQty = () => {
 
-        if (!snapshot.empty) {
-          const docSnap = snapshot.docs[0];
-          const data = docSnap.data();
+          setQuantity((q) => Math.max(1, q - 1));
+        };
 
-          const retail = data.retail ?? data.price ?? null;
-          setSelectedPrice(retail);
-          setSelectedStock(data.stock ?? product.stock ?? null);
-          setSelectedDocId(docSnap.id);
-        } else {
-          const fallbackRetail = product.retail ?? product.price ?? null;
-          setSelectedPrice(fallbackRetail);
-          setSelectedStock(product.stock ?? null);
-          setSelectedDocId(null);
-        }
-      } catch (err) {
-        console.error("Error fetching size doc:", err);
-      }
-    };
-
-    fetchSizeDoc();
-  }, [selectedSize, product]);
-
-  const decreaseQty = () => setQuantity((q) => Math.max(1, q - 1));
-  const increaseQty = () =>
-    setQuantity((q) => {
-      const max = typeof selectedStock === "number" ? selectedStock : 99;
-      return Math.min(max, q + 1);
-    });
+        const increaseQty = () => {
+          
+          const max = typeof selectedStock === "number" ? selectedStock : 99;
+          setQuantity((q) => Math.min(max, q + 1));
+        };
 
   const handleAddToCart = async () => {
     const user = auth.currentUser;
@@ -294,6 +253,9 @@ const ViewProduct = () => {
 
   if (!product) return <div className="view-product">Loading product…</div>;
 
+  const productType = getCollectionName(product.id);
+
+
   const hasGLB = !!modelUrl;
 
   const fallbackImage =
@@ -336,16 +298,14 @@ const ViewProduct = () => {
 
           <p className="price">
             ₱
-            {(
-              selectedPrice ??
-              product.retail ??
-              product.price ??
-              0
-            ).toLocaleString(undefined, {
+            {(selectedPrice ?? 0).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
-            /unit
+            <span style={{ fontSize: "14px", opacity: 0.7, marginLeft: 4 }}>
+              {getCollectionName(product?.id) === "products_mags" ? "/set" : "/piece"}
+
+            </span>
           </p>
 
           {/* Quantity */}
@@ -358,7 +318,11 @@ const ViewProduct = () => {
             }}
           >
             <div>
-              <label style={{ display: "block", fontSize: 14 }}>Quantity</label>
+              <label style={{ display: "block", fontSize: 14 }}>
+                {productType === "products_mags"
+                  ? "Quantity (per set)"
+                  : "Quantity (per piece)"}
+              </label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <button onClick={decreaseQty} className="qty-btn">
                   -
@@ -387,11 +351,11 @@ const ViewProduct = () => {
               <select
                 value={selectedSize}
                 onChange={(e) => setSelectedSize(e.target.value)}
-              > 
+              >
                 <option value="">Choose a size</option>
                 {sizes.map((s, i) => (
-                  <option key={i} value={s}>
-                    {s}
+                  <option key={i} value={s.size}>
+                    {s.size}
                   </option>
                 ))}
               </select>

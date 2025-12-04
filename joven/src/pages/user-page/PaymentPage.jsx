@@ -14,15 +14,7 @@ const PaymentPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Backend URL (from Vercel)
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-  console.log("🔍 Loaded BACKEND_URL =", BACKEND_URL);
-
-  // Ensure backend URL exists
-  if (!BACKEND_URL) {
-    console.error("❌ VITE_BACKEND_URL is missing in your environment variables.");
-  }
 
   /* -----------------------------------------
      AUTH CHECK
@@ -79,10 +71,7 @@ const PaymentPage = () => {
     }
 
     try {
-      // FINAL URL FIX (prevents 404)
       const apiUrl = `${BACKEND_URL.replace(/\/$/, "")}/create-payment`;
-
-      console.log("📡 Sending payment request to:", apiUrl);
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -95,28 +84,21 @@ const PaymentPage = () => {
         }),
       });
 
-      console.log("📥 Response Status =", response.status);
-
       if (!response.ok) {
-        console.error("HTTP Error:", response.status);
         alert("Payment server error.");
         return;
       }
 
       const data = await response.json();
 
-      console.log("📦 PayMongo Response:", data);
-
       if (!data.success) {
         alert("Payment creation failed.");
         return;
       }
 
-      // Redirect user to PayMongo checkout page
       window.location.href = data.checkoutUrl;
-
     } catch (err) {
-      console.error("❌ Fetch error:", err);
+      console.error(err);
       alert("Error connecting to payment server.");
     }
   };
@@ -125,9 +107,7 @@ const PaymentPage = () => {
      CANCEL RESERVATION
   ----------------------------------------- */
   const handleCancelReservation = async () => {
-    const confirmCancel = window.confirm(
-      "Are you sure you want to cancel this reservation?"
-    );
+    const confirmCancel = window.confirm("Are you sure?");
     if (!confirmCancel) return;
 
     try {
@@ -137,7 +117,7 @@ const PaymentPage = () => {
         cancelledAt: serverTimestamp(),
       });
 
-      alert("Reservation has been cancelled.");
+      alert("Reservation cancelled.");
       navigate("/profile?tab=reservations");
     } catch (err) {
       console.error(err);
@@ -152,7 +132,7 @@ const PaymentPage = () => {
   if (!reservation) return null;
 
   const readableDate = reservation?.preferredDate?.toDate?.()
-    ? reservation.preferredDate.toDate().toLocaleString()
+    ? reservation.preferredDate.toDate().toLocaleDateString()
     : "N/A";
 
   const createdAt = reservation?.createdAt?.toDate?.()
@@ -166,7 +146,7 @@ const PaymentPage = () => {
       <h2>Reservation Invoice</h2>
 
       <div className="payment-layout">
-        {/* LEFT COLUMN */}
+        {/* LEFT */}
         <div className="payment-left">
           <div className="payment-card">
             <p><strong>Invoice ID:</strong> {reservationId}</p>
@@ -183,26 +163,24 @@ const PaymentPage = () => {
 
             <hr />
 
-            <h3>Service & Product</h3>
-            <p><strong>Service Type:</strong> {reservation.serviceType}</p>
-            <p><strong>Product:</strong> {reservation.productName}</p>
-            <p><strong>Brand:</strong> {reservation.brand}</p>
-            <p><strong>Size:</strong> {reservation.size}</p>
-            <p><strong>Type:</strong> {reservation.type}</p>
+            <h3>Product Details</h3>
+            <p><strong>Product:</strong> {reservation.productName}</p>  
 
             <hr />
 
-            <h3>Payment Details</h3>
-            <p><strong>Total Price:</strong> ₱{reservation.price?.toLocaleString()}</p>
-            <p><strong>Downpayment:</strong> ₱{reservation.downpayment?.toLocaleString()}</p>
+            <h3>Pricing</h3>
+            <p><strong>Price per Item:</strong> ₱{reservation.price.toLocaleString()}</p>
+            <p><strong>Quantity:</strong> {reservation.quantity}</p>
+            <p><strong>Total Price:</strong> ₱{reservation.totalPrice.toLocaleString()}</p>
+            <p><strong>Downpayment:</strong> ₱{reservation.downpayment.toLocaleString()}</p>
           </div>
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* RIGHT */}
         <div className="payment-right">
           <div className="payment-warning">
             <p style={{ color: "red", fontWeight: "bold" }}>
-              ⚠ You can cancel only BEFORE payment. Once paid, the reservation is non-refundable.
+              ⚠ Cancellation allowed only BEFORE payment.
             </p>
 
             <button
@@ -210,17 +188,12 @@ const PaymentPage = () => {
               onClick={handleCancelReservation}
               disabled={isPaid}
             >
-              {isPaid ? "Cancel Reservation (Disabled - Already Paid)" : "Cancel Reservation"}
+              {isPaid ? "Already Paid" : "Cancel Reservation"}
             </button>
           </div>
 
-          {/* PAYMONGO BUTTON */}
-          <button
-            className="pay-button"
-            onClick={handlePayMongo}
-            disabled={isPaid}
-          >
-            {isPaid ? "Already Paid" : "Pay Now (GCash / Card)"}
+          <button className="pay-button" onClick={handlePayMongo} disabled={isPaid}>
+            {isPaid ? "Paid" : "Pay Now (GCash / Card)"}
           </button>
 
           <button
