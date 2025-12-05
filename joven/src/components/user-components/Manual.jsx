@@ -75,7 +75,7 @@ const Manual = () => {
   // Dropdown options
   const brandOptions = Object.keys(vehicleData);
   const modelOptions = brand ? Object.keys(vehicleData[brand] || {}) : [];
-  const typeOptions = ["Tire", "Wheel"];
+  const typeOptions = ["Tire", "Mags"];
 
   const sizeOptions =
     brand && model && type
@@ -118,7 +118,7 @@ const Manual = () => {
         state: {
           selectionType: "fitment",
           vehicleLabel: `${brand} ${model} - ${type} ${size}`,
-          size: sizeOptions.map((s) => s.label),
+          size,
           fitment: {
             type: type.toLowerCase(),
             size,
@@ -205,7 +205,7 @@ const Manual = () => {
               className="shop-now-btn premium-btn"
               disabled={!brand || !model || !type || !size}
             >
-              Shop Now
+              Find Matches
             </button>
 
             <button
@@ -243,10 +243,10 @@ const Manual = () => {
             ) : (
               <>
                 {selectedFitment.wheelDiameter && (
-                  <li>Wheel Diameter: {selectedFitment.wheelDiameter}</li>
+                  <li>Diameter: {selectedFitment.wheelDiameter}</li>
                 )}
                 {selectedFitment.wheelWidth && (
-                  <li>Wheel Width: {selectedFitment.wheelWidth}</li>
+                  <li>Width: {selectedFitment.wheelWidth}</li>
                 )}
                 {selectedFitment.boltPattern && (
                   <li>Bolt Pattern: {selectedFitment.boltPattern}</li>

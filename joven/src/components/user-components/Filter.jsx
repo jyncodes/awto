@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import "../../styles/user-styles/Filter.css";
 
@@ -10,10 +10,16 @@ const Filter = ({ onChange }) => {
   const [searchTerms, setSearchTerms] = useState({});
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // ✅ Fetch unique filter values from Firestore
+  // ✅ Fetch filter values from both Tires and Mags collections
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "products_tires"), (snapshot) => {
-      const products = snapshot.docs.map((doc) => doc.data());
+    const fetchFilters = async () => {
+      const tireSnap = await getDocs(collection(db, "products_tires"));
+      const magsSnap = await getDocs(collection(db, "products_mags"));
+
+      const products = [
+        ...tireSnap.docs.map((doc) => doc.data()),
+        ...magsSnap.docs.map((doc) => doc.data()),
+      ];
 
       const uniqueValues = {
         brand: new Set(),
@@ -27,21 +33,25 @@ const Filter = ({ onChange }) => {
         if (product.brand) uniqueValues.brand.add(product.brand.trim());
         if (product.model) uniqueValues.model.add(product.model.trim());
 
-        // Construct readable size
+        // 🔹 Tire size formatting
         if (product.tireWidth && product.aspectRatio && product.rimDiameter) {
-          const size = `${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`;
-          uniqueValues.size.add(size);
-        } else if (product.rimDiameter) {
-          uniqueValues.size.add(`R${product.rimDiameter}`);
+          uniqueValues.size.add(
+            `${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`
+          );
         }
 
+        // 🔹 Wheel / Mags size formatting
+        if (product.wheelDiameter && product.wheelWidth && product.boltPattern) {
+          uniqueValues.size.add(
+            `${product.wheelDiameter}x${product.wheelWidth} ${product.boltPattern}`
+          );
+        }
+
+        // 🔹 Type (now includes Mags)
         if (product.type) uniqueValues.type.add(product.type.trim());
 
-        // ===============================
-        // ✅ PRICE RANGE (RETAIL FIRST)
-        // ===============================
+        // 🔹 Price
         const priceValue = product.retail ?? product.price;
-
         if (priceValue) {
           const price = parseInt(priceValue);
           if (!isNaN(price)) {
@@ -61,9 +71,9 @@ const Filter = ({ onChange }) => {
         { name: "type", label: "Type", options: Array.from(uniqueValues.type), multiSelect: true },
         { name: "price", label: "Price", options: Array.from(uniqueValues.price), multiSelect: false },
       ]);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchFilters();
   }, []);
 
   // Send to parent
@@ -134,9 +144,7 @@ const Filter = ({ onChange }) => {
 
           const filteredOptions =
             options.length > 5
-              ? options.filter((opt) =>
-                  opt.toLowerCase().includes(search.toLowerCase())
-                )
+              ? options.filter((opt) => opt.toLowerCase().includes(search.toLowerCase()))
               : options;
 
           return (

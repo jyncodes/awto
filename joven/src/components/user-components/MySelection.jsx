@@ -7,23 +7,23 @@ import {
   getDocs,
   deleteDoc,
   doc,
-} from "firebase/firestore"; // Firestore-specific imports
-import { onAuthStateChanged } from "firebase/auth"; // Auth-specific import
+} from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../firebase";
 import "../../styles/user-styles/MySelection.css";
-import { FiX } from "react-icons/fi"; // For close button icon
+import { FiX } from "react-icons/fi";
 
 const MySelection = ({ isOpen = true, onClose }) => {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser ] = useState(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser ) => {
-      setUser (currentUser );
-      if (currentUser ) {
-        fetchCartItems(currentUser .uid);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        fetchCartItems(currentUser.uid);
       } else {
         setCartItems([]);
         setLoading(false);
@@ -50,11 +50,9 @@ const MySelection = ({ isOpen = true, onClose }) => {
   };
 
   const handleView = (productId) => {
-    console.log("View button clicked for productId:", productId); // DEBUG: Check if click fires
     try {
       if (onClose) onClose();
-      navigate(`/product/${productId}`); // Adjust route if needed, e.g., '/view-product/${productId}'
-      console.log("Navigation attempted to:", `/product/${productId}`); // DEBUG
+      navigate(`/view-product/${productId}`);
     } catch (error) {
       console.error("Navigation error:", error);
       alert("Failed to navigate to product.");
@@ -62,19 +60,12 @@ const MySelection = ({ isOpen = true, onClose }) => {
   };
 
   const handleRemove = async (itemId) => {
-    console.log("Remove button clicked for itemId:", itemId); // DEBUG: Check if click fires
-    if (!user) {
-      console.log("No user logged in for remove"); // DEBUG
-      return alert("You must be logged in.");
-    }
+    if (!user) return alert("You must be logged in.");
     try {
       await deleteDoc(doc(db, "cartSelections", itemId));
       setCartItems((prev) => prev.filter((item) => item.id !== itemId));
-      // Refetch to ensure sync
       await fetchCartItems(user.uid);
-      if (onClose) onClose();
       alert("Item removed from selections.");
-      console.log("Remove successful"); // DEBUG
     } catch (error) {
       console.error("Remove error:", error);
       alert("Failed to remove item.");
@@ -109,15 +100,20 @@ const MySelection = ({ isOpen = true, onClose }) => {
                   <div className="cart-buttons">
                     <button
                       className="view-button"
-                      onClick={() => handleView(item.productId)}
-                      style={{ pointerEvents: 'auto' }} // Fallback for clickability
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleView(item.productId);
+                      }}
                     >
                       View
                     </button>
+
                     <button
                       className="remove-button"
-                      onClick={() => handleRemove(item.id)}
-                      style={{ pointerEvents: 'auto' }} // Fallback for clickability
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemove(item.id);
+                      }}
                     >
                       Remove
                     </button>

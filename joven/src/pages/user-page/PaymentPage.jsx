@@ -139,7 +139,7 @@ const PaymentPage = () => {
             <p><strong>Price per Item:</strong> ₱{reservation.price.toLocaleString()}</p>
             <p><strong>Quantity:</strong> {reservation.quantity}</p>
             <p><strong>Total Price:</strong> ₱{reservation.totalPrice.toLocaleString()}</p>
-            <p><strong>Downpayment:</strong> ₱{paypalTestAmount.toLocaleString()}</p>
+            <p><strong>Downpayment:</strong> ₱{reservation.downpayment?.toLocaleString()}</p>
           </div>
         </div>
 
