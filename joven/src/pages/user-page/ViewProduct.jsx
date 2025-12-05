@@ -151,29 +151,32 @@ const ViewProduct = () => {
   // ================================
   // SIZE-SPECIFIC PRICE
   // ================================
+  useEffect(() => {
+    if (!selectedSize) return;
 
-      useEffect(() => {
-      if (!selectedSize) return;
+    const selectedObj = sizes.find((s) => {
+      // NEW LOGIC FOR MAGS: match the formatted size string
+      if (s.wheelDiameter && s.wheelWidth && s.boltPattern) {
+        return `${s.wheelDiameter}x${s.wheelWidth} ${s.boltPattern}` === selectedSize;
+      }
+      return s.size === selectedSize;
+    });
 
-      const selectedObj = sizes.find((s) => s.size === selectedSize);
+    if (!selectedObj) return;
 
-      if (!selectedObj) return;
+    setSelectedPrice(selectedObj.price ?? selectedObj.cost ?? product?.price);
+    setSelectedStock(selectedObj.stock ?? product?.stock);
+    setSelectedDocId(selectedObj.docId ?? selectedObj.id);
+  }, [selectedSize, sizes, product]);
 
-      setSelectedPrice(selectedObj.price);
-      setSelectedStock(selectedObj.stock);
-      setSelectedDocId(selectedObj.docId);
-    }, [selectedSize, sizes]);
+  const decreaseQty = () => {
+    setQuantity((q) => Math.max(1, q - 1));
+  };
 
-        const decreaseQty = () => {
-
-          setQuantity((q) => Math.max(1, q - 1));
-        };
-
-        const increaseQty = () => {
-          
-          const max = typeof selectedStock === "number" ? selectedStock : 99;
-          setQuantity((q) => Math.min(max, q + 1));
-        };
+  const increaseQty = () => {
+    const max = typeof selectedStock === "number" ? selectedStock : 99;
+    setQuantity((q) => Math.min(max, q + 1));
+  };
 
   const handleAddToCart = async () => {
     const user = auth.currentUser;
@@ -254,12 +257,24 @@ const ViewProduct = () => {
   if (!product) return <div className="view-product">Loading product…</div>;
 
   const productType = getCollectionName(product.id);
-
-
   const hasGLB = !!modelUrl;
-
   const fallbackImage =
     mainImage || "https://placehold.co/300x300?text=No+Image";
+
+  // ================================
+  // FORMATTED SIZES FOR MAGS
+  // ================================
+  const formattedSizes =
+    productType === "products_mags"
+      ? [
+          {
+            size: `${product.wheelDiameter}x${product.wheelWidth} ${product.boltPattern}`,
+            price: product.price ?? product.cost,
+            stock: product.stock,
+            docId: product.id,
+          },
+        ]
+      : sizes;
 
   return (
     <div className="view-product">
@@ -303,8 +318,7 @@ const ViewProduct = () => {
               maximumFractionDigits: 2,
             })}
             <span style={{ fontSize: "14px", opacity: 0.7, marginLeft: 4 }}>
-              {getCollectionName(product?.id) === "products_mags" ? "/set" : "/piece"}
-
+              {productType === "products_mags" ? "/set" : "/piece"}
             </span>
           </p>
 
@@ -343,7 +357,7 @@ const ViewProduct = () => {
           </div>
 
           {/* Size selector */}
-          {sizes.length > 0 && (
+          {formattedSizes.length > 0 && (
             <div className="size-selector" style={{ marginBottom: 12 }}>
               <label style={{ display: "block", marginBottom: 6 }}>
                 Select Size:
@@ -353,7 +367,7 @@ const ViewProduct = () => {
                 onChange={(e) => setSelectedSize(e.target.value)}
               >
                 <option value="">Choose a size</option>
-                {sizes.map((s, i) => (
+                {formattedSizes.map((s, i) => (
                   <option key={i} value={s.size}>
                     {s.size}
                   </option>
@@ -387,7 +401,7 @@ const ViewProduct = () => {
               onClick={handleReserveClick}
               disabled={
                 // NEW LOGIC
-                sizes.length > 0
+                formattedSizes.length > 0
                   ? !selectedSize
                   : !selectedPrice && selectedPrice !== 0
               }
@@ -400,7 +414,7 @@ const ViewProduct = () => {
               onClick={handleAddToCart}
               title="Add to My Selections"
               disabled={
-                sizes.length > 0
+                formattedSizes.length > 0
                   ? !selectedSize
                   : !selectedPrice && selectedPrice !== 0
               }
