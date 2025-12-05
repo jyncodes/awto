@@ -246,10 +246,23 @@ const Register = () => {
             className="register-button"
             type="submit"
             disabled={!formData.terms}
-            style={{ marginTop: '1rem' }}
+            style={{
+              marginTop: "1rem",
+              backgroundColor: !formData.terms ? "#ffa366" : "#ff6600",
+              color: "#fff",
+              border: "none",
+              borderRadius: "8px",
+              padding: "12px 20px",
+              fontSize: "16px",
+              fontWeight: 600,
+              cursor: !formData.terms ? "not-allowed" : "pointer",
+              boxShadow: !formData.terms ? "none" : "0 4px 6px rgba(0,0,0,0.2)",
+              transition: "all 0.3s ease",
+            }}
           >
             Register
           </button>
+
         </form>
       </div>
     </>
