@@ -159,7 +159,7 @@ app.post("/paypal-complete", async (req, res) => {
     const token = await getPayPalToken();
 
     const orderRes = await axios.get(
-      `https://api-m.paypal.com/v2/checkout/orders/${orderId}`,
+      `https://api-m.paypal.com/v2/checkout/orders/${orderId}/capture`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

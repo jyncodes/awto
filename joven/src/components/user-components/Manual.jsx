@@ -114,26 +114,27 @@ const Manual = () => {
       return;
     }
 
-    navigate("/user-dashboard", {
-      state: {
-        selectionType: "fitment",
-        vehicleLabel: `${brand} ${model} - ${type} ${size}`,
-        size: sizeOptions.map((s) => s.label),
-        fitment: {
-          type: type.toLowerCase(),
-          size,
-          rimDiameter:
-            selectedFitment.rimDiameter ||
-            selectedFitment.wheelDiameter ||
-            "",
-          width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
-          boltPattern: selectedFitment.boltPattern || "",
-          tireWidth: selectedFitment.tireWidth || "",
-          aspectRatio: selectedFitment.aspectRatio || "",
+          navigate("/user-dashboard", {
+        state: {
+          selectionType: "fitment",
+          vehicleLabel: `${brand} ${model} - ${type} ${size}`,
+          size: sizeOptions.map((s) => s.label),
+          fitment: {
+            type: type.toLowerCase(),
+            size,
+            rimDiameter:
+              selectedFitment.rimDiameter ||
+              selectedFitment.wheelDiameter ||
+              "",
+            width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
+            boltPattern: selectedFitment.boltPattern || "",
+            tireWidth: selectedFitment.tireWidth || "",
+            aspectRatio: selectedFitment.aspectRatio || "",
+          },
         },
-      },
-    });
-  };
+      });
+
+        };
 
   return (
     <div className="fitment-container premium-fitment">
