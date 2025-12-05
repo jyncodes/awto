@@ -169,10 +169,10 @@ const CatalogBox = ({ filters = {} }) => {
       });
     }
 
-    // FITMENT FILTER
-    if (fitment && Object.keys(fitment).length > 0) {
+    // FITMENT FILTER FIX
+    if (fitment && fitment.size) {
       result = result.filter((p) =>
-        p.sizes.some((s) => s.size.includes(fitment.rimDiameter))
+        p.sizes.some((s) => s.size === fitment.size)
       );
     }
 
