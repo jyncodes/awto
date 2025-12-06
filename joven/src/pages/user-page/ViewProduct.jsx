@@ -1,3 +1,4 @@
+// src/pages/user-page/ViewProduct.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -16,6 +17,7 @@ import "../../styles/user-styles/ViewProduct.css";
 
 import ModelViewer from "../../components/user-components/ModelViewer";
 import ARViewer from "../../components/user-components/ARViewer";
+import Navbar from "../../components/Navbar"; // <-- ADDED
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -277,160 +279,164 @@ const ViewProduct = () => {
       : sizes;
 
   return (
-    <div className="view-product">
-      <button className="back-button" onClick={() => navigate(-1)}>
-        ← Back
-      </button>
+    <div className="view-product-page">
+      <Navbar /> {/* <-- RENDER NAVBAR HERE */}
 
-      <div className="product-container">
-        {/* LEFT IMAGE SECTION */}
-        <div className="product-images">
-          {hasGLB ? (
-            <div className="ar-viewer-container">
-              {!showAR ? (
-                <ModelViewer modelUrl={modelUrl} />
-              ) : (
-                <ARViewer src={modelUrl} />
-              )}
-            </div>
-          ) : (
-            <img src={fallbackImage} alt="Main" className="main-image" />
-          )}
-        </div>
+      <div className="view-product">
+        <button className="back-button" onClick={() => navigate(-1)}>
+          ← Back
+        </button>
 
-        {/* RIGHT INFO */}
-        <div className="product-info">
-          {vehicleLabel && (
-            <div className="fitment-context">
-              🚗 Fitment for: <strong>{vehicleLabel}</strong>
-            </div>
-          )}
-
-          <span className="tag">NEW</span>
-
-          <h2 className="brand-logo">{passedBrand || product.brand}</h2>
-          <h1 className="product-name">{passedModel || product.model}</h1>
-
-          <p className="price">
-            ₱
-            {(selectedPrice ?? 0).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-            <span style={{ fontSize: "14px", opacity: 0.7, marginLeft: 4 }}>
-              {productType === "products_mags" ? "/set" : "/piece"}
-            </span>
-          </p>
-
-          {/* Quantity */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginBottom: 12,
-            }}
-          >
-            <div>
-              <label style={{ display: "block", fontSize: 14 }}>
-                {productType === "products_mags"
-                  ? "Quantity (per set)"
-                  : "Quantity (per piece)"}
-              </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button onClick={decreaseQty} className="qty-btn">
-                  -
-                </button>
-                <div style={{ minWidth: 36, textAlign: "center" }}>
-                  {quantity}
-                </div>
-                <button onClick={increaseQty} className="qty-btn">
-                  +
-                </button>
+        <div className="product-container">
+          {/* LEFT IMAGE SECTION */}
+          <div className="product-images">
+            {hasGLB ? (
+              <div className="ar-viewer-container">
+                {!showAR ? (
+                  <ModelViewer modelUrl={modelUrl} />
+                ) : (
+                  <ARViewer src={modelUrl} />
+                )}
               </div>
-              {typeof selectedStock === "number" && (
-                <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
-                  Stock: {selectedStock}
-                </div>
-              )}
-            </div>
+            ) : (
+              <img src={fallbackImage} alt="Main" className="main-image" />
+            )}
           </div>
 
-          {/* Size selector */}
-          {formattedSizes.length > 0 && (
-            <div className="size-selector" style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 6 }}>
-                Select Size:
-              </label>
-              <select
-                value={selectedSize}
-                onChange={(e) => setSelectedSize(e.target.value)}
-              >
-                <option value="">Choose a size</option>
-                {formattedSizes.map((s, i) => (
-                  <option key={i} value={s.size}>
-                    {s.size}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div style={{ margin: "12px 0", fontWeight: 700 }}>
-            Total ({quantity} item{quantity > 1 ? "s" : ""}): ₱
-            {(selectedPrice * quantity).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </div>
-
-          <details className="desc-section" open>
-            <summary>Description</summary>
-            <p>{product.description || "No description available."}</p>
-          </details>
-
-          <div className="button-row" style={{ marginTop: 12 }}>
-            {hasGLB && (
-              <button className="ar-button" onClick={handleARClick}>
-                Visualize it in your vehicle
-              </button>
+          {/* RIGHT INFO */}
+          <div className="product-info">
+            {vehicleLabel && (
+              <div className="fitment-context">
+                🚗 Fitment for: <strong>{vehicleLabel}</strong>
+              </div>
             )}
 
-            <button
-              className="reserve-button"
-              onClick={handleReserveClick}
-              disabled={
-                // NEW LOGIC
-                formattedSizes.length > 0
-                  ? !selectedSize
-                  : !selectedPrice && selectedPrice !== 0
-              }
-            >
-              Reserve Now
-            </button>
+            <span className="tag">NEW</span>
 
-            <button
-              className="icon-button"
-              onClick={handleAddToCart}
-              title="Add to My Selections"
-              disabled={
-                formattedSizes.length > 0
-                  ? !selectedSize
-                  : !selectedPrice && selectedPrice !== 0
-              }
+            <h2 className="brand-logo">{passedBrand || product.brand}</h2>
+            <h1 className="product-name">{passedModel || product.model}</h1>
+
+            <p className="price">
+              ₱
+              {(selectedPrice ?? 0).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+              <span style={{ fontSize: "14px", opacity: 0.7, marginLeft: 4 }}>
+                {productType === "products_mags" ? "/set" : "/piece"}
+              </span>
+            </p>
+
+            {/* Quantity */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 12,
+              }}
             >
-              <FiShoppingCart size={24} />
-            </button>
+              <div>
+                <label style={{ display: "block", fontSize: 14 }}>
+                  {productType === "products_mags"
+                    ? "Quantity (per set)"
+                    : "Quantity (per piece)"}
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={decreaseQty} className="qty-btn">
+                    -
+                  </button>
+                  <div style={{ minWidth: 36, textAlign: "center" }}>
+                    {quantity}
+                  </div>
+                  <button onClick={increaseQty} className="qty-btn">
+                    +
+                  </button>
+                </div>
+                {typeof selectedStock === "number" && (
+                  <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
+                    Stock: {selectedStock}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Size selector */}
+            {formattedSizes.length > 0 && (
+              <div className="size-selector" style={{ marginBottom: 12 }}>
+                <label style={{ display: "block", marginBottom: 6 }}>
+                  Select Size:
+                </label>
+                <select
+                  value={selectedSize}
+                  onChange={(e) => setSelectedSize(e.target.value)}
+                >
+                  <option value="">Choose a size</option>
+                  {formattedSizes.map((s, i) => (
+                    <option key={i} value={s.size}>
+                      {s.size}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div style={{ margin: "12px 0", fontWeight: 700 }}>
+              Total ({quantity} item{quantity > 1 ? "s" : ""}): ₱
+              {(selectedPrice * quantity).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+
+            <details className="desc-section" open>
+              <summary>Description</summary>
+              <p>{product.description || "No description available."}</p>
+            </details>
+
+            <div className="button-row" style={{ marginTop: 12 }}>
+              {hasGLB && (
+                <button className="ar-button" onClick={handleARClick}>
+                  Visualize it in your vehicle
+                </button>
+              )}
+
+              <button
+                className="reserve-button"
+                onClick={handleReserveClick}
+                disabled={
+                  // NEW LOGIC
+                  formattedSizes.length > 0
+                    ? !selectedSize
+                    : !selectedPrice && selectedPrice !== 0
+                }
+              >
+                Reserve Now
+              </button>
+
+              <button
+                className="icon-button"
+                onClick={handleAddToCart}
+                title="Add to My Selections"
+                disabled={
+                  formattedSizes.length > 0
+                    ? !selectedSize
+                    : !selectedPrice && selectedPrice !== 0
+                }
+              >
+                <FiShoppingCart size={24} />
+              </button>
+            </div>
+
+            {showAR && (
+              <button
+                className="exit-ar-button"
+                onClick={() => setShowAR(false)}
+              >
+                Exit AR Mode
+              </button>
+            )}
           </div>
-
-          {showAR && (
-            <button
-              className="exit-ar-button"
-              onClick={() => setShowAR(false)}
-            >
-              Exit AR Mode
-            </button>
-          )}
         </div>
       </div>
     </div>

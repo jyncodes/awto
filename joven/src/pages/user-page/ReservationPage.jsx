@@ -20,6 +20,8 @@ import axios from "axios";
 import "react-calendar/dist/Calendar.css";
 import "../../styles/user-styles/ReservationPage.css";
 
+import Navbar from "../../components/Navbar"; // ⭐ ADDED
+
 const ReservationPage = () => {
   const { productId } = useParams();
   const location = useLocation();
@@ -54,7 +56,8 @@ const ReservationPage = () => {
   const [loadingDownpayment, setLoadingDownpayment] = useState(true);
 
   const MAX_BOOKINGS_PER_DATE = 3;
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+  const BACKEND_URL =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
   // ================= LOAD DOWNPAYMENT =================
   useEffect(() => {
@@ -73,7 +76,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
     loadDownpayment();
   }, []);
 
-  // ================= AUTO-FILL BRAND & MODEL =================
+  // ================= AUTO-FILL VEHICLE INFO =================
   useEffect(() => {
     if (typeof passedVehicle === "string") {
       const [brandModel] = passedVehicle.split(" - ");
@@ -196,7 +199,9 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
     if (!prod) return { productName: "Unknown Product", size: "", type: "" };
 
     const type =
-      prod.type || (prod.productId?.startsWith("MA-") ? "Mags" : "Tire") || "";
+      prod.type ||
+      (prod.productId?.startsWith("MA-") ? "Mags" : "Tire") ||
+      "";
 
     if (type.toLowerCase().includes("tire")) {
       const w = prod.tireWidth || prod.width || "";
@@ -205,7 +210,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
       const size =
         w && ar ? `${w}/${ar}R${rim || ""}`.replace(/R$/, "") : prod.size || "";
       return {
-        productName: `${prod.brand || ""} ${prod.model || ""} ${size}`.trim() || "Tire",
+        productName: `${prod.brand || ""} ${prod.model || ""} ${size}`.trim(),
         size,
         type: "Tire",
       };
@@ -216,14 +221,14 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
       const dia = prod.wheelDiameter || "";
       const size = w && dia ? `${w}x${dia}` : prod.size || "";
       return {
-        productName: `${prod.brand || ""} ${prod.model || ""} ${size}`.trim() || "Mags",
+        productName: `${prod.brand || ""} ${prod.model || ""} ${size}`.trim(),
         size,
         type: "Mags",
       };
     }
 
     return {
-      productName: `${prod.brand || ""} ${prod.model || ""} ${prod.size || ""}`.trim() || "Product",
+      productName: `${prod.brand || ""} ${prod.model || ""} ${prod.size || ""}`.trim(),
       size: prod.size || "",
       type,
     };
@@ -242,7 +247,8 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
       return alert("Fill out all required fields.");
     if (!product) return alert("Product not found.");
 
-    if (vehicleYearError || plateError) return alert("Fix errors before submitting.");
+    if (vehicleYearError || plateError)
+      return alert("Fix errors before submitting.");
 
     const chosenDate = new Date(preferredDate);
     chosenDate.setHours(0, 0, 0, 0);
@@ -319,114 +325,127 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
   if (loading || loadingDownpayment)
     return <div className="reservation-page">Loading...</div>;
 
-  if (!product) return <div className="reservation-page">Product not found.</div>;
+  if (!product)
+    return <div className="reservation-page">Product not found.</div>;
 
   const { productName: headerName } = buildProductDetails(product);
 
   return (
-    <div className="reservation-page">
-      <button className="back-button" onClick={() => navigate(-1)}>
-        ← Back
-      </button>
+    <div className="reservation-page-wrapper">
+      <Navbar /> {/* ⭐ ADDED */}
 
-      <h2>Reserve: {headerName}</h2>
-
-      <div className="reservation-form">
-        <label>Vehicle Info</label>
-        <div className="vehicle-row">
-          <input
-            value={vehicleBrand}
-            onChange={(e) => setVehicleBrand(e.target.value)}
-            placeholder="Brand"
-            disabled={!!passedVehicle}
-            className={passedVehicle ? "disabled-input" : ""}
-          />
-          <input
-            value={vehicleModel}
-            onChange={(e) => setVehicleModel(e.target.value)}
-            placeholder="Model"
-            disabled={!!passedVehicle}
-            className={passedVehicle ? "disabled-input" : ""}
-          />
-          <input
-            value={vehicleYear}
-            onChange={(e) => {
-              let year = e.target.value.replace(/\D/g, "");
-              if (year.length > 4) year = year.slice(0, 4);
-              setVehicleYear(year);
-
-              if (year && (year < 2000 || year > 2026)) {
-                setVehicleYearError("Year must be between 2000 and 2026");
-              } else {
-                setVehicleYearError("");
-              }
-            }}
-            placeholder="Year (2000–2026)"
-            className={vehicleYearError ? "invalid" : ""}
-          />
-        </div>
-
-        {vehicleYearError && <span className="plate-error">{vehicleYearError}</span>}
-
-        <div className="plate-number-container">
-          <label className="plate-label">Plate Number</label>
-
-          <input
-            className={`plate-input ${plateError ? "invalid" : ""}`}
-            value={plateNumber}
-            onChange={(e) => {
-              let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-              if (value.length > 7) value = value.slice(0, 7);
-              setPlateNumber(value);
-
-              const newPlate = /^[A-Z]{3}[0-9]{3,4}$/;
-              const isValid = newPlate.test(value);
-
-              if (!isValid && value !== "") {
-                setPlateError("Invalid plate number (Format: AAA123 or AAA1234)");
-              } else {
-                setPlateError("");
-              }
-            }}
-            placeholder="AAA123 or AAA1234"
-          />
-
-          {plateError && <span className="plate-error">{plateError}</span>}
-        </div>
-
-        <label>Preferred Date</label>
-        <Calendar
-          onChange={setPreferredDate}
-          value={preferredDate}
-          minDate={new Date()}
-          tileDisabled={tileDisabled}
-        />
-
-        <label>Additional Notes</label>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Request or instruction..."
-        />
-
-        <div className="price-summary">
-          <p>
-            <strong>Price per Item:</strong> ₱{pricePerItem.toLocaleString()}
-          </p>
-          <p>
-            <strong>Quantity:</strong> {quantity}
-          </p>
-          <p>
-            <strong>Total Price:</strong> ₱{(pricePerItem * quantity).toLocaleString()}
-          </p>
-          <p>
-            <strong>Downpayment:</strong> ₱{downpayment}
-          </p>
-        </div>
-
-        <button className="submit-btn" onClick={handleSubmit}>
-          Submit Reservation
+      <div className="reservation-page">
+        <button className="back-button" onClick={() => navigate(-1)}>
+          ← Back
         </button>
+
+        <h2>Reserve: {headerName}</h2>
+
+        <div className="reservation-form">
+          <label>Vehicle Info</label>
+          <div className="vehicle-row">
+            <input
+              value={vehicleBrand}
+              onChange={(e) => setVehicleBrand(e.target.value)}
+              placeholder="Brand"
+              disabled={!!passedVehicle}
+              className={passedVehicle ? "disabled-input" : ""}
+            />
+            <input
+              value={vehicleModel}
+              onChange={(e) => setVehicleModel(e.target.value)}
+              placeholder="Model"
+              disabled={!!passedVehicle}
+              className={passedVehicle ? "disabled-input" : ""}
+            />
+            <input
+              value={vehicleYear}
+              onChange={(e) => {
+                let year = e.target.value.replace(/\D/g, "");
+                if (year.length > 4) year = year.slice(0, 4);
+                setVehicleYear(year);
+
+                if (year && (year < 2000 || year > 2026)) {
+                  setVehicleYearError("Year must be between 2000 and 2026");
+                } else {
+                  setVehicleYearError("");
+                }
+              }}
+              placeholder="Year (2000–2026)"
+              className={vehicleYearError ? "invalid" : ""}
+            />
+          </div>
+
+          {vehicleYearError && (
+            <span className="plate-error">{vehicleYearError}</span>
+          )}
+
+          <div className="plate-number-container">
+            <label className="plate-label">Plate Number</label>
+
+            <input
+              className={`plate-input ${plateError ? "invalid" : ""}`}
+              value={plateNumber}
+              onChange={(e) => {
+                let value = e.target.value
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, "");
+                if (value.length > 7) value = value.slice(0, 7);
+                setPlateNumber(value);
+
+                const newPlate = /^[A-Z]{3}[0-9]{3,4}$/;
+                const isValid = newPlate.test(value);
+
+                if (!isValid && value !== "") {
+                  setPlateError(
+                    "Invalid plate number (Format: AAA123 or AAA1234)"
+                  );
+                } else {
+                  setPlateError("");
+                }
+              }}
+              placeholder="AAA123 or AAA1234"
+            />
+
+            {plateError && <span className="plate-error">{plateError}</span>}
+          </div>
+
+          <label>Preferred Date</label>
+          <Calendar
+            onChange={setPreferredDate}
+            value={preferredDate}
+            minDate={new Date()}
+            tileDisabled={tileDisabled}
+          />
+
+          <label>Additional Notes</label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Request or instruction..."
+          />
+
+          <div className="price-summary">
+            <p>
+              <strong>Price per Item:</strong> ₱
+              {pricePerItem.toLocaleString()}
+            </p>
+            <p>
+              <strong>Quantity:</strong> {quantity}
+            </p>
+            <p>
+              <strong>Total Price:</strong> ₱
+              {(pricePerItem * quantity).toLocaleString()}
+            </p>
+            <p>
+              <strong>Downpayment:</strong> ₱{downpayment}
+            </p>
+          </div>
+
+          <button className="submit-btn" onClick={handleSubmit}>
+            Submit Reservation
+          </button>
+        </div>
       </div>
     </div>
   );
