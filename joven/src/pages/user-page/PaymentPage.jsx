@@ -6,8 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/PaymentPage.css";
 
-import Navbar from "../../components/Navbar"; // ⭐ ADDED
-
+import Navbar from "../../components/Navbar"; 
 const PaymentPage = () => {
   const { reservationId } = useParams();
   const navigate = useNavigate();
@@ -177,7 +176,7 @@ const PaymentPage = () => {
                 <h4>Pay with PayPal / Card</h4>
 
                 <form
-                  action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?return=http://localhost:5173/payment-success`}
+                action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?redirect_url=http://localhost:5173/payment-success`}
                   method="post"
                   target="_self" /** ⚠ SAME TAB + AUTO REDIRECT */
                   onSubmit={handlePayClick}
