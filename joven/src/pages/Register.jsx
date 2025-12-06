@@ -1,72 +1,188 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../firebase';
-import Navbar from '../components/Navbar';
-import '../styles/LandingPage.css';
-import { Eye, EyeOff } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../firebase";
+import Navbar from "../components/Navbar";
+import "../styles/Register.css";
 
 const Register = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    address: '',
-    gender: '',
-    birthday: '',
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    address: "",
+    gender: "",
+    birthday: "",
     terms: false,
   });
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-    setErrors(prev => ({ ...prev, [name]: '' }));
+  // PASSWORD CHECKLIST STATE
+  const [passwordChecklist, setPasswordChecklist] = useState({
+    show: false,
+    length: false,
+    uppercase: false,
+    special: false,
+  });
+
+  // Auto-limit birthday picker to 18 years old
+  const getMinAgeDate = () => {
+    const today = new Date();
+    today.setFullYear(today.getFullYear() - 18);
+    return today.toISOString().split("T")[0];
   };
 
+  // LIVE VALIDATION HANDLER
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+
+    // NAME VALIDATION (letters only + cannot start with space)
+    if (name === "name" && value !== "") {
+      if (!/^[A-Za-z][A-Za-z ]*$/.test(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          name: "Name must contain letters only and cannot start with a space.",
+        }));
+      }
+    }
+
+    // EMAIL VALIDATION
+    if (name === "email" && value !== "") {
+      const emailRegex = /^[^\s@]+@gmail\.com$/;
+      if (!emailRegex.test(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          email: "Email must end with @gmail.com",
+        }));
+      }
+    }
+
+    // PASSWORD LIVE CHECKLIST
+    if (name === "password") {
+      const lengthOK = value.length >= 8;
+      const upperOK = /[A-Z]/.test(value);
+      const specialOK = /[!@#$%^&*(),.?":{}|<>]/.test(value);
+
+      setPasswordChecklist({
+        show: value !== "",
+        length: lengthOK,
+        uppercase: upperOK,
+        special: specialOK,
+      });
+
+      if (lengthOK && upperOK && specialOK) {
+        setErrors((prev) => ({ ...prev, password: "" }));
+      }
+    }
+
+    // CONFIRM PASSWORD VALIDATION
+    if (name === "confirmPassword" && value !== "") {
+      if (value !== formData.password) {
+        setErrors((prev) => ({
+          ...prev,
+          confirmPassword: "Passwords do not match.",
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, confirmPassword: "" }));
+      }
+    }
+
+    // AGE VALIDATION (18+)
+    if (name === "birthday" && value !== "") {
+      const birthDate = new Date(value);
+      const today = new Date();
+
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+
+      const is18 =
+        age > 18 ||
+        (age === 18 && monthDiff >= 0) ||
+        (age === 18 && monthDiff === 0 && today.getDate() >= birthDate.getDate());
+
+      if (!is18) {
+        setErrors((prev) => ({
+          ...prev,
+          birthday: "You must be 18 years old or above.",
+        }));
+      }
+    }
+  };
+
+  // FINAL FORM VALIDATION
   const validateForm = () => {
-    const { name, email, password, confirmPassword, address, gender, birthday, terms } = formData;
+    const {
+      name,
+      email,
+      password,
+      confirmPassword,
+      address,
+      gender,
+      birthday,
+      terms,
+    } = formData;
     let tempErrors = {};
 
-    if (!name) tempErrors.name = 'Name is required.';
-    if (!email) tempErrors.email = 'Email is required.';
-    if (!password) tempErrors.password = 'Password is required.';
-    if (!confirmPassword) tempErrors.confirmPassword = 'Please confirm your password.';
-    if (!address) tempErrors.address = 'Address is required.';
-    if (!gender) tempErrors.gender = 'Gender is required.';
-    if (!birthday) tempErrors.birthday = 'Birthday is required.';
-    if (!terms) tempErrors.terms = 'You must accept the Terms & Conditions.';
+    if (!name) tempErrors.name = "Name is required.";
+    if (!email) tempErrors.email = "Email is required.";
+    if (!password) tempErrors.password = "Password is required.";
+    if (!confirmPassword)
+      tempErrors.confirmPassword = "Please confirm your password.";
+    if (!address) tempErrors.address = "Address is required.";
+    if (!gender) tempErrors.gender = "Gender is required.";
+    if (!birthday) tempErrors.birthday = "Birthday is required.";
+    if (!terms)
+      tempErrors.terms = "You must accept the Terms & Conditions.";
 
-    // Gmail only
+    // FINAL EMAIL CHECK
     const emailRegex = /^[^\s@]+@gmail\.com$/;
-    if (email && !emailRegex.test(email)) tempErrors.email = 'Please use a valid Gmail address.';
+    if (email && !emailRegex.test(email)) {
+      tempErrors.email = "Please use a valid Gmail address.";
+    }
 
-    // Strong password
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-={}\[\]|:;"'<>,.?/]).{8,}$/;
+    // FINAL PASSWORD CHECK
+    const passwordRegex =
+      /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
     if (password && !passwordRegex.test(password)) {
-      tempErrors.password = 'Password is not strong enough.';
-      tempErrors.confirmPassword = 'Password is not strong enough.';
+      tempErrors.password =
+        "Password must have 8 chars, 1 uppercase, 1 special character.";
     }
 
-    // Confirm password match
-    if (password && confirmPassword && password !== confirmPassword) {
-      tempErrors.confirmPassword = 'Passwords do not match.';
+    // FINAL CONFIRM MATCH
+    if (password !== confirmPassword) {
+      tempErrors.confirmPassword = "Passwords do not match.";
     }
 
-    // Birthday check
+    // FINAL AGE CHECK
     const birthDate = new Date(birthday);
     const today = new Date();
-    if (birthday && birthDate > today) tempErrors.birthday = 'Birthday cannot be in the future.';
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    const is18 =
+      age > 18 ||
+      (age === 18 && monthDiff >= 0) ||
+      (age === 18 && monthDiff === 0 && today.getDate() >= birthDate.getDate());
+
+    if (birthday && !is18) {
+      tempErrors.birthday = "You must be 18 years old or above.";
+    }
 
     setErrors(tempErrors);
 
@@ -78,27 +194,31 @@ const Register = () => {
     if (!validateForm()) return;
 
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      await sendEmailVerification(user);
-      navigate('/verify');
+      const { user } = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
 
-      await setDoc(doc(db, 'users', user.uid), {
+      await sendEmailVerification(user);
+      navigate("/verify");
+
+      await setDoc(doc(db, "users", user.uid), {
         name: formData.name,
         email: formData.email,
         address: formData.address,
         gender: formData.gender,
         birthday: formData.birthday,
-        role: 'User',
+        role: "User",
         createdAt: serverTimestamp(),
       });
 
-      await setDoc(doc(db, '2fa', user.uid), {
+      await setDoc(doc(db, "2fa", user.uid), {
         enabled: false,
         lastOTP: null,
         expiresAt: null,
       });
     } catch (error) {
-      console.error('Registration error:', error);
       alert(error.message);
     }
   };
@@ -106,15 +226,17 @@ const Register = () => {
   return (
     <>
       <Navbar />
-      <div className="login-form" style={{ maxWidth: '500px', margin: '4rem auto' }}>
-        <h2 style={{ marginBottom: '1.5rem' }}>Create an Account</h2>
+
+      <div className="login-form">
+        <h2>Create an Account</h2>
+
         <form onSubmit={handleRegister}>
-          {/* Name */}
-          <label className="form-label" htmlFor="name">Name:</label>
+          {/* NAME */}
+          <label>Name:</label>
           {errors.name && <p className="error-text">{errors.name}</p>}
           <input
             id="name"
-            className={`form-input ${errors.name ? 'input-error' : ''}`}
+            className={`form-input ${errors.name ? "input-error" : ""}`}
             type="text"
             name="name"
             value={formData.name}
@@ -123,12 +245,12 @@ const Register = () => {
             required
           />
 
-          {/* Email */}
-          <label className="form-label" htmlFor="email">Email (Gmail only):</label>
+          {/* EMAIL */}
+          <label>Email (Gmail only):</label>
           {errors.email && <p className="error-text">{errors.email}</p>}
           <input
             id="email"
-            className={`form-input ${errors.email ? 'input-error' : ''}`}
+            className={`form-input ${errors.email ? "input-error" : ""}`}
             type="email"
             name="email"
             value={formData.email}
@@ -137,60 +259,78 @@ const Register = () => {
             required
           />
 
-          {/* Password */}
-          <label className="form-label" htmlFor="password">Password:</label>
+          {/* PASSWORD */}
+          <label>Password:</label>
           {errors.password && <p className="error-text">{errors.password}</p>}
-          <div className="password-wrapper">
+
+          <input
+            id="password"
+            className={`form-input ${errors.password ? "input-error" : ""}`}
+            type={showPassword ? "text" : "password"}
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            onFocus={() =>
+              setPasswordChecklist((prev) => ({ ...prev, show: true }))
+            }
+            placeholder="Create a strong password"
+            required
+          />
+
+          {/* CHECKLIST WITH CHECK ICONS */}
+          {passwordChecklist.show && (
+            <ul className="password-checklist">
+              <li style={{ color: passwordChecklist.length ? "green" : "red" }}>
+                {passwordChecklist.length ? "✔" : "✖"} At least 8 characters
+              </li>
+              <li style={{ color: passwordChecklist.uppercase ? "green" : "red" }}>
+                {passwordChecklist.uppercase ? "✔" : "✖"} At least 1 uppercase letter
+              </li>
+              <li style={{ color: passwordChecklist.special ? "green" : "red" }}>
+                {passwordChecklist.special ? "✔" : "✖"} At least 1 special character
+              </li>
+            </ul>
+          )}
+
+          {/* CONFIRM PASSWORD */}
+          <label>Confirm Password:</label>
+          {errors.confirmPassword && (
+            <p className="error-text">{errors.confirmPassword}</p>
+          )}
+
+          <input
+            id="confirmPassword"
+            className={`form-input ${
+              errors.confirmPassword ? "input-error" : ""
+            }`}
+            type={showPassword ? "text" : "password"}
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            onFocus={() =>
+              setPasswordChecklist((prev) => ({ ...prev, show: true }))
+            }
+            placeholder="Confirm your password"
+            required
+          />
+
+          {/* SHOW PASSWORD CHECKBOX */}
+          <div className="show-password">
             <input
-              id="password"
-              className={`form-input ${errors.password ? 'input-error' : ''}`}
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Create a strong password"
-              required
+              type="checkbox"
+              checked={showPassword}
+              onChange={() => setShowPassword(!showPassword)}
+              id="showpass"
             />
-            <div
-              className="password-toggle"
-              onMouseDown={() => setShowPassword(true)}
-              onMouseUp={() => setShowPassword(false)}
-              onMouseLeave={() => setShowPassword(false)}
-            >
-              {showPassword ? <EyeOff /> : <Eye />}
-            </div>
+            <label htmlFor="showpass">Show password</label>
           </div>
 
-          {/* Confirm Password */}
-          <label className="form-label" htmlFor="confirmPassword">Confirm Password:</label>
-          {errors.confirmPassword && <p className="error-text">{errors.confirmPassword}</p>}
-          <div className="password-wrapper">
-            <input
-              id="confirmPassword"
-              className={`form-input ${errors.confirmPassword ? 'input-error' : ''}`}
-              type={showConfirm ? 'text' : 'password'}
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm your password"
-              required
-            />
-            <div
-              className="password-toggle"
-              onMouseDown={() => setShowConfirm(true)}
-              onMouseUp={() => setShowConfirm(false)}
-              onMouseLeave={() => setShowConfirm(false)}
-            >
-              {showConfirm ? <EyeOff /> : <Eye />}
-            </div>
-          </div>
-
-          {/* Address */}
-          <label className="form-label" htmlFor="address">Address:</label>
+          {/* ADDRESS */}
+          <label>Address:</label>
           {errors.address && <p className="error-text">{errors.address}</p>}
           <input
             id="address"
-            className={`form-input ${errors.address ? 'input-error' : ''}`}
+            className={`form-input ${errors.address ? "input-error" : ""}`}
             type="text"
             name="address"
             value={formData.address}
@@ -199,12 +339,12 @@ const Register = () => {
             required
           />
 
-          {/* Gender */}
-          <label className="form-label" htmlFor="gender">Gender:</label>
+          {/* GENDER */}
+          <label>Gender:</label>
           {errors.gender && <p className="error-text">{errors.gender}</p>}
           <select
             id="gender"
-            className={`form-input ${errors.gender ? 'input-error' : ''}`}
+            className={`form-input ${errors.gender ? "input-error" : ""}`}
             name="gender"
             value={formData.gender}
             onChange={handleChange}
@@ -216,53 +356,41 @@ const Register = () => {
             <option value="Other">Other</option>
           </select>
 
-          {/* Birthday */}
-          <label className="form-label" htmlFor="birthday">Birthday:</label>
+          {/* BIRTHDAY (AUTO-LIMITED TO 18 YEARS) */}
+          <label>Birthday:</label>
           {errors.birthday && <p className="error-text">{errors.birthday}</p>}
           <input
             id="birthday"
-            className={`form-input ${errors.birthday ? 'input-error' : ''}`}
+            className={`form-input ${errors.birthday ? "input-error" : ""}`}
             type="date"
             name="birthday"
+            max={getMinAgeDate()}
             value={formData.birthday}
             onChange={handleChange}
             required
           />
 
-          {/* Terms & Conditions */}
-          <div style={{ margin: '1rem 0' }}>
+          {/* TERMS */}
+          <div>
             <input
               type="checkbox"
               name="terms"
               checked={formData.terms}
               onChange={handleChange}
               id="terms"
-            />{' '}
+            />{" "}
             <label htmlFor="terms">I accept the Terms & Conditions</label>
             {errors.terms && <p className="error-text">{errors.terms}</p>}
           </div>
 
+          {/* SUBMIT */}
           <button
             className="register-button"
             type="submit"
             disabled={!formData.terms}
-            style={{
-              marginTop: "1rem",
-              backgroundColor: !formData.terms ? "#ffa366" : "#ff6600",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              padding: "12px 20px",
-              fontSize: "16px",
-              fontWeight: 600,
-              cursor: !formData.terms ? "not-allowed" : "pointer",
-              boxShadow: !formData.terms ? "none" : "0 4px 6px rgba(0,0,0,0.2)",
-              transition: "all 0.3s ease",
-            }}
           >
             Register
           </button>
-
         </form>
       </div>
     </>

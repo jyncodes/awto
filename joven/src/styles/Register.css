@@ -1,150 +1,120 @@
-/* ================= Register Page ================= */
+/* REGISTER PAGE MAIN WRAPPER */
 .login-form {
-  background-color: #ffffff;
-  padding: 2.5rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  font-family: 'Poppins', sans-serif;
   max-width: 500px;
   margin: 4rem auto;
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.05);
 }
 
+/* TITLE */
 .login-form h2 {
-  color: #ffb75b;
   text-align: center;
-  font-size: 2rem;
+  font-size: 24px;
+  margin-bottom: 1.5rem;
+  color: #333;
   font-weight: 600;
-  margin-bottom: 2rem;
 }
 
+/* LABELS */
 .form-label {
   display: block;
-  margin-bottom: 0.3rem;
+  font-size: 15px;
+  margin-bottom: 6px;
+  margin-top: 12px;
+  color: #555;
   font-weight: 500;
-  color: #333;
 }
 
+/* INPUT FIELDS */
 .form-input {
   width: 100%;
-  padding: 0.7rem 1rem;
-  margin-bottom: 1rem;
-  border: 2px solid #ddd;
-  border-radius: 10px;
-  font-size: 1rem;
-  transition: border 0.3s, box-shadow 0.3s;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  outline: none;
+  font-size: 15px;
+  transition: all 0.2s ease;
 }
 
 .form-input:focus {
-  border-color: #ffb75b;
-  box-shadow: 0 0 0 3px rgba(255, 183, 91, 0.2);
-  outline: none;
+  border-color: #f39c12;
+  box-shadow: 0 0 5px rgba(243, 156, 18, 0.3);
 }
 
+/* ERROR STATE */
 .input-error {
-  border-color: #ff4d4d !important;
+  border-color: #e74c3c !important;
+  background-color: #ffefef;
 }
 
+/* ERROR TEXT */
 .error-text {
-  color: #ff4d4d;
-  font-size: 0.85rem;
-  margin-top: -0.5rem;
-  margin-bottom: 0.7rem;
+  color: #e74c3c;
+  font-size: 14px;
+  margin: 4px 0 6px 0;
 }
 
-.password-wrapper {
-  position: relative;
-}
-
-.password-toggle {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: #ffb75b;
-}
-
-select.form-input {
-  -webkit-appearance: none;
-  -moz-appearance: none;
+/* SELECT DROPDOWN SAME STYLE */
+.form-input select {
   appearance: none;
-  background-color: #fff;
-  padding-right: 2.5rem;
 }
 
+/* PASSWORD CHECKLIST */
+.password-checklist {
+  margin: 8px 0 0 0;
+  padding-left: 18px;
+}
+
+.password-checklist li {
+  font-size: 14px;
+  margin: 3px 0;
+  list-style: disc;
+}
+
+/* REGISTER BUTTON */
 .register-button {
   width: 100%;
-  padding: 0.85rem;
-  background-color: #ffb75b;
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: 12px;
+  margin-top: 1rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
+  background-color: #f39c12;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s;
+  transition: all 0.3s ease;
 }
 
-.register-button:hover:not(:disabled) {
-  background-color: #ff9f2c;
-  transform: translateY(-2px);
+.register-button:hover {
+  background-color: #d68910;
 }
 
 .register-button:disabled {
-  background-color: #ffb75b80;
+  background-color: #e8b770 !important;
   cursor: not-allowed;
 }
 
-input[type="checkbox"] {
-  width: auto;
-  margin-right: 0.5rem;
-  accent-color: #ffb75b;
+/* SHOW PASSWORD CHECKBOX */
+.show-password {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
 }
 
-label[for="terms"] {
-  font-size: 0.95rem;
-  color: #333;
-}
-
-/* ================ Responsive ================ */
-@media (max-width: 768px) {
-  .login-form {
-    padding: 2rem 1.5rem;
-    margin: 2rem 1rem;
-  }
-
-  .form-input {
-    font-size: 0.95rem;
-    padding: 0.6rem 0.9rem;
-  }
-
-  .register-button {
-    font-size: 0.95rem;
-    padding: 0.7rem;
-  }
-
-  .login-form h2 {
-    font-size: 1.7rem;
-  }
-}
-
+/* RESPONSIVE */
 @media (max-width: 480px) {
   .login-form {
-    padding: 1.5rem 1rem;
-    margin: 1rem 0.5rem;
-  }
-
-  .form-input {
-    font-size: 0.9rem;
-    padding: 0.5rem 0.8rem;
-  }
-
-  .register-button {
-    font-size: 0.9rem;
-    padding: 0.65rem;
+    padding: 1.5rem;
+    margin: 2rem auto;
   }
 
   .login-form h2 {
-    font-size: 1.5rem;
+    font-size: 20px;
   }
 }
