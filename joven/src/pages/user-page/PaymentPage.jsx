@@ -106,8 +106,7 @@ const PaymentPage = () => {
      HANDLE PAYPAL BUTTON CLICK
   ----------------------------------------- */
   const handlePayClick = async () => {
-
-    // Store current reservation for verification on PaymentSuccess page
+    // Store reservation for PaymentSuccess
     localStorage.setItem("activeReservationId", reservationId);
 
     await updateDoc(doc(db, "reservations", reservationId), {
@@ -124,7 +123,7 @@ const PaymentPage = () => {
   ----------------------------------------- */
   return (
     <div className="payment-page-wrapper">
-      <Navbar />  {/* ⭐ ADDED */}
+      <Navbar />
 
       <div className="payment-page">
         <h2>Reservation Invoice</h2>
@@ -172,15 +171,15 @@ const PaymentPage = () => {
               </button>
             </div>
 
-            {/* PAYPAL BUTTON */}
+            {/* PAYPAL BUTTON (UPDATED) */}
             {!disablePayments && (
               <div className="paypal-section">
                 <h4>Pay with PayPal / Card</h4>
 
                 <form
-                  action="https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC"
+                  action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?return=http://localhost:5173/payment-success`}
                   method="post"
-                  target="_blank"
+                  target="_self" /** ⚠ SAME TAB + AUTO REDIRECT */
                   onSubmit={handlePayClick}
                   style={{
                     display: "inline-grid",
@@ -229,10 +228,7 @@ const PaymentPage = () => {
               </button>
             )}
 
-            <button
-              className="pay-later-button"
-              onClick={() => navigate("/profile?tab=reservations")}
-            >
+            <button className="pay-later-button" onClick={() => navigate("/profile?tab=reservations")}>
               Pay Later
             </button>
 

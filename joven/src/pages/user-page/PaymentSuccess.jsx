@@ -13,6 +13,7 @@ const PaymentSuccess = () => {
 
   const [status, setStatus] = useState("Processing payment...");
   const [reservation, setReservation] = useState(null);
+  const [reservationDocId, setReservationDocId] = useState(null); // <-- FIX
   const [transactionId, setTransactionId] = useState(null);
 
   useEffect(() => {
@@ -42,8 +43,12 @@ const PaymentSuccess = () => {
           setStatus("⚠ Payment could not be verified.");
         }
 
+        // Fetch updated reservation details
         const snap = await getDoc(doc(db, "reservations", reservationId));
-        if (snap.exists()) setReservation(snap.data());
+        if (snap.exists()) {
+          setReservation(snap.data());
+          setReservationDocId(snap.id); // <-- FIX: Save the document ID
+        }
 
         localStorage.removeItem("activeReservationId");
       } catch (err) {
@@ -51,11 +56,13 @@ const PaymentSuccess = () => {
         setStatus("❌ Error verifying payment.");
       }
 
+      // Redirect after 6s
       setTimeout(() => navigate("/profile?tab=reservations"), 6000);
     };
 
     verifyPayment();
   }, [location, navigate, BACKEND_URL]);
+
 
   /* ------------------------------ 🔧 Generate Receipt PDF ------------------------------ */
   const downloadReceipt = () => {
@@ -71,7 +78,7 @@ const PaymentSuccess = () => {
 
     docPDF.line(15, 30, 195, 30);
 
-    docPDF.text(`Reservation ID: ${reservation.id}`, 15, 40);
+    docPDF.text(`Reservation ID: ${reservationDocId}`, 15, 40);
     docPDF.text(`Customer: ${reservation.userName}`, 15, 50);
     docPDF.text(`Product: ${reservation.productName}`, 15, 60);
     docPDF.text(`Downpayment: ₱${reservation.downpayment?.toLocaleString()}`, 15, 70);
@@ -82,8 +89,9 @@ const PaymentSuccess = () => {
 
     docPDF.text("Thank you for your payment!", 15, 115);
 
-    docPDF.save(`Receipt-${reservation.id}.pdf`);
+    docPDF.save(`Receipt-${reservationDocId}.pdf`);
   };
+
 
   return (
     <div className="payment-page" style={{ animation: "fadeIn 0.4s" }}>
@@ -96,7 +104,7 @@ const PaymentSuccess = () => {
 
         {reservation && (
           <div style={{ marginTop: "12px", textAlign: "left" }}>
-            <p><strong>Reservation ID:</strong> {reservation.id}</p>
+            <p><strong>Reservation ID:</strong> {reservationDocId}</p>
             <p><strong>Product:</strong> {reservation.productName}</p>
             <p><strong>Downpayment Paid:</strong> ₱{reservation.downpayment?.toLocaleString()}</p>
             <p><strong>Customer:</strong> {reservation.userName}</p>
@@ -108,7 +116,7 @@ const PaymentSuccess = () => {
           </div>
         )}
 
-        {/* 📎 New: Receipt Button */}
+        {/* 📄 Download Receipt Button */}
         {reservation && (
           <button
             className="pay-button"
