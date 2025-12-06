@@ -176,7 +176,7 @@ const PaymentPage = () => {
                 <h4>Pay with PayPal / Card</h4>
 
                 <form
-                action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?redirect_url=http://localhost:5173/payment-success`}
+                action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?return=http://localhost:5173/payment-success&cancel_return=http://localhost:5173/payment-failed`}
                   method="post"
                   target="_self" /** ⚠ SAME TAB + AUTO REDIRECT */
                   onSubmit={handlePayClick}
