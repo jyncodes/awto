@@ -1,7 +1,7 @@
 // src/pages/user-page/UserProfile.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { auth, db, storage } from "../../firebase";
+import { auth, db } from "../../firebase";
 import {
   doc,
   getDoc,
@@ -11,7 +11,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
 import {
   onAuthStateChanged,
   updatePassword,
@@ -20,25 +20,32 @@ import {
 } from "firebase/auth";
 
 import "../../styles/user-styles/UserProfile.css";
-
-// ⭐ ADD THIS ✔
 import Navbar from "../../components/Navbar";
+
+const PASSWORD_RULES = {
+  minLength: 8,
+  uppercase: /[A-Z]/,
+  special: /[!@#$%^&*(),.?":{}|<>]/,
+};
 
 const UserProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [userData, setUserData] = useState({});
-  const [photoURL, setPhotoURL] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [editedData, setEditedData] = useState({}); // <-- NEW: Editable temp data
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("profile");
+  const [logoutLoading, setLogoutLoading] = useState(false);
+
+  const [activeTab, setActiveTab] = useState("myaccount");
   const [reservations, setReservations] = useState([]);
   const [sidebarVisible, setSidebarVisible] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordErrors, setPasswordErrors] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
 
   const formatTimestamp = (ts) => {
     if (!ts?.toDate) return "N/A";
@@ -49,30 +56,38 @@ const UserProfile = () => {
     });
   };
 
+  // Fetch user data
   const fetchUserData = async (uid) => {
-    const userRef = doc(db, "users", uid);
-    const snap = await getDoc(userRef);
-    if (snap.exists()) {
-      const data = snap.data();
-      setUserData(data);
-      setPhotoURL(data.photoURL || "");
+    try {
+      const snap = await getDoc(doc(db, "users", uid));
+      if (snap.exists()) {
+        setUserData(snap.data());
+        setEditedData(snap.data()); // <-- form uses editedData
+      }
+    } catch (err) {
+      console.error("fetchUserData error:", err);
     }
   };
 
+  // Fetch reservations
   const fetchUserReservations = async (uid) => {
-    const q = query(collection(db, "reservations"), where("userId", "==", uid));
-    const snap = await getDocs(q);
+    try {
+      const q = query(collection(db, "reservations"), where("userId", "==", uid));
+      const snap = await getDocs(q);
+      const arr = [];
 
-    const arr = [];
-    snap.forEach((docItem) => arr.push({ id: docItem.id, ...docItem.data() }));
+      snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
 
-    arr.sort((a, b) => {
-      const aDate = a.preferredDate?.toDate?.() || 0;
-      const bDate = b.preferredDate?.toDate?.() || 0;
-      return bDate - aDate;
-    });
+      arr.sort((a, b) => {
+        const aDate = a.preferredDate?.toDate?.() || 0;
+        const bDate = b.preferredDate?.toDate?.() || 0;
+        return bDate - aDate;
+      });
 
-    setReservations(arr);
+      setReservations(arr);
+    } catch (err) {
+      console.error("fetchUserReservations error:", err);
+    }
   };
 
   useEffect(() => {
@@ -85,10 +100,10 @@ const UserProfile = () => {
         navigate("/login");
       }
     });
-
     return () => unsub();
   }, [navigate]);
 
+  // URL tab sync
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get("tab");
@@ -101,150 +116,324 @@ const UserProfile = () => {
     setSidebarVisible(false);
   };
 
-  const handleFileChange = (e) => setSelectedFile(e.target.files[0]);
-
+  // FORM updates editedData only
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUserData((prev) => ({ ...prev, [name]: value }));
+    setEditedData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // SAVE CHANGES — update Firestore AND update userData
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
-    const userRef = doc(db, "users", user.uid);
-
     try {
-      if (selectedFile) {
-        const imageRef = ref(storage, `profilePictures/${user.uid}`);
-        await uploadBytes(imageRef, selectedFile);
-        const url = await getDownloadURL(imageRef);
-        setPhotoURL(url);
-
-        await updateDoc(userRef, { ...userData, photoURL: url });
-      } else {
-        await updateDoc(userRef, userData);
-      }
+      await updateDoc(doc(db, "users", user.uid), editedData);
+      setUserData(editedData); // <-- update profile display AFTER saving
       alert("Profile updated!");
-    } catch (error) {
-      alert("Error saving profile: " + error.message);
+    } catch (err) {
+      console.error("save error:", err);
+      alert("Error saving profile: " + err.message);
     }
   };
 
-  const handlePasswordUpdate = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword)
-      return alert("Fill in all fields");
+  // Password Validation
+  const validatePassword = (value) => {
+    const errs = [];
+    if (value.length < PASSWORD_RULES.minLength)
+      errs.push(`At least ${PASSWORD_RULES.minLength} characters`);
+    if (!PASSWORD_RULES.uppercase.test(value))
+      errs.push("At least 1 uppercase letter");
+    if (!PASSWORD_RULES.special.test(value))
+      errs.push("At least 1 special character");
+    setPasswordErrors(errs);
+  };
 
-    if (newPassword.length < 6) return alert("Password too short");
-    if (newPassword !== confirmPassword) return alert("Passwords don't match");
+  const passwordStrength = useMemo(() => {
+    let score = 0;
+    if (newPassword.length >= PASSWORD_RULES.minLength) score++;
+    if (PASSWORD_RULES.uppercase.test(newPassword)) score++;
+    if (PASSWORD_RULES.special.test(newPassword)) score++;
+    if (newPassword.length >= 12) score++;
+
+    if (score <= 1) return "weak";
+    if (score === 2 || score === 3) return "medium";
+    return "strong";
+  }, [newPassword]);
+
+  useEffect(() => {
+    if (newPassword !== "") validatePassword(newPassword);
+    else setPasswordErrors([]);
+  }, [newPassword]);
+
+  const handlePasswordUpdate = async () => {
+    if (passwordErrors.length > 0)
+      return alert("Password does not meet requirements.");
+    if (newPassword !== confirmPassword)
+      return alert("Passwords do not match.");
 
     try {
       const user = auth.currentUser;
-      const cred = EmailAuthProvider.credential(user.email, currentPassword);
+      const cred = EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
+
       await reauthenticateWithCredential(user, cred);
       await updatePassword(user, newPassword);
-      alert("Password updated!");
 
+      alert("Password updated!");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (error) {
-      alert("Error changing password: " + error.message);
+      setPasswordErrors([]);
+    } catch (err) {
+      console.error("change password error:", err);
+      alert("Error changing password: " + err.message);
     }
   };
 
-  if (loading) return <div className="profile-loading">Loading...</div>;
+  // Logout
+  const handleLogout = async () => {
+    setLogoutLoading(true);
+    setTimeout(async () => {
+      try {
+        await auth.signOut();
+      } catch (err) {
+        console.error("signout error:", err);
+      } finally {
+        navigate("/");
+      }
+    }, 2000);
+  };
+
+  if (loading || logoutLoading)
+    return <div className="profile-loading">Loading...</div>;
 
   return (
     <>
-      {/* ⭐ Navbar added correctly */}
       <Navbar />
 
       <div className="user-profile-page">
-        {/* Mobile sidebar button */}
         <button
           className="sidebar-toggle"
-          onClick={() => setSidebarVisible(!sidebarVisible)}
+          onClick={() => setSidebarVisible((s) => !s)}
         >
           ☰
         </button>
 
+        {/* SIDEBAR */}
         <aside className={`profile-sidebar ${sidebarVisible ? "show" : ""}`}>
           <button className="back-home" onClick={() => navigate("/")}>
             ← Back to Home
           </button>
 
           <h2>My Account</h2>
+
           <ul>
-            <li className={activeTab === "profile" ? "active" : ""}
-              onClick={() => handleTabSwitch("profile")}
+            <li
+              className={activeTab === "myaccount" ? "active" : ""}
+              onClick={() => handleTabSwitch("myaccount")}
             >
-              Profile
+              My Account
             </li>
 
-            <li className={activeTab === "reservations" ? "active" : ""}
+            <li
+              className={activeTab === "reservations" ? "active" : ""}
               onClick={() => handleTabSwitch("reservations")}
             >
               Reservations
             </li>
 
-            <li className={activeTab === "settings" ? "active" : ""}
-              onClick={() => handleTabSwitch("settings")}
-            >
-              Settings
-            </li>
-
-            <li onClick={() => auth.signOut()}>Logout</li>
+            <li onClick={handleLogout}>Logout</li>
           </ul>
         </aside>
 
+        {/* MAIN CONTENT */}
         <main className="profile-content">
-          {activeTab === "profile" && (
-            <>
-              <h2>Profile Information</h2>
-              <div className="profile-photo-section">
-                <img src={photoURL || "/default-profile.png"} alt="Profile" />
-              </div>
 
+          {/* MY ACCOUNT */}
+          {activeTab === "myaccount" && (
+            <>
+              {/* Profile details → linked to userData ONLY */}
               <div className="profile-details-view">
+                <h3>My Account</h3>
                 <p><strong>Name:</strong> {userData.name}</p>
                 <p><strong>Email:</strong> {userData.email}</p>
                 <p><strong>Gender:</strong> {userData.gender}</p>
                 <p><strong>Birthday:</strong> {userData.birthday}</p>
                 <p><strong>Address:</strong> {userData.address}</p>
               </div>
+
+              {/* Editable fields → uses editedData */}
+              <div className="profile-form">
+                <h3>Edit Information</h3>
+
+                <input
+                  name="name"
+                  value={editedData.name || ""}
+                  onChange={handleInputChange}
+                  placeholder="Name"
+                />
+
+                <input type="email" value={editedData.email || ""} readOnly />
+
+                <select
+                  name="gender"
+                  value={editedData.gender || ""}
+                  onChange={handleInputChange}
+                  className="gender-select"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+
+                <input
+                  type="date"
+                  name="birthday"
+                  value={editedData.birthday || ""}
+                  onChange={handleInputChange}
+                />
+
+                <input
+                  name="address"
+                  value={editedData.address || ""}
+                  onChange={handleInputChange}
+                  placeholder="Address"
+                />
+
+                <button onClick={handleSave}>Save Changes</button>
+              </div>
+
+              {/* PASSWORD SECTION */}
+              <div className="password-update">
+                <h3>Change Password</h3>
+
+                <div className="password-row">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Current Password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="password-row">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="New Password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      validatePassword(e.target.value);
+                    }}
+                  />
+                </div>
+
+                {/* Strength Meter */}
+                <div className="pwd-meter">
+                  <div className={`meter-bar ${passwordStrength}`}></div>
+                  <div className="meter-label">Strength: {passwordStrength}</div>
+                </div>
+
+                {/* Errors */}
+                {passwordErrors.length > 0 && (
+                  <ul className="password-errors">
+                    {passwordErrors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="password-row">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Confirm New Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+
+                {/* Show Password */}
+                <label className="show-pass-inline">
+                  <input
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={() => setShowPassword((s) => !s)}
+                  />
+                  <span>Show Password</span>
+                </label>
+
+                <button
+                  className={
+                    passwordErrors.length > 0 ||
+                    newPassword === "" ||
+                    newPassword !== confirmPassword
+                      ? "disabled-btn"
+                      : ""
+                  }
+                  disabled={
+                    passwordErrors.length > 0 ||
+                    newPassword === "" ||
+                    newPassword !== confirmPassword
+                  }
+                  onClick={handlePasswordUpdate}
+                >
+                  Update Password
+                </button>
+              </div>
             </>
           )}
 
+          {/* RESERVATIONS */}
           {activeTab === "reservations" && (
             <>
               <h2>My Reservations</h2>
+
               {reservations.length === 0 ? (
                 <p>No reservations found.</p>
               ) : (
                 <div className="orders-list">
                   {reservations.map((res) => (
                     <div key={res.id} className="order-card">
+
                       <p><strong>Product:</strong> {res.productName}</p>
                       <p><strong>Brand:</strong> {res.brand}</p>
                       <p><strong>Size:</strong> {res.size}</p>
                       <p><strong>Date:</strong> {formatTimestamp(res.preferredDate)}</p>
+
                       <p>
                         <strong>Status:</strong>{" "}
-                        <span style={{ color: res.status === "Paid" ? "green" : "orange" }}>
+                        <span style={{ color: res.status === "Completed" ? "green" : "orange" }}>
                           {res.status}
                         </span>
                       </p>
 
-                      {res.paymentStatus === "paid" ? (
-                        <button className="receipt-button" onClick={() => navigate(`/receipt/${res.id}`)}>
+                      <p>
+                        <strong>Payment:</strong>{" "}
+                        <span style={{ color: res.paymentStatus === "paid" ? "green" : "red" }}>
+                          {res.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                        </span>
+                      </p>
+
+                      {res.status === "Downpayment Paid" || res.status === "Approved" ? (
+                        <button
+                          className="receipt-button"
+                          onClick={() => navigate(`/receipt/${res.id}`)}
+                        >
                           View Receipt
                         </button>
                       ) : (
-                        <button className="pay-button" onClick={() => navigate(`/payment/${res.id}`)}>
+                        <button
+                          className="pay-button"
+                          onClick={() => navigate(`/payment/${res.id}`)}
+                        >
                           Proceed to Payment
                         </button>
                       )}
+
                     </div>
                   ))}
                 </div>
@@ -252,41 +441,6 @@ const UserProfile = () => {
             </>
           )}
 
-          {activeTab === "settings" && (
-            <>
-              <h2>Account Settings</h2>
-
-              <div className="profile-photo-section">
-                <img src={photoURL || "/default-profile.png"} alt="Profile" />
-                <input type="file" accept="image/*" onChange={handleFileChange} />
-              </div>
-
-              <div className="profile-form">
-                <input name="name" value={userData.name || ""} onChange={handleInputChange} placeholder="Name" />
-                <input type="email" value={userData.email || ""} readOnly />
-                <input name="gender" value={userData.gender || ""} onChange={handleInputChange} placeholder="Gender" />
-                <input type="date" name="birthday" value={userData.birthday || ""} onChange={handleInputChange} />
-                <input name="address" value={userData.address || ""} onChange={handleInputChange} placeholder="Address" />
-
-                <button onClick={handleSave}>Save Changes</button>
-              </div>
-
-              <div className="password-update">
-                <h3>Change Password</h3>
-
-                <input type="password" placeholder="Current Password"
-                  value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-
-                <input type="password" placeholder="New Password"
-                  value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-
-                <input type="password" placeholder="Confirm New Password"
-                  value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-
-                <button onClick={handlePasswordUpdate}>Update Password</button>
-              </div>
-            </>
-          )}
         </main>
       </div>
     </>
