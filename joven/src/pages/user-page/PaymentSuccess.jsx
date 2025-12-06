@@ -18,7 +18,9 @@ const PaymentSuccess = () => {
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
-    const txId = queryParams.get("tx");
+  // PayPal may return ?tx or ?token depending on checkout type
+  const txId = queryParams.get("tx") || queryParams.get("token");
+
     const reservationId = localStorage.getItem("activeReservationId");
     setTransactionId(txId);
 
