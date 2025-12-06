@@ -23,6 +23,7 @@
     "@tensorflow/tfjs": "^4.22.0",
     "chart.js": "^4.5.0",
     "firebase": "^11.10.0",
+    "jspdf": "^3.0.4",
     "lucide-react": "^0.545.0",
     "react": "^19.1.0",
     "react-calendar": "^6.0.0",

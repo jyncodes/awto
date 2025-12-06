@@ -104,11 +104,14 @@ const PaymentPage = () => {
      HANDLE PAYPAL BUTTON CLICK
   ----------------------------------------- */
   const handlePayClick = async () => {
+
+    // Store current reservation for verification on PaymentSuccess page
+    localStorage.setItem("activeReservationId", reservationId);
+
     await updateDoc(doc(db, "reservations", reservationId), {
       status: "Payment Under Review",
       paymentStatus: "Initiated",
       paymentMethod: "PayPal Hosted Button",
-      paidAt: serverTimestamp(),
     });
 
     alert("Redirecting to PayPal...");

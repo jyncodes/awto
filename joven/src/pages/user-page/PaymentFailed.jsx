@@ -1,13 +1,29 @@
 // src/pages/user-page/PaymentFailed.jsx
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 import "../../styles/user-styles/PaymentPage.css";
 
 const PaymentFailed = () => {
   const navigate = useNavigate();
 
-  // Auto redirect back
   useEffect(() => {
+    const reservationId = localStorage.getItem("activeReservationId");
+
+    if (reservationId) {
+      // Reset reservation since payment was cancelled or failed
+      updateDoc(doc(db, "reservations", reservationId), {
+        status: "Pending Payment",
+        paymentStatus: "failed",
+        failedAt: new Date(),
+      }).catch((err) => console.error("Reset failed status:", err));
+
+      // Cleanup stored reference
+      localStorage.removeItem("activeReservationId");
+    }
+
+    // Auto redirect
     const timer = setTimeout(() => {
       navigate("/profile?tab=reservations");
     }, 3000);
@@ -21,7 +37,7 @@ const PaymentFailed = () => {
 
       <div className="payment-card">
         <p>Your PayPal transaction was not completed.</p>
-        <p>Please try again or use another payment option.</p>
+        <p>Please try again or choose another payment option.</p>
 
         <p style={{ marginTop: "12px", fontSize: "14px", opacity: 0.6 }}>
           Returning you to your reservations...

@@ -1,7 +1,6 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
-const crypto = require("crypto");
 require("dotenv").config();
 
 const app = express();
@@ -29,22 +28,25 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 /* ======================================================
-   📩 BREVO — SEND EMAIL
+   📩 SEND EMAIL FUNCTION (Brevo)
 ====================================================== */
-app.post("/send-email", async (req, res) => {
-  const { to, name, subject, htmlContent } = req.body;
-
+const sendPaymentEmail = async (customerEmail, name, reservationId, amount) => {
   try {
-    const response = await axios.post(
+    await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
         sender: {
           name: "Joven Tire Enterprise",
           email: process.env.SENDER_EMAIL,
         },
-        to: [{ email: to, name }],
-        subject,
-        htmlContent,
+        to: [{ email: customerEmail, name }],
+        subject: `Payment Confirmed - Reservation ${reservationId}`,
+        htmlContent: `
+          <h2>✔ Payment Successful</h2>
+          <p>Thank you for your payment.</p>
+          <p><strong>Reservation ID:</strong> ${reservationId}</p>
+          <p><strong>Amount Paid:</strong> ₱${amount}</p>
+        `,
       },
       {
         headers: {
@@ -54,12 +56,11 @@ app.post("/send-email", async (req, res) => {
       }
     );
 
-    res.status(200).send({ success: true, data: response.data });
-  } catch (error) {
-    console.error("❌ Brevo error:", error.response?.data || error.message);
-    res.status(500).send({ success: false, error: error.message });
+    console.log("📩 Email sent:", customerEmail);
+  } catch (err) {
+    console.error("❌ Failed to send email:", err.response?.data || err.message);
   }
-});
+};
 
 /* ======================================================
    🔥 PAYPAL TOKEN (LIVE)
@@ -84,66 +85,7 @@ const getPayPalToken = async () => {
 };
 
 /* ======================================================
-   🔥 PAYPAL INVOICE (OPTIONAL)
-====================================================== */
-app.post("/create-paypal-invoice", async (req, res) => {
-  try {
-    const { amount, customerEmail, customerName, reservationId } = req.body;
-    const token = await getPayPalToken();
-
-    const invoiceData = {
-      detail: {
-        currency_code: "PHP",
-        invoice_number: `INV-${Date.now()}`,
-        reference: reservationId,
-        note: "Joven Tire Enterprise Reservation Payment",
-      },
-      invoicer: {
-        name: { given_name: "Joven Tire Enterprise" },
-        email_address: process.env.SENDER_EMAIL,
-      },
-      primary_recipients: [
-        {
-          billing_info: {
-            name: { given_name: customerName || "Customer" },
-            email_address: customerEmail,
-          },
-        },
-      ],
-      items: [
-        {
-          name: "Reservation Downpayment",
-          description: "Tire/Wheel Reservation",
-          quantity: "1",
-          unit_amount: { currency_code: "PHP", value: String(amount) },
-        },
-      ],
-    };
-
-    const response = await axios.post(
-      "https://api-m.paypal.com/v2/invoicing/invoices",
-      invoiceData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.send({
-      success: true,
-      invoiceId: response.data.id,
-      message: "Invoice created successfully",
-    });
-  } catch (err) {
-    console.error("❌ PayPal Create Invoice Error:", err.response?.data || err);
-    res.status(500).json({ success: false });
-  }
-});
-
-/* ======================================================
-   📦 SMART CHECKOUT COMPLETION
+   📦 SMART CHECKOUT COMPLETION ~ HOSTED BUTTON
 ====================================================== */
 app.post("/paypal-complete", async (req, res) => {
   try {
@@ -169,7 +111,6 @@ app.post("/paypal-complete", async (req, res) => {
     );
 
     const order = orderRes.data;
-
     console.log("🔍 PayPal response status:", order.status);
 
     const validStatuses = [
@@ -188,18 +129,28 @@ app.post("/paypal-complete", async (req, res) => {
       return res.status(400).json({ success: false });
     }
 
+    /** 🔥 UPDATE FIRESTORE */
     await db.collection("reservations").doc(reservationId).update({
       paymentStatus: "paid",
       paypalStatus: order.status,
-      status:
-        order.status === "COMPLETED" ? "Paid" : "Payment Under Review",
+      status: order.status === "COMPLETED" ? "Paid" : "Payment Under Review",
       paidAt: new Date(),
       paypalOrderId: orderId,
     });
 
     console.log("✔ Firestore updated for:", reservationId);
 
+    /** 📩 SEND EMAIL */
+    const paymentDetails = order?.purchase_units?.[0]?.payments?.captures?.[0];
+    const amountPaid = paymentDetails?.amount?.value || "Unknown";
+
+    const reservationDoc = await db.collection("reservations").doc(reservationId).get();
+    const reservation = reservationDoc.data();
+
+    await sendPaymentEmail(reservation.userEmail, reservation.userName, reservationId, amountPaid);
+
     res.json({ success: true });
+
   } catch (err) {
     console.error("❌ PayPal complete error:", err.response?.data || err);
     res.status(500).json({ success: false, message: "Server error" });
