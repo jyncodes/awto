@@ -36,7 +36,6 @@ const INITIAL_FORM = {
   cost: "",
   price: "",
   description: "",
-  supplierId: "",
   unitsPerSet: 1,
 };
 
@@ -298,7 +297,6 @@ const Products = () => {
                   <th>Width</th>
                   <th>Aspect</th>
                   <th>Rim</th>
-                  <th>Supplier</th>
                   <th>Cost</th>
                   <th>Price</th>
                   <th>Actions</th>
@@ -315,7 +313,6 @@ const Products = () => {
                       <td>{p.tireWidth}</td>
                       <td>{p.aspectRatio}</td>
                       <td>{p.rimDiameter}</td>
-                      <td>{supplier ? supplier.name : "—"}</td>
                       <td>{p.cost}</td>
                       <td>{p.price}</td>
                       <td>
@@ -351,7 +348,6 @@ const Products = () => {
                   <th>Offset</th>
                   <th>Bolt Pattern</th>
                   <th>Center Bore</th>
-                  <th>Supplier</th>
                   <th>Cost</th>
                   <th>Price</th>
                   <th>Actions</th>
@@ -370,7 +366,6 @@ const Products = () => {
                       <td>{p.offset}</td>
                       <td>{p.boltPattern}</td>
                       <td>{p.centerBore}</td>
-                      <td>{supplier ? supplier.name : "—"}</td>
                       <td>{p.cost}</td>
                       <td>{p.price}</td>
                       <td>
@@ -595,21 +590,6 @@ const Products = () => {
                 </>
               )}
 
-              <div className="form-group">
-                <label>Supplier</label>
-                <select
-                  name="supplierId"
-                  value={formData.supplierId}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select Supplier</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
               <div className="form-group">
                   <label>Cost</label>
