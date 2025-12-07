@@ -25,7 +25,6 @@ import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import Analytics from './pages/admin-page/Analytics';
 import AdminSuppliers from './pages/admin-page/Supplier';
-import Financials from './pages/admin-page/Financials';
 
 // POS PAGE (SHARED)
 import POS from "./pages/shared/POS";
@@ -244,7 +243,7 @@ export default function App() {
           <Route path="reservations" element={<AdminReservations />} />
           <Route path="customers" element={<AdminCustomers />} />
           <Route path="settings" element={<AdminSettings />} />
-          <Route path="financials" element={<Financials />} />
+
         </Route>
 
         {/* ================= POS ROUTES ================= */}
