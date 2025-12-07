@@ -43,6 +43,8 @@ export default function POS() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [lastReceipt, setLastReceipt] = useState(null);
+  const [filter, setFilter] = useState("All");
+
 
   const { fromReservation, reservedItems, customerName: reservedCustomer, reservationId } =
     location.state || {};
@@ -50,6 +52,8 @@ export default function POS() {
   const [customerName, setCustomerName] = useState(reservedCustomer || "");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("search");
+  
 
   const reservationFeeApplied = fromReservation ? RESERVATION_FEE : 0;
 
@@ -114,10 +118,13 @@ export default function POS() {
 
   // ================== SEARCH FILTER ==================
   useEffect(() => {
-    setFilteredProducts(
-      !search ? products : products.filter((p) => `${p.brand} ${p.model}`.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [search, products]);
+  setFilteredProducts(
+    products.map((p) => ({
+      ...p,
+      name: `${p.brand} ${p.model}` // normalize naming for search use
+    }))
+  );
+}, [products]);
 
   // ================== CART ACTIONS ==================
   const addToCart = (product) => {
@@ -211,52 +218,127 @@ export default function POS() {
         </div>
 
         <div className="pos-main">
-          <div className="pos-left">
-            <POSProductList search={search} setSearch={setSearch} filteredProducts={filteredProducts} addToCart={addToCart} />
-            <POSServiceList services={services} addServiceToCart={addServiceToCart} />
-          </div>
 
-          <div className="pos-right">
-            <div style={{ marginBottom: "12px" }}>
-              <label style={{ fontWeight: 600 }}>Customer</label>
-
-              <div style={{ display: "flex", gap: "6px" }}>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Walk-in or select customer"
-                  value={customerName}
-                  readOnly={!!selectedCustomer}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                />
-
-                <button className="btn-submit" onClick={() => setCustomerModalOpen(true)}>Select</button>
-              </div>
-
-              {selectedCustomer && (
-                <div style={{ marginTop: 5, fontSize: 13 }}>
-                  Email: {selectedCustomer.email} — {selectedCustomer.gender}
-                </div>
-              )}
-            </div>
-
-            <POSCart cart={cart} incQty={incQty} decQty={decQty} removeFromCart={removeFromCart} updateQty={updateQty} />
-
-            <POSPayment
-              subtotal={subtotal}
-              vat={vat}
-              total={total}
-              paymentMode={paymentMode}
-              setPaymentMode={setPaymentMode}
-              cashReceived={cashReceived}
-              setCashReceived={setCashReceived}
-              paymentRef={paymentRef}
-              setPaymentRef={setPaymentRef}
-              handleCheckout={handleCheckout}
-              isProcessing={isProcessing}
-            />
-          </div>
+      {/* LEFT SIDE — PRODUCTS & SERVICES */}
+      <div className="pos-column pos-products">
+        {/** GLOBAL SEARCH */}
+        <div className="pos-global-search">
+          <input
+            type="text"
+            placeholder="Search products or services..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
+
+        {/** FILTER TABS */}
+        <div className="pos-tabs">
+          {["All", "Tires", "Mags", "Services"].map((t) => (
+            <button
+              key={t}
+              className={`pos-tab-btn ${filter === t ? "active" : ""}`}
+              onClick={() => setFilter(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/** PRODUCT + SERVICE LIST */}
+        <div className="pos-list-grid">
+          {(filter === "All" || filter === "Tires" || filter === "Mags") && (
+            <POSProductList
+              filteredProducts={filteredProducts.filter((item) =>
+                item.name?.toLowerCase().includes(search.toLowerCase())
+              )}
+              addToCart={addToCart}
+            />
+          )}
+
+          {(filter === "All" || filter === "Services") && (
+            <POSServiceList
+              services={services.filter((svc) =>
+                svc.name.toLowerCase().includes(search.toLowerCase())
+              )}
+              addServiceToCart={addServiceToCart}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* MIDDLE COLUMN — CART ONLY */}
+      <div className="pos-column pos-cart-area">
+        <h3>🛒 Cart</h3>
+        <POSCart
+          cart={cart}
+          incQty={incQty}
+          decQty={decQty}
+          removeFromCart={removeFromCart}
+          updateQty={updateQty}
+        />
+      </div>
+
+ 
+  {/* RIGHT COLUMN — CUSTOMER + PAYMENT */}
+<div className="pos-column pos-payment-area">
+
+  {/* Customer UI */}
+  <div className="customer-box">
+    <h4>👤 Customer</h4>
+
+    <div className="customer-row">
+      <input
+        type="text"
+        className="input-field"
+        placeholder="Walk-in or select customer..."
+        value={customerName}
+        readOnly={!!selectedCustomer}
+        onChange={(e) => setCustomerName(e.target.value)}
+      />
+
+      <button
+        className="btn-small primary"
+        onClick={() => {
+          setModalMode("search");
+          setCustomerModalOpen(true);
+        }}
+      >
+        🔍
+      </button>
+
+      <button
+        className="btn-small success"
+        onClick={() => {
+          setModalMode("add");
+          setCustomerModalOpen(true);
+        }}
+      >
+        ➕
+      </button>
+    </div>
+
+    {selectedCustomer && (
+      <div className="customer-details">
+        <p><strong>Email:</strong> {selectedCustomer.email}</p>
+        <p><strong>Gender:</strong> {selectedCustomer.gender}</p>
+      </div>
+    )}
+  </div>
+        <POSPayment
+          subtotal={subtotal}
+          vat={vat}
+          total={total}
+          paymentMode={paymentMode}
+          setPaymentMode={setPaymentMode}
+          cashReceived={cashReceived}
+          setCashReceived={setCashReceived}
+          paymentRef={paymentRef}
+          setPaymentRef={setPaymentRef}
+          handleCheckout={handleCheckout}
+          isProcessing={isProcessing}
+        />
+      </div>
+    </div>
 
         {receiptOpen && (
           <div className="pos-receipt-overlay">
@@ -291,7 +373,10 @@ export default function POS() {
 
       {customerModalOpen && (
         <CustomerModal
-          onClose={() => setCustomerModalOpen(false)}
+          mode={modalMode}  // 👈 tells modal if user clicked Search or Add
+          onClose={() => { setCustomerModalOpen(false);
+            setModalMode("search");
+          }}
           onSelect={(cust) => {
             setSelectedCustomer(cust);
             setCustomerName(cust.name);

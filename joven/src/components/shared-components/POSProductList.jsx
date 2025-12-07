@@ -1,17 +1,11 @@
 import React from "react";
+import "../../styles/shared/POSProductList.css";
+
 
 
 export default function POSProductList({ search, setSearch, filteredProducts, addToCart }) {
   return (
     <div>
-      <div className="pos-search">
-        <input
-          placeholder="Search product..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
       <h4>🛞 Products</h4>
       <div className="pos-product-items-container">
         {filteredProducts.length === 0 ? (

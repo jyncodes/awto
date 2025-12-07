@@ -1,4 +1,6 @@
 import React from "react";
+import "../../styles/shared/POSCart.css";
+
 
 export default function POSCart({ cart, incQty, decQty, updateQty, removeFromCart }) {
   return (
