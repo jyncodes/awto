@@ -203,7 +203,7 @@ const Sales = ({ role }) => {
               <th>Total</th>
               <th>Payment</th>
               <th>Type</th>
-              <th>By</th>
+              <th>Processed by</th>
               <th>Actions</th>
             </tr>
           </thead>
