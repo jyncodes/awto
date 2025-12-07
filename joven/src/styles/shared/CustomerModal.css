@@ -32,3 +32,60 @@
   background: #edf2ff;
   border-color: #0A66C2;
 }
+
+.add-form-box input {
+  margin-bottom: 10px;
+}
+
+
+/* ================= BUTTON ROW ================= */
+.customer-btn-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.customer-btn-row .btn-submit,
+.customer-btn-row .btn-cancel {
+  width: 50%;
+  padding: 0.75rem;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+/* Unique button theme for modal */
+.customer-btn-row .btn-submit {
+  background: #0a66c2;
+  color: white;
+  border: none;
+}
+.customer-btn-row .btn-submit:hover {
+  background: #004a99;
+}
+
+.customer-btn-row .btn-cancel {
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+}
+.customer-btn-row .btn-cancel:hover {
+  background: #cbd5e1;
+}
+
+/* 🔙 Back Button Styling */
+.btn-back {
+  background: #e2e8f0;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  width: 100%;
+  cursor: pointer;
+  font-weight: 600;
+  color: #334155;
+  transition: 0.2s;
+}
+
+.btn-back:hover {
+  background: #cbd5e1;
+}

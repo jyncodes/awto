@@ -49,7 +49,7 @@ export default function POS() {
   const { fromReservation, reservedItems, customerName: reservedCustomer, reservationId } =
     location.state || {};
 
-  const [customerName, setCustomerName] = useState(reservedCustomer || "");
+const [customerName, setCustomerName] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("search");
@@ -287,14 +287,13 @@ export default function POS() {
     <h4>👤 Customer</h4>
 
     <div className="customer-row">
-      <input
-        type="text"
-        className="input-field"
-        placeholder="Walk-in or select customer..."
-        value={customerName}
-        readOnly={!!selectedCustomer}
-        onChange={(e) => setCustomerName(e.target.value)}
-      />
+      <div className="selected-customer-box">
+      {selectedCustomer ? (
+        <strong>{selectedCustomer.name}</strong>
+      ) : (
+        <span style={{ color: "#6b7280" }}>No customer selected</span>
+      )}
+    </div>
 
       <button
         className="btn-small primary"
@@ -317,10 +316,11 @@ export default function POS() {
       </button>
     </div>
 
-    {selectedCustomer && (
+        {selectedCustomer && (
       <div className="customer-details">
-        <p><strong>Email:</strong> {selectedCustomer.email}</p>
-        <p><strong>Gender:</strong> {selectedCustomer.gender}</p>
+        <p><strong>Customer ID:</strong> {selectedCustomer.customerCode}</p>
+        <p><strong>Name:</strong> {selectedCustomer.name}</p>
+        <p><strong>Contact:</strong> {selectedCustomer.contact || "N/A"}</p>
       </div>
     )}
   </div>
@@ -372,18 +372,19 @@ export default function POS() {
       </div>
 
       {customerModalOpen && (
-        <CustomerModal
-          mode={modalMode}  // 👈 tells modal if user clicked Search or Add
-          onClose={() => { setCustomerModalOpen(false);
-            setModalMode("search");
-          }}
-          onSelect={(cust) => {
-            setSelectedCustomer(cust);
-            setCustomerName(cust.name);
-            setCustomerModalOpen(false);
-          }}
-        />
-      )}
+      <CustomerModal
+        mode={modalMode}
+        onClose={() => {
+          setCustomerModalOpen(false);
+          setModalMode("search");
+        }}
+        onSelect={(cust) => {
+          setSelectedCustomer(cust);
+          setCustomerName(cust.name);
+          setCustomerModalOpen(false);
+        }}
+  />
+)}
     </>
   );
 }
