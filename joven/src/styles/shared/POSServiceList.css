@@ -1,13 +1,63 @@
+/* Main List Box Styling */
 .pos-list-box {
   background: white;
   padding: 1rem;
   border-radius: 12px;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
-.pos-product-items-container {
+/* Scrollable List */
+.pos-scroll-list {
   overflow-y: auto;
+  padding-right: 6px;
+  max-height: 300px;
+}
+
+/* Item Card */
+.pos-product-item {
+  background: #f1f5f9;
+  padding: .8rem;
+  margin-bottom: .5rem;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: .2s;
+}
+
+.pos-product-item:hover {
+  background: #e2e8f0;
+}
+
+/* Pagination */
+.pos-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: .8rem;
+}
+
+.pos-pagination button {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+  font-size: 0.9rem;
+  transition: .2s;
+}
+
+.pos-pagination button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.pos-pagination span {
+  font-size: .9rem;
+  font-weight: bold;
 }

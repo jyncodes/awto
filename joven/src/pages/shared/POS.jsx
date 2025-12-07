@@ -252,6 +252,7 @@ const [customerName, setCustomerName] = useState("");
                 item.name?.toLowerCase().includes(search.toLowerCase())
               )}
               addToCart={addToCart}
+              filter={filter}
             />
           )}
 
