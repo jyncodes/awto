@@ -1,211 +1,147 @@
-/* ===========================
-   🧭 ADMIN DASHBOARD LAYOUT
-   (Matching Staff Layout Colors)
-=========================== */
+/* ============================
+   ADMIN DASHBOARD TOPBAR
+   ============================ */
+
 .admin-dashboard {
   display: flex;
-  min-height: 100vh;
+  flex-direction: column;
+  height: 100vh;
+  background: #f5f6fa;
   font-family: "Poppins", sans-serif;
-  background-color: #f4f4f4; /* match staff dashboard bg */
-  color: #1e293b;
 }
 
-/* ===========================
-   🧭 SIDEBAR
-=========================== */
-.admin-sidebar {
-  width: 240px;
-  background-color: #ffffff;
+/* ------------------------------
+   TOPBAR CONTAINER
+--------------------------------*/
+.admin-topbar {
+  width: 100%;
+  height: 70px;
+  background: #ffffff;
   display: flex;
-  flex-direction: column;
-  padding: 1.5rem 1rem;
-  border-right: 1px solid #e2e8f0;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   position: sticky;
   top: 0;
-  height: 100vh;
-  z-index: 1000;
+  z-index: 10;
 }
 
-/* ===========================
-   🖼️ LOGO SECTION
-=========================== */
-.admin-sidebar-header {
+/* Logo + Name */
+.admin-topbar-left {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  margin-bottom: 1.5rem;
+  gap: 12px;
 }
 
 .admin-logo-img {
-  width: 90px;
-  height: auto;
-  margin-bottom: 0.5rem;
-  object-fit: contain;
+  height: 40px;
 }
 
 .admin-logo-text {
-  font-size: 1rem;
+  font-size: 18px;
   font-weight: 600;
-  color: #1e293b;
+  color: #333;
 }
 
-/* ===========================
-   📋 NAVIGATION LINKS
-=========================== */
-.admin-nav {
+
+/* ------------------------------
+   TOP NAVIGATION (Center)
+--------------------------------*/
+.admin-topnav {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-  margin-top: 1rem;
+  gap: 1.4rem;
 }
 
-.admin-nav-link {
+.admin-topnav-link {
+  position: relative;
+  text-decoration: none;
+  padding: 8px 14px;
+  color: #444;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.25s ease;
+}
+
+/* Hover Animation */
+.admin-topnav-link:hover {
+  background: rgba(243, 156, 18, 0.12);
+  color: #f39c12;
+  transform: translateY(-1px);
+}
+
+/* Underline Animation for Active Tab */
+.admin-topnav-link.active {
+  color: #f39c12;
+  font-weight: 600;
+}
+
+.admin-topnav-link.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%);
+  width: 50%;
+  height: 3px;
+  background: #f39c12;
+  border-radius: 8px;
+  animation: underlineSlide 0.25s ease-out;
+}
+
+@keyframes underlineSlide {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 50%;
+    opacity: 1;
+  }
+}
+
+
+/* ------------------------------
+   RIGHT SIDE: Logout Button
+--------------------------------*/
+.admin-topbar-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  color: #1e293b;
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.admin-nav-link:hover,
-.admin-nav-link.active {
-  background-color: #f39c12; /* yellow accent */
-  color: #ffffff;
-  transform: translateX(3px);
-}
-
-.admin-nav-link.active {
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(243, 156, 18, 0.25);
-}
-
-/* ===========================
-   🚪 LOGOUT BUTTON
-=========================== */
-.admin-logout-container {
-  padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
 }
 
 .admin-logout-button {
-  background-color: #1e293b; /* dark base */
-  color: #ffffff;
+  background: #e74c3c;
+  padding: 8px 16px;
   border: none;
-  padding: 0.65rem 1.2rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
+  border-radius: 6px;
+  color: white;
   cursor: pointer;
-  width: 100%;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  font-weight: 600;
+  transition: all 0.25s ease;
 }
 
 .admin-logout-button:hover {
-  background-color: #f39c12;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
+  background: #c0392b;
+  transform: translateY(-1px);
+  box-shadow: 0px 4px 10px rgba(231, 76, 60, 0.3);
 }
 
-/* ===========================
-   🧾 MAIN CONTENT AREA
-=========================== */
+
+/* ------------------------------
+   MAIN CONTENT AREA
+--------------------------------*/
 .admin-main-content {
   flex: 1;
-  padding: 2rem 2.5rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.admin-main-content h1,
-.admin-main-content h2 {
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.admin-main-content .content-card {
-  background-color: #ffffff;
   padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
+  overflow-y: auto;
+  animation: fadeIn 0.3s ease;
 }
 
-/* ===========================
-   📱 RESPONSIVE DESIGN
-=========================== */
-@media (max-width: 768px) {
-  .admin-sidebar {
-    width: 200px;
-    padding: 1rem;
-  }
-
-  .admin-logo-img {
-    width: 70px;
-  }
-
-  .admin-logo-text {
-    font-size: 0.9rem;
-  }
-
-  .admin-nav-link {
-    padding: 0.6rem 0.8rem;
-    font-size: 0.85rem;
-  }
-
-  .admin-main-content {
-    padding: 1rem 1.5rem;
-  }
+/* Smooth content fade */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
-@media (max-width: 480px) {
-  .admin-dashboard {
-    flex-direction: column;
-  }
-
-  .admin-sidebar {
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #e2e8f0;
-    border-right: none;
-    height: auto;
-  }
-
-  .admin-sidebar-header {
-    display: none; /* hide big logo in mobile */
-  }
-
-  .admin-nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    justify-content: center;
-    margin-bottom: 0;
-  }
-
-  .admin-logout-container {
-    padding-top: 0;
-    border-top: none;
-    margin-left: auto;
-  }
-
-  .admin-logout-button {
-    padding: 0.5rem 0.8rem;
-    font-size: 0.85rem;
-  }
-}
+/* ============================
+   END OF ADMIN DASHBOARD STYLES
+   ============================ */

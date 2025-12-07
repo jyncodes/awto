@@ -24,7 +24,6 @@ const AdminDashboard = () => {
     { path: 'sales', label: 'Sales' },
     { path: 'inventory', label: 'Inventory' },
     { path: 'products', label: 'Products' },
-    { path: 'suppliers', label: 'Suppliers' },
     { path: 'customers', label: 'Customers' },
     { path: 'reservations', label: 'Reservations' },
     { path: 'settings', label: 'Settings' },
@@ -32,14 +31,15 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      {/* Sidebar */}
-      <aside className="admin-sidebar" aria-label="Sidebar Navigation">
-        <div className="admin-sidebar-header">
+
+      {/* TOPBAR (Replaces Sidebar) */}
+      <header className="admin-topbar">
+        <div className="admin-topbar-left">
           <img src={jovenLogo} alt="Joven Logo" className="admin-logo-img" />
           <h2 className="admin-logo-text">Joven Tire Admin</h2>
         </div>
 
-        <nav className="admin-nav">
+        <nav className="admin-topnav">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -50,7 +50,7 @@ const AdminDashboard = () => {
               }
               end={item.path === ''}
               className={({ isActive }) =>
-                isActive ? 'admin-nav-link active' : 'admin-nav-link'
+                isActive ? 'admin-topnav-link active' : 'admin-topnav-link'
               }
             >
               {item.label}
@@ -58,14 +58,14 @@ const AdminDashboard = () => {
           ))}
         </nav>
 
-        <div className="admin-logout-container">
+        <div className="admin-topbar-right">
           <button className="admin-logout-button" onClick={handleLogout}>
             Logout
           </button>
         </div>
-      </aside>
+      </header>
 
-      {/* Main Content */}
+      {/* MAIN CONTENT */}
       <main className="admin-main-content">
         <Outlet />
       </main>
