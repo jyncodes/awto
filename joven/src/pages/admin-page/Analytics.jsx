@@ -12,15 +12,16 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from "recharts"; // <-- Recharts imported
+} from "recharts";
 import "../../styles/admin-styles/Analytics.css";
 
 const Analytics = () => {
   const navigate = useNavigate();
   const [salesData, setSalesData] = useState([]);
-  const [chartData, setChartData] = useState([]); // <-- chart state added
+  const [chartData, setChartData] = useState([]);
   const [todaySales, setTodaySales] = useState(0);
   const [weeklySales, setWeeklySales] = useState(0);
+
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [upcomingReservations, setUpcomingReservations] = useState([]);
 
@@ -36,7 +37,7 @@ const Analytics = () => {
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       setSalesData(data);
 
-      // ------- Compute Chart Data -------
+      // GROUP SALES BY DATE
       const grouped = {};
       data.forEach((s) => {
         if (!s.createdAt?.seconds) return;
@@ -48,9 +49,9 @@ const Analytics = () => {
         .map(([date, total]) => ({ date, total }))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      setChartData(formatted); // update for chart
+      setChartData(formatted);
 
-      // ------- Compute Today + Weekly Totals -------
+      // TODAY + WEEK COMPUTATION
       const now = new Date();
       const today = now.toDateString();
       const startOfWeek = new Date(now);
@@ -108,6 +109,7 @@ const Analytics = () => {
           return date && date >= now;
         })
         .slice(0, 5);
+
       setUpcomingReservations(upcoming);
     });
 
@@ -121,73 +123,16 @@ const Analytics = () => {
 
   return (
     <div className="analytics-container">
+
       {/* HEADER */}
       <div className="analytics-header">
         <h1>Business Analytics</h1>
-        <p>Monitor daily performance, inventory status, and reservations.</p>
+        <p>Monitor reservations, inventory health, and performance charts.</p>
       </div>
 
-      {/* SALES OVERVIEW */}
-      <div className="summary-cards">
-        <div className="summary-card blue">
-          <h3>Today’s Sales</h3>
-          <p>{formatCurrency(todaySales)}</p>
-        </div>
-        <div className="summary-card green">
-          <h3>This Week’s Sales</h3>
-          <p>{formatCurrency(weeklySales)}</p>
-        </div>
-      </div>
-
-      {/* 🔹 SALES TREND CHART */}
-      <div className="chart-card">
-        <h2>📊 Sales Trend</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip formatter={(value) => `₱${value.toLocaleString()}`} />
-            <Legend />
-            <Line type="monotone" dataKey="total" stroke="#007bff" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* LOW STOCK */}
-      <div className="table-card">
-        <h2>⚠️ Low Stock Products</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Type</th>
-              <th>Stock</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lowStockProducts.length ? (
-              lowStockProducts.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.brand} {item.model}</td>
-                  <td>{item.type}</td>
-                  <td>{item.stock}</td>
-                  <td>
-                    <button className="restock-btn" onClick={() => navigate("/admin-dashboard/inventory")}>
-                      Restock
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan="4">All stocks are sufficient.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* UPCOMING RESERVATIONS */}
+      {/* ===================================================== */}
+      {/* 🟦 SECTION 1 — RESERVATIONS (TOP) */}
+      {/* ===================================================== */}
       <div className="table-card">
         <h2>📅 Upcoming Reservations</h2>
         <table>
@@ -205,7 +150,10 @@ const Analytics = () => {
                   <td>{res.id}</td>
                   <td>{res.productName || "N/A"}</td>
                   <td>
-                    <button className="view-btn" onClick={() => navigate("/admin-dashboard/reservations")}>
+                    <button
+                      className="view-btn"
+                      onClick={() => navigate("/admin-dashboard/reservations")}
+                    >
                       👁 View
                     </button>
                   </td>
@@ -217,6 +165,76 @@ const Analytics = () => {
           </tbody>
         </table>
       </div>
+
+      {/* ===================================================== */}
+      {/* 🟧 SECTION 2 — INVENTORY (MIDDLE) */}
+      {/* ===================================================== */}
+      <div className="table-card">
+        <h2>⚠️ Low Stock Products</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Type</th>
+              <th>Stock</th>
+              <th>Restock</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lowStockProducts.length ? (
+              lowStockProducts.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.brand} {item.model}</td>
+                  <td>{item.type}</td>
+                  <td>{item.stock}</td>
+                  <td>
+                    <button
+                      className="restock-btn"
+                      onClick={() => navigate("/admin-dashboard/inventory")}
+                    >
+                      Restock
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan="4">All stocks are sufficient.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ===================================================== */}
+      {/* 🟩 SECTION 3 — ANALYTICS CHARTS (BOTTOM) */}
+      {/* ===================================================== */}
+
+      {/* SALES OVERVIEW */}
+      <div className="summary-cards">
+        <div className="summary-card blue">
+          <h3>Today’s Sales</h3>
+          <p>{formatCurrency(todaySales)}</p>
+        </div>
+        <div className="summary-card green">
+          <h3>This Week’s Sales</h3>
+          <p>{formatCurrency(weeklySales)}</p>
+        </div>
+      </div>
+
+      {/* CHART */}
+      <div className="chart-card">
+        <h2>📊 Sales Trend</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis />
+            <Tooltip formatter={(value) => `₱${value.toLocaleString()}`} />
+            <Legend />
+            <Line type="monotone" dataKey="total" stroke="#007bff" strokeWidth={3} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
     </div>
   );
 };
