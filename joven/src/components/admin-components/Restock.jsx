@@ -9,17 +9,7 @@ const Restock = ({
   onChangeQty,
   onClose,
   onSave,
-  suppliers = [],
 }) => {
-  // Find matching supplier by brand or product type
-  const findSupplier = (brand, type) => {
-    return suppliers.find(
-      (s) =>
-        s.brand?.toLowerCase() === brand?.toLowerCase() ||
-        s.productType?.toLowerCase() === type?.toLowerCase()
-    );
-  };
-
   // Filter out-of-stock products
   const outOfStockItems = restockList.filter(
     (item) => Number(item.stock || 0) === 0
@@ -40,20 +30,16 @@ const Restock = ({
                   <th>Product Name</th>
                   <th>Type</th>
                   <th>Brand</th>
-                  <th>Supplier</th>
                   <th>Contact</th>
                 </tr>
               </thead>
               <tbody>
                 {outOfStockItems.map((item) => {
-                  const supplier = findSupplier(item.brand, item.type);
                   return (
                     <tr key={item.id}>
                       <td>{item.model}</td>
                       <td>{item.type}</td>
                       <td>{item.brand}</td>
-                      <td>{supplier ? supplier.name : "N/A"}</td>
-                      <td>{supplier ? supplier.contact : "N/A"}</td>
                     </tr>
                   );
                 })}
@@ -83,7 +69,6 @@ const Restock = ({
           <p className="no-result">Search a product to restock.</p>
         ) : (
           restockList.map((item) => {
-            const supplier = findSupplier(item.brand, item.type);
             const isLowStock = Number(item.stock || 0) <= 5;
 
             return (
@@ -107,17 +92,8 @@ const Restock = ({
 
                 {isLowStock && (
                   <div className="low-stock-alert">
-                    ⚠ Low stock —{" "}
-                    {supplier ? (
-                      <>
-                        Contact: <strong>{supplier.name}</strong>{" "}
-                        <span className="supplier-contact">
-                          ({supplier.contact})
-                        </span>
-                      </>
-                    ) : (
-                      <span>No supplier found</span>
-                    )}
+                    ⚠ Low stock —{" please restock soon!"}
+
                   </div>
                 )}
               </div>
