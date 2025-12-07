@@ -4,7 +4,13 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+  runTransaction,
+  getDoc,
+} from "firebase/firestore";
 import { auth, db } from "../firebase";
 import Navbar from "../components/Navbar";
 import "../styles/Register.css";
@@ -201,8 +207,8 @@ const Register = () => {
       );
 
       await sendEmailVerification(user);
-      navigate("/verify");
 
+      // 1️⃣ Save to `users` collection linked to UID
       await setDoc(doc(db, "users", user.uid), {
         name: formData.name,
         email: formData.email,
@@ -213,11 +219,54 @@ const Register = () => {
         createdAt: serverTimestamp(),
       });
 
+      // 2️⃣ Generate Incrementing Customer Code
+      const counterRef = doc(db, "counters", "customerCounter");
+
+      let customerCode = "";
+
+      await runTransaction(db, async (transaction) => {
+      const counterSnap = await transaction.get(counterRef);
+
+      // If the counter doc doesn't exist yet, create it
+      let lastId = 0;
+      if (!counterSnap.exists()) {
+        transaction.set(counterRef, { lastId: 0 });
+      } else {
+        lastId = counterSnap.data().lastId;
+      }
+
+      // Increment
+      lastId += 1;
+
+      // Generate formatted code
+      customerCode = `CU-${String(lastId).padStart(5, "0")}`;
+
+      // Save new ID back to Firestore
+      transaction.set(counterRef, { lastId }, { merge: true });
+    });
+
+
+      // 3️⃣ Store as customer profile
+      await setDoc(doc(db, "customers", customerCode), {
+        uid: user.uid, // 🔗 connection
+        customerCode,
+        name: formData.name,
+        email: formData.email,
+        address: formData.address,
+        gender: formData.gender,
+        birthday: formData.birthday,
+        registeredAt: serverTimestamp(),
+      });
+
+      // 4️⃣ Optional: 2FA placeholder
       await setDoc(doc(db, "2fa", user.uid), {
         enabled: false,
         lastOTP: null,
         expiresAt: null,
       });
+
+      navigate("/verify");
+
     } catch (error) {
       alert(error.message);
     }

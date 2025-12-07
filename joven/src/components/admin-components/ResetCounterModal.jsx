@@ -8,8 +8,9 @@ const PRODUCT_TYPE_PREFIXES = {
   Mags: "MA"
 };
 
-// Reservation has its own prefix
+// Reservation and Customers have unique prefixes
 const RESERVATION_PREFIX = "RES";
+const CUSTOMER_PREFIX = "CU";
 
 const ResetCounterModal = ({ isOpen, onClose }) => {
   const [selectedType, setSelectedType] = useState("Tire");
@@ -22,7 +23,17 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
     try {
       setLoading(true);
 
-      // Reservation
+      // Customer Counter Preview
+      if (type === "Customer") {
+        const ref = doc(db, "counters", "customerCounter");
+        const snap = await getDoc(ref);
+        const current = snap.exists() ? snap.data().lastId : 0;
+
+        setNextIdPreview(`${CUSTOMER_PREFIX}-${String(current + 1).padStart(5, "0")}`);
+        return;
+      }
+
+      // Reservation Preview
       if (type === "Reservation") {
         const ref = doc(db, "counters", "reservations");
         const snap = await getDoc(ref);
@@ -32,7 +43,7 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
         return;
       }
 
-      // Tire / Mags
+      // Tire / Mags Preview
       const prefix = PRODUCT_TYPE_PREFIXES[type];
       const counterRef = doc(db, "counters", `productCounter_${prefix}`);
       const snap = await getDoc(counterRef);
@@ -76,7 +87,20 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
         return;
       }
 
-      // Reservation counter reset
+      // Reset Customer Counter
+      if (selectedType === "Customer") {
+        await setDoc(
+          doc(db, "counters", "customerCounter"),
+          { lastId: 0 },
+          { merge: true }
+        );
+
+        alert("✅ Customer counter reset (CU-00001 next).");
+        onClose();
+        return;
+      }
+
+      // Reset Reservation Counter
       if (selectedType === "Reservation") {
         await setDoc(
           doc(db, "counters", "reservations"),
@@ -89,7 +113,7 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
         return;
       }
 
-      // Tire / Mags counter reset
+      // Reset Tire / Mags
       const prefix = PRODUCT_TYPE_PREFIXES[selectedType];
       await setDoc(
         doc(db, `counters/productCounter_${prefix}`),
@@ -132,8 +156,7 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
           >
             <option value="Tire">Tire</option>
             <option value="Mags">Mags</option>
-
-            {/* Reservation now ALWAYS visible */}
+            <option value="Customer">Customer</option> {/* 👈 Added */}
             <option value="Reservation">Reservation</option>
           </select>
         </div>
