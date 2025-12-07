@@ -33,7 +33,7 @@ const UserProfile = () => {
   const location = useLocation();
 
   const [userData, setUserData] = useState({});
-  const [editedData, setEditedData] = useState({}); // <-- NEW: Editable temp data
+  const [editedData, setEditedData] = useState({});
   const [loading, setLoading] = useState(true);
   const [logoutLoading, setLogoutLoading] = useState(false);
 
@@ -56,20 +56,18 @@ const UserProfile = () => {
     });
   };
 
-  // Fetch user data
   const fetchUserData = async (uid) => {
     try {
       const snap = await getDoc(doc(db, "users", uid));
       if (snap.exists()) {
         setUserData(snap.data());
-        setEditedData(snap.data()); // <-- form uses editedData
+        setEditedData(snap.data());
       }
     } catch (err) {
       console.error("fetchUserData error:", err);
     }
   };
 
-  // Fetch reservations
   const fetchUserReservations = async (uid) => {
     try {
       const q = query(collection(db, "reservations"), where("userId", "==", uid));
@@ -103,7 +101,6 @@ const UserProfile = () => {
     return () => unsub();
   }, [navigate]);
 
-  // URL tab sync
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get("tab");
@@ -116,28 +113,52 @@ const UserProfile = () => {
     setSidebarVisible(false);
   };
 
-  // FORM updates editedData only
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditedData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // SAVE CHANGES — update Firestore AND update userData
+  // ⭐ UPDATED: Save to users AND customers collections
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
     try {
+      // 1️⃣ Update users/{uid}
       await updateDoc(doc(db, "users", user.uid), editedData);
-      setUserData(editedData); // <-- update profile display AFTER saving
+
+      // 2️⃣ Find customer doc by uid
+      const customerQuery = query(
+        collection(db, "customers"),
+        where("uid", "==", user.uid)
+      );
+
+      const customerSnap = await getDocs(customerQuery);
+
+      if (!customerSnap.empty) {
+        const customerDoc = customerSnap.docs[0];
+        const customerId = customerDoc.id;
+
+        // 3️⃣ Update customers/{CU-xxxxx}
+        await updateDoc(doc(db, "customers", customerId), {
+          name: editedData.name,
+          email: editedData.email,
+          address: editedData.address,
+          gender: editedData.gender,
+          birthday: editedData.birthday,
+          contact: editedData.contact, // ⭐ included
+        });
+      }
+
+      setUserData(editedData);
       alert("Profile updated!");
+
     } catch (err) {
       console.error("save error:", err);
       alert("Error saving profile: " + err.message);
     }
   };
 
-  // Password Validation
   const validatePassword = (value) => {
     const errs = [];
     if (value.length < PASSWORD_RULES.minLength)
@@ -193,7 +214,6 @@ const UserProfile = () => {
     }
   };
 
-  // Logout
   const handleLogout = async () => {
     setLogoutLoading(true);
     setTimeout(async () => {
@@ -255,17 +275,17 @@ const UserProfile = () => {
           {/* MY ACCOUNT */}
           {activeTab === "myaccount" && (
             <>
-              {/* Profile details → linked to userData ONLY */}
               <div className="profile-details-view">
                 <h3>My Account</h3>
+
                 <p><strong>Name:</strong> {userData.name}</p>
                 <p><strong>Email:</strong> {userData.email}</p>
                 <p><strong>Gender:</strong> {userData.gender}</p>
                 <p><strong>Birthday:</strong> {userData.birthday}</p>
                 <p><strong>Address:</strong> {userData.address}</p>
+                <p><strong>Contact:</strong> {userData.contact}</p>
               </div>
 
-              {/* Editable fields → uses editedData */}
               <div className="profile-form">
                 <h3>Edit Information</h3>
 
@@ -276,7 +296,11 @@ const UserProfile = () => {
                   placeholder="Name"
                 />
 
-                <input type="email" value={editedData.email || ""} readOnly />
+                <input
+                  type="email"
+                  value={editedData.email || ""}
+                  readOnly
+                />
 
                 <select
                   name="gender"
@@ -304,10 +328,17 @@ const UserProfile = () => {
                   placeholder="Address"
                 />
 
+                <input
+                  name="contact"
+                  value={editedData.contact || ""}
+                  onChange={handleInputChange}
+                  placeholder="Contact Number (09xxxxxxxxx)"
+                  maxLength={11}
+                />
+
                 <button onClick={handleSave}>Save Changes</button>
               </div>
 
-              {/* PASSWORD SECTION */}
               <div className="password-update">
                 <h3>Change Password</h3>
 
@@ -332,13 +363,11 @@ const UserProfile = () => {
                   />
                 </div>
 
-                {/* Strength Meter */}
                 <div className="pwd-meter">
                   <div className={`meter-bar ${passwordStrength}`}></div>
                   <div className="meter-label">Strength: {passwordStrength}</div>
                 </div>
 
-                {/* Errors */}
                 {passwordErrors.length > 0 && (
                   <ul className="password-errors">
                     {passwordErrors.map((err, i) => (
@@ -356,7 +385,6 @@ const UserProfile = () => {
                   />
                 </div>
 
-                {/* Show Password */}
                 <label className="show-pass-inline">
                   <input
                     type="checkbox"
@@ -387,7 +415,6 @@ const UserProfile = () => {
             </>
           )}
 
-          {/* RESERVATIONS */}
           {activeTab === "reservations" && (
             <>
               <h2>My Reservations</h2>

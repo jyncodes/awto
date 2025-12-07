@@ -9,7 +9,6 @@ import {
   setDoc,
   serverTimestamp,
   runTransaction,
-  getDoc,
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import Navbar from "../components/Navbar";
@@ -26,6 +25,7 @@ const Register = () => {
     address: "",
     gender: "",
     birthday: "",
+    contact: "", // ⭐ ADDED CONTACT NUMBER
     terms: false,
   });
 
@@ -47,7 +47,7 @@ const Register = () => {
     return today.toISOString().split("T")[0];
   };
 
-  // LIVE VALIDATION HANDLER
+  // LIVE VALIDATION
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
@@ -58,7 +58,7 @@ const Register = () => {
 
     setErrors((prev) => ({ ...prev, [name]: "" }));
 
-    // NAME VALIDATION (letters only + cannot start with space)
+    // NAME VALIDATION
     if (name === "name" && value !== "") {
       if (!/^[A-Za-z][A-Za-z ]*$/.test(value)) {
         setErrors((prev) => ({
@@ -79,7 +79,7 @@ const Register = () => {
       }
     }
 
-    // PASSWORD LIVE CHECKLIST
+    // PASSWORD CHECKLIST
     if (name === "password") {
       const lengthOK = value.length >= 8;
       const upperOK = /[A-Z]/.test(value);
@@ -97,7 +97,7 @@ const Register = () => {
       }
     }
 
-    // CONFIRM PASSWORD VALIDATION
+    // CONFIRM PASSWORD CHECK
     if (name === "confirmPassword" && value !== "") {
       if (value !== formData.password) {
         setErrors((prev) => ({
@@ -109,11 +109,10 @@ const Register = () => {
       }
     }
 
-    // AGE VALIDATION (18+)
+    // AGE CHECK
     if (name === "birthday" && value !== "") {
       const birthDate = new Date(value);
       const today = new Date();
-
       const age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
 
@@ -129,6 +128,17 @@ const Register = () => {
         }));
       }
     }
+
+    // ⭐ CONTACT NUMBER VALIDATION (LIVE)
+    if (name === "contact" && value !== "") {
+      const phRegex = /^09\d{9}$/;
+      if (!phRegex.test(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          contact: "Must be a valid PH number (ex: 09123456789).",
+        }));
+      }
+    }
   };
 
   // FINAL FORM VALIDATION
@@ -141,8 +151,10 @@ const Register = () => {
       address,
       gender,
       birthday,
+      contact,
       terms,
     } = formData;
+
     let tempErrors = {};
 
     if (!name) tempErrors.name = "Name is required.";
@@ -153,16 +165,17 @@ const Register = () => {
     if (!address) tempErrors.address = "Address is required.";
     if (!gender) tempErrors.gender = "Gender is required.";
     if (!birthday) tempErrors.birthday = "Birthday is required.";
+    if (!contact) tempErrors.contact = "Contact number is required.";
     if (!terms)
       tempErrors.terms = "You must accept the Terms & Conditions.";
 
-    // FINAL EMAIL CHECK
+    // EMAIL
     const emailRegex = /^[^\s@]+@gmail\.com$/;
     if (email && !emailRegex.test(email)) {
       tempErrors.email = "Please use a valid Gmail address.";
     }
 
-    // FINAL PASSWORD CHECK
+    // PASSWORD
     const passwordRegex =
       /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
     if (password && !passwordRegex.test(password)) {
@@ -170,12 +183,12 @@ const Register = () => {
         "Password must have 8 chars, 1 uppercase, 1 special character.";
     }
 
-    // FINAL CONFIRM MATCH
+    // PASSWORD MATCH
     if (password !== confirmPassword) {
       tempErrors.confirmPassword = "Passwords do not match.";
     }
 
-    // FINAL AGE CHECK
+    // AGE FINAL
     const birthDate = new Date(birthday);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
@@ -190,8 +203,13 @@ const Register = () => {
       tempErrors.birthday = "You must be 18 years old or above.";
     }
 
-    setErrors(tempErrors);
+    // ⭐ FINAL CONTACT NUMBER VALIDATION
+    const phRegex = /^09\d{9}$/;
+    if (contact && !phRegex.test(contact)) {
+      tempErrors.contact = "Contact number must be 11 digits and start with 09.";
+    }
 
+    setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
 
@@ -208,57 +226,52 @@ const Register = () => {
 
       await sendEmailVerification(user);
 
-      // 1️⃣ Save to `users` collection linked to UID
+      // Save to users collection
       await setDoc(doc(db, "users", user.uid), {
         name: formData.name,
         email: formData.email,
         address: formData.address,
         gender: formData.gender,
         birthday: formData.birthday,
+        contact: formData.contact, // ⭐ SAVE CONTACT NUMBER
         role: "User",
         createdAt: serverTimestamp(),
       });
 
-      // 2️⃣ Generate Incrementing Customer Code
+      // Generate Customer Code
       const counterRef = doc(db, "counters", "customerCounter");
-
       let customerCode = "";
 
       await runTransaction(db, async (transaction) => {
-      const counterSnap = await transaction.get(counterRef);
+        const counterSnap = await transaction.get(counterRef);
 
-      // If the counter doc doesn't exist yet, create it
-      let lastId = 0;
-      if (!counterSnap.exists()) {
-        transaction.set(counterRef, { lastId: 0 });
-      } else {
-        lastId = counterSnap.data().lastId;
-      }
+        let lastId = 0;
+        if (!counterSnap.exists()) {
+          transaction.set(counterRef, { lastId: 0 });
+        } else {
+          lastId = counterSnap.data().lastId;
+        }
 
-      // Increment
-      lastId += 1;
+        lastId += 1;
+        customerCode = `CU-${String(lastId).padStart(5, "0")}`;
 
-      // Generate formatted code
-      customerCode = `CU-${String(lastId).padStart(5, "0")}`;
+        transaction.set(counterRef, { lastId }, { merge: true });
+      });
 
-      // Save new ID back to Firestore
-      transaction.set(counterRef, { lastId }, { merge: true });
-    });
-
-
-      // 3️⃣ Store as customer profile
+      // Store customer profile
       await setDoc(doc(db, "customers", customerCode), {
-        uid: user.uid, // 🔗 connection
+        uid: user.uid,
         customerCode,
         name: formData.name,
         email: formData.email,
         address: formData.address,
         gender: formData.gender,
         birthday: formData.birthday,
+        contact: formData.contact, // ⭐ SAVE CONTACT NUMBER
         registeredAt: serverTimestamp(),
       });
 
-      // 4️⃣ Optional: 2FA placeholder
+      // Placeholder 2FA
       await setDoc(doc(db, "2fa", user.uid), {
         enabled: false,
         lastOTP: null,
@@ -266,7 +279,6 @@ const Register = () => {
       });
 
       navigate("/verify");
-
     } catch (error) {
       alert(error.message);
     }
@@ -280,6 +292,7 @@ const Register = () => {
         <h2>Create an Account</h2>
 
         <form onSubmit={handleRegister}>
+
           {/* NAME */}
           <label>Name:</label>
           {errors.name && <p className="error-text">{errors.name}</p>}
@@ -326,7 +339,7 @@ const Register = () => {
             required
           />
 
-          {/* CHECKLIST WITH CHECK ICONS */}
+          {/* CHECKLIST */}
           {passwordChecklist.show && (
             <ul className="password-checklist">
               <li style={{ color: passwordChecklist.length ? "green" : "red" }}>
@@ -346,7 +359,6 @@ const Register = () => {
           {errors.confirmPassword && (
             <p className="error-text">{errors.confirmPassword}</p>
           )}
-
           <input
             id="confirmPassword"
             className={`form-input ${
@@ -356,14 +368,11 @@ const Register = () => {
             name="confirmPassword"
             value={formData.confirmPassword}
             onChange={handleChange}
-            onFocus={() =>
-              setPasswordChecklist((prev) => ({ ...prev, show: true }))
-            }
             placeholder="Confirm your password"
             required
           />
 
-          {/* SHOW PASSWORD CHECKBOX */}
+          {/* SHOW PASSWORD */}
           <div className="show-password">
             <input
               type="checkbox"
@@ -405,7 +414,7 @@ const Register = () => {
             <option value="Other">Other</option>
           </select>
 
-          {/* BIRTHDAY (AUTO-LIMITED TO 18 YEARS) */}
+          {/* BIRTHDAY */}
           <label>Birthday:</label>
           {errors.birthday && <p className="error-text">{errors.birthday}</p>}
           <input
@@ -419,6 +428,21 @@ const Register = () => {
             required
           />
 
+          {/* ⭐ CONTACT NUMBER */}
+          <label>Contact Number (PH):</label>
+          {errors.contact && <p className="error-text">{errors.contact}</p>}
+          <input
+            id="contact"
+            className={`form-input ${errors.contact ? "input-error" : ""}`}
+            type="text"
+            name="contact"
+            value={formData.contact}
+            onChange={handleChange}
+            placeholder="Enter your mobile number (09xxxxxxxxx)"
+            maxLength={11}
+            required
+          />
+
           {/* TERMS */}
           <div>
             <input
@@ -427,8 +451,8 @@ const Register = () => {
               checked={formData.terms}
               onChange={handleChange}
               id="terms"
-            />{" "}
-            <label htmlFor="terms">I accept the Terms & Conditions</label>
+            />
+            <label htmlFor="terms"> I accept the Terms & Conditions</label>
             {errors.terms && <p className="error-text">{errors.terms}</p>}
           </div>
 
