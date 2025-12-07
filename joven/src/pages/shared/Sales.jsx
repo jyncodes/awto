@@ -26,7 +26,7 @@ const Sales = ({ role }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ Auto-open receipt if redirected from POS
+  // Auto-open receipt if redirected from POS
   useEffect(() => {
     if (location.state?.newSale) {
       const newSale = location.state.newSale;
@@ -45,6 +45,7 @@ const Sales = ({ role }) => {
       );
       setSalesLog(sorted);
 
+      // Fetch names for customer linking
       const usersSnap = await getDocs(
         query(collection(db, "users"), where("role", "==", "User"))
       );
@@ -55,6 +56,7 @@ const Sales = ({ role }) => {
       });
       setUserNames(usersMap);
 
+      // Load reservation-based names and products
       const reservationIds = [
         ...new Set(
           logs
@@ -130,29 +132,19 @@ const Sales = ({ role }) => {
     }
   };
 
-  // ⭐ FIXED: Route POS based on role
+  // Route POS based on role
   const handleComplete = (reservationId, products, customerName) => {
-    if (role === "admin") {
-      navigate("/admin-pos", {
-        state: {
-          fromReservation: true,
-          reservationId,
-          reservedItems: products,
-          customerName,
-        },
-      });
-    } else {
-      navigate("/staff-pos", {
-        state: {
-          fromReservation: true,
-          reservationId,
-          reservedItems: products,
-          customerName,
-        },
-      });
-    }
+    navigate(role === "admin" ? "/admin-pos" : "/staff-pos", {
+      state: {
+        fromReservation: true,
+        reservationId,
+        reservedItems: products,
+        customerName,
+      },
+    });
   };
 
+  // Filtering
   const filteredSales =
     tab === "all"
       ? salesLog
@@ -160,39 +152,45 @@ const Sales = ({ role }) => {
       ? salesLog.filter((s) => s.type === "in-store")
       : salesLog.filter((s) => s.type === "reservation");
 
+  // Group by customer
+  const groupedSales = filteredSales.reduce((acc, sale) => {
+    const name =
+      sale.customerName ||
+      reservationNames[sale.reservationId] ||
+      "Walk-in";
+
+    if (!acc[name]) {
+      acc[name] = {
+        customerName: name,
+        history: [],
+        totalSpent: 0,
+      };
+    }
+
+    acc[name].history.push(sale);
+    acc[name].totalSpent += sale.totalAmount || 0;
+    return acc;
+  }, {});
+
   return (
     <div className="sales-page-container">
       <div className="sales-header">
         <h1>Sales Transactions</h1>
-
-        {/* ⭐ FIXED: Add Sale → role-based POS */}
         <button
           className="add-sale-btn"
-          onClick={() => navigate(role === "admin" ? "/admin-pos" : "/staff-pos")}
+          onClick={() =>
+            navigate(role === "admin" ? "/admin-pos" : "/staff-pos")
+          }
         >
           <FaPlus className="btn-icon" /> Add Sale
         </button>
       </div>
 
+      {/* Tab Filters */}
       <div className="sales-tabs">
-        <button
-          className={`sales-tab-btn ${tab === "all" ? "active" : ""}`}
-          onClick={() => setTab("all")}
-        >
-          All Sales
-        </button>
-        <button
-          className={`sales-tab-btn ${tab === "in-store" ? "active" : ""}`}
-          onClick={() => setTab("in-store")}
-        >
-          In-Store
-        </button>
-        <button
-          className={`sales-tab-btn ${tab === "reservation" ? "active" : ""}`}
-          onClick={() => setTab("reservation")}
-        >
-          Reservations
-        </button>
+        <button className={`sales-tab-btn ${tab === "all" ? "active" : ""}`} onClick={() => setTab("all")}>All Sales</button>
+        <button className={`sales-tab-btn ${tab === "in-store" ? "active" : ""}`} onClick={() => setTab("in-store")}>In-Store</button>
+        <button className={`sales-tab-btn ${tab === "reservation" ? "active" : ""}`} onClick={() => setTab("reservation")}>Reservations</button>
       </div>
 
       <div className="sales-table-container">
@@ -209,134 +207,89 @@ const Sales = ({ role }) => {
               <th>Actions</th>
             </tr>
           </thead>
+
+          {/* NEW: Grouped table */}
           <tbody>
-            {filteredSales.length === 0 ? (
-              <tr>
-                <td colSpan="8" style={{ textAlign: "center" }}>
-                  No sales record.
-                </td>
-              </tr>
+            {Object.keys(groupedSales).length === 0 ? (
+              <tr><td colSpan="8" style={{ textAlign: "center" }}>No sales record.</td></tr>
             ) : (
-              filteredSales.map((sale) => {
-                let customerName = sale.customerName || "Walk-in";
-                let items = sale.items || sale.products || [];
-                let totalDisplay = `₱${Number(sale.totalAmount || 0).toFixed(2)}`;
-                let paymentDisplay = sale.paymentMode || "—";
-                let createdBy = sale.createdByName
-                  ? `${sale.createdByName} (${sale.createdByRole})`
-                  : "—";
-
-                if (sale.type === "reservation" && sale.reservationId) {
-                  customerName =
-                    reservationNames[sale.reservationId] ||
-                    sale.customerName ||
-                    "—";
-                  items = reservationProducts[sale.reservationId] || [];
-                  totalDisplay = "—";
-                  paymentDisplay = "Reservation Fee ₱500";
-                  createdBy = "System";
-                }
-
-                return (
-                  <tr key={sale.id}>
-                    <td>
-                      {sale.createdAt?.toDate?.().toLocaleDateString() || "N/A"}
-                    </td>
-                    <td>{customerName}</td>
-                    <td>
-                      {items.length > 0 ? (
-                        items.map((i, idx) => (
-                          <div key={idx}>
-                            {i.productName || i.name}{" "}
-                            {i.quantity ? `x${i.quantity}` : i.qty ? `x${i.qty}` : ""}
-                          </div>
-                        ))
-                      ) : (
-                        <div>—</div>
-                      )}
-                    </td>
-                    <td>{totalDisplay}</td>
-                    <td>{paymentDisplay}</td>
-                    <td>{sale.type}</td>
-                    <td>{createdBy}</td>
-                    <td>
-                      {sale.type === "reservation" ? (
-                        <button
-                          className="btn-submit"
-                          onClick={() =>
-                            handleComplete(
-                              sale.reservationId,
-                              items,
-                              customerName
-                            )
-                          }
-                        >
-                          Complete
-                        </button>
-                      ) : (
-                        <button
-                          className="view-receipt-btn"
-                          onClick={() => openReceipt(sale)}
-                        >
-                          Receipt
-                        </button>
-                      )}
-                      {role === "admin" && (
-                        <button
-                          className="delete-sale-btn"
-                          onClick={() =>
-                            handleDeleteSale(
-                              sale.id,
-                              customerName,
-                              sale.totalAmount
-                            )
-                          }
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
+              Object.values(groupedSales).map((customer, idx) => (
+                <>
+                  <tr key={idx} style={{ background: "#eef2ff", fontWeight: "bold" }}>
+                    <td colSpan="2">{customer.customerName}</td>
+                    <td colSpan="3">Transactions: {customer.history.length}</td>
+                    <td colSpan="1">—</td>
+                    <td colSpan="1">—</td>
+                    <td style={{ color: "green" }}>₱{customer.totalSpent.toFixed(2)}</td>
                   </tr>
-                );
-              })
+
+                  {customer.history.map((sale) => {
+                    const isReservation = sale.type === "reservation";
+                    const items = sale.items || [];
+                    return (
+                      <tr key={sale.id}>
+                        <td>{sale.createdAt?.toDate?.().toLocaleDateString() || "N/A"}</td>
+                        <td>{customer.customerName}</td>
+                        <td>
+                          {items.map((i, idx2) => (
+                            <div key={idx2}>
+                              {i.name || i.productName} x{ i.qty || i.quantity || 1 }
+                            </div>
+                          ))}
+                        </td>
+                        <td>₱{(sale.totalAmount || 0).toFixed(2)}</td>
+                        <td>{sale.paymentMode || "—"}</td>
+                        <td>{sale.type}</td>
+                        <td>{sale.createdByName || "—"}</td>
+
+                        <td>
+                          {isReservation ? (
+                            <button className="btn-submit"
+                              onClick={() => handleComplete(
+                                sale.reservationId,
+                                reservationProducts[sale.reservationId] || [],
+                                customer.customerName
+                              )}
+                            >
+                              Complete
+                            </button>
+                          ) : (
+                            <button className="view-receipt-btn" onClick={() => openReceipt(sale)}>
+                              Receipt
+                            </button>
+                          )}
+
+                          {role === "admin" && (
+                            <button className="delete-sale-btn"
+                              onClick={() => handleDeleteSale(sale.id, customer.customerName, sale.totalAmount)}>
+                              Delete
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </>
+              ))
             )}
           </tbody>
         </table>
       </div>
 
-      {/* ================== 🧾 RECEIPT MODAL ================== */}
+      {/* Receipt Modal */}
       {receiptOpen && activeReceipt && (
         <div className="pos-receipt-modal">
           <div className="pos-receipt-box">
             <h3>Joven Tire Enterprise</h3>
-            <p>
-              <strong>Official Receipt</strong>
-              <br />
-              Transaction ID: {activeReceipt.id}
-            </p>
+            <p><strong>Official Receipt</strong><br />Transaction ID: {activeReceipt.id}</p>
             <hr />
-            <p>
-              <strong>Customer:</strong> {activeReceipt.customerName || "Walk-in"}
-            </p>
-            <p>
-              <strong>Cashier:</strong> {activeReceipt.createdByName} (
-              {activeReceipt.createdByRole})
-            </p>
+            <p><strong>Customer:</strong> {activeReceipt.customerName || "Walk-in"}</p>
+            <p><strong>Cashier:</strong> {activeReceipt.createdByName} ({activeReceipt.createdByRole})</p>
             <hr />
 
             {activeReceipt.items?.map((i, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 6,
-                }}
-              >
-                <div>
-                  {i.name || i.productName}{" "}
-                  {i.qty ? `x${i.qty}` : i.quantity ? `x${i.quantity}` : ""}
-                </div>
+              <div key={idx} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <div>{i.name || i.productName} x{ i.qty || i.quantity || 1 }</div>
                 <div>₱{(i.price * (i.qty || i.quantity || 1)).toFixed(2)}</div>
               </div>
             ))}
@@ -350,29 +303,17 @@ const Sales = ({ role }) => {
               <div>VAT (12%)</div>
               <div>₱{Number(activeReceipt.vat || 0).toFixed(2)}</div>
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontWeight: 700,
-              }}
-            >
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
               <div>Total</div>
               <div>₱{Number(activeReceipt.totalAmount || 0).toFixed(2)}</div>
             </div>
 
             <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-              <button className="btn-submit" onClick={handlePrintReceipt}>
-                Print
-              </button>
-              <button className="btn-cancel" onClick={closeReceipt}>
-                Close
-              </button>
+              <button className="btn-submit" onClick={handlePrintReceipt}>Print</button>
+              <button className="btn-cancel" onClick={closeReceipt}>Close</button>
             </div>
 
-            <div style={{ marginTop: 12, textAlign: "center", fontSize: 13 }}>
-              Thank you for your purchase!
-            </div>
+            <div style={{ marginTop: 12, textAlign: "center", fontSize: 13 }}>Thank you for your purchase!</div>
           </div>
         </div>
       )}
