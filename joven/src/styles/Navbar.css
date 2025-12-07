@@ -4,8 +4,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  background-color: #FAF9F6 !important;
-  color: #000000 !important;
+  background-color: var(--bg) !important; /* Clean white surface */
+  color: var(--text-main) !important;
   font-family: 'Poppins', sans-serif;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   position: sticky;
@@ -33,10 +33,10 @@
 .brand-name {
   font-size: 1.1rem;
   letter-spacing: 1.5px;
-  color: #000000 !important;
+  color: var(--dark-0) !important;
 }
 
-/* CENTER: Navigation Links (Fitment, Brand, Services, About) */
+/* CENTER: Navigation Links */
 .center-nav {
   display: flex;
   align-items: center;
@@ -46,7 +46,7 @@
 }
 
 .nav-link {
-  color: #000000 !important;
+  color: var(--dark-1) !important;
   text-decoration: none;
   font-size: 0.95rem;
   font-weight: 600;
@@ -55,7 +55,7 @@
 }
 
 .nav-link:hover {
-  color: #f39c12 !important;
+  color: var(--accent) !important;
   transform: scale(1.05);
 }
 
@@ -68,7 +68,7 @@
   flex: 0 0 auto;
 }
 
-/* ============== ICON BUTTONS ============== */
+/* ICON BUTTONS */
 .icon-buttons {
   display: flex;
   gap: 0.8rem;
@@ -79,7 +79,7 @@
   position: relative;
   background: none;
   border: none;
-  color: #000000 !important;
+  color: var(--dark-0) !important;
   cursor: pointer;
   transition: transform 0.2s ease, background-color 0.2s ease;
   padding: 0.4rem 0.6rem;
@@ -91,11 +91,12 @@
   transform: scale(1.05);
 }
 
+/* Cart Badge */
 .badge {
   position: absolute;
   top: -6px;
   right: -6px;
-  background: #f44336;
+  background: var(--accent-deep); /* deep orange #D35100 */
   color: white;
   font-size: 0.65rem;
   padding: 2px 6px;
@@ -103,7 +104,7 @@
   font-weight: bold;
 }
 
-/* ============== ACCOUNT BUTTON / DROPDOWN ============== */
+/* ACCOUNT BUTTON / DROPDOWN */
 .profile-dropdown {
   position: relative;
   display: inline-block;
@@ -112,7 +113,7 @@
 .account-link {
   background: none;
   border: none;
-  color: #000000 !important;
+  color: var(--dark-1) !important;
   text-transform: uppercase;
   font-weight: 600;
   font-size: 0.95rem;
@@ -123,17 +124,18 @@
 }
 
 .account-link:hover {
-  color: #f39c12 !important;
+  color: var(--accent) !important;
   transform: scale(1.05);
 }
 
+/* DROPDOWN MENU */
 .dropdown-menu {
   position: absolute;
   top: 110%;
   right: 0;
   background-color: #ffffff;
   min-width: 140px;
-  border-radius: 6px;
+  border-radius: 8px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   z-index: 1000;
@@ -143,7 +145,7 @@
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #000000 !important;
+  color: var(--dark-1) !important;
   background-color: transparent;
   border: none;
   width: 100%;
@@ -153,16 +155,16 @@
 }
 
 .dropdown-item:hover {
-  background-color: #f1f1f1;
-  color: #f39c12 !important;
+  background-color: var(--bg-soft);
+  color: var(--accent) !important;
 }
 
-/* ============== MOBILE RESPONSIVE ============== */
+/* MOBILE RESPONSIVE */
 .menu-toggle {
   display: none;
   background: none;
   border: none;
-  color: #000000 !important;
+  color: var(--dark-0) !important;
   font-size: 1.2rem;
 }
 

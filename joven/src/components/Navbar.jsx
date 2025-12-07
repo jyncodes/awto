@@ -121,7 +121,6 @@ const Navbar = () => {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  // 🔥 NEW helper: go to landing page and scroll to section
   const goToSection = (id) => {
     if (location.pathname !== "/") {
       navigate("/#" + id);
@@ -206,24 +205,22 @@ const Navbar = () => {
                 </button>
                 {showDropdown && (
                   <div className="dropdown-menu">
+
+                    {/* ⭐ UPDATED DROPDOWN ITEMS */}
                     <button
                       className="dropdown-item"
-                      onClick={() => goToProfileTab("profile")}
+                      onClick={() => goToProfileTab("myaccount")}
                     >
-                      Profile
+                      My Account
                     </button>
+
                     <button
                       className="dropdown-item"
                       onClick={() => goToProfileTab("reservations")}
                     >
                       My Reservations
                     </button>
-                    <button
-                      className="dropdown-item"
-                      onClick={() => goToProfileTab("settings")}
-                    >
-                      Settings
-                    </button>
+
                     <button
                       className="dropdown-item logout"
                       onClick={handleLogout}
