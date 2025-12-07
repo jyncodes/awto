@@ -1,4 +1,6 @@
 import React from "react";
+import "../../styles/shared/POSPayment.css";
+
 
 export default function POSPayment({
   subtotal,

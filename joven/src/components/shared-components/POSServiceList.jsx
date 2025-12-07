@@ -1,4 +1,6 @@
 import React from "react";
+import "../../styles/shared/POSServiceList.css";
+
 
 export default function POSServiceList({ services, addServiceToCart }) {
   return (

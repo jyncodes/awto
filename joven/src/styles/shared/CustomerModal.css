@@ -1,70 +1,34 @@
-/* ================= CUSTOMER MODAL ================= */
 .customer-modal-bg {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.45);
+  inset: 0;
+  background: rgba(0,0,0,0.55);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999;
+  z-index: 99999;
 }
 
 .customer-modal {
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  width: 380px;
-  max-height: 80vh;
+  background: white;
+  width: 420px;
+  padding: 1.5rem;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  animation: fadeIn .25s ease;
+  max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.customer-modal h3 {
-  margin-bottom: 10px;
-  font-weight: 700;
 }
 
 .customer-option {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  cursor: pointer;
-  background: white;
-  text-align: left;
+  padding: .8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
   margin-bottom: 6px;
-  transition: background 0.12s ease;
+  cursor: pointer;
+  transition: .2s;
 }
 
 .customer-option:hover {
-  background: #f1f5f9;
-}
-
-.customer-option span {
-  font-size: 0.8rem;
-  color: #64748b;
-}
-
-.input-field {
-  width: 100%;
-  padding: 0.7rem;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
-  margin-bottom: 10px;
-}
-
-.btn-cancel {
-  background-color: #e2e8f0;
-  padding: 0.6rem;
-  border-radius: 8px;
-  width: 100%;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-cancel:hover {
-  background-color: #cdd4db;
+  background: #edf2ff;
+  border-color: #0A66C2;
 }

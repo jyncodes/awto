@@ -1,248 +1,271 @@
-/* ================= GLOBAL POS CONTAINER ================= */
+/* ================= GLOBAL LAYOUT ================= */
 .pos-container {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: #f8fafc;
-  z-index: 10000;
+  inset: 0;
+  background: #f3f4f6;
+  font-family: "Poppins", sans-serif;
   display: flex;
   flex-direction: column;
-  font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #1e293b;
-  overflow: hidden; /* Prevent page scrolling */
+  overflow: hidden;
 }
 
-/* ================= POS HEADER ================= */
+/* ================= HEADER ================= */
 .pos-header {
+  background: #0a66c2;
+  color: #fff;
+  padding: 1rem 1.4rem;
+  font-size: 1.15rem;
+  font-weight: 600;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
-  background-color: #007bff;
-  color: white;
-  font-weight: 700;
-  font-size: 1.05rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  flex-shrink: 0;
-  z-index: 10;
 }
 
 .pos-close-btn {
-  background-color: #ef4444;
+  background: #e11d48;
   border: none;
+  padding: .55rem 1rem;
+  border-radius: 8px;
   color: white;
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: .2s;
 }
 .pos-close-btn:hover {
-  background-color: #dc2626;
+  background: #be123c;
 }
 
-/* ================= POS MAIN CONTENT ================= */
+/* ================= MAIN LAYOUT (3 COLUMNS) ================= */
 .pos-main {
-  display: flex;
   flex: 1;
-
-  /* ⬇ FIX: Allow children to scroll, but container stays fixed */
-  min-height: 0;
-
+  display: grid;
+  grid-template-columns: 2.2fr 1.4fr 1fr;
   gap: 1rem;
-  padding: 1rem 1.5rem;
-
-  overflow: hidden; 
+  padding: 1rem;
+  overflow: hidden;
 }
 
-/* ================= PRODUCT SEARCH & LIST ================= */
-.pos-product-list {
-  flex: 2;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 1rem;
-
-  /* ⬇ FIX: Prevent overlapping by forcing the inside to scroll */
+/* Reusable Column Box */
+.pos-column {
+  background: white;
+  padding: 1.1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+/* ================= LEFT COLUMN (PRODUCTS + SERVICES) ================= */
+.pos-products {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* 🔍 GLOBAL SEARCH */
+.pos-global-search {
+  background: white;
+  padding: .7rem 1rem;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.05);
+}
+
+.pos-global-search input {
+  width: 100%;
+  padding: .8rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 1rem;
+}
+.pos-global-search input:focus {
+  border-color: #0a66c2;
+  outline: none;
+}
+
+/* FILTER TABS */
+.pos-tabs {
+  display: flex;
+  gap: .5rem;
+}
+
+.pos-tab-btn {
+  flex: 1;
+  padding: .55rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+  font-size: .9rem;
+}
+.pos-tab-btn:hover { background: #e5efff; }
+
+.pos-tab-btn.active {
+  background: #0a66c2;
+  color: white;
+  border-color: #0a66c2;
+}
+
+/* GRID: PRODUCTS (LARGE) + SERVICES (SMALLER) */
+.pos-list-grid {
+  display: grid;
+  grid-template-columns: 65% 35%;
+  gap: 1rem;
+  flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-.pos-search {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.pos-search input {
-  flex: 1;
-  padding: 0.7rem 0.9rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.95rem;
-}
-
-.pos-product-items-container {
-  flex: 1;
-  overflow-y: auto;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 0.5rem;
-}
-
-.pos-product-item {
+/* Shared look for product/service rows */
+.pos-item {
+  background: #f8fafc;
+  padding: .75rem;
+  margin-bottom: .55rem;
+  border-radius: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.65rem 0.75rem;
-  border-bottom: 1px solid #edf2f7;
-  background-color: #fff;
-  transition: background 0.12s ease;
+  transition: .2s;
+  border: 1px solid #e5e7eb;
 }
-.pos-product-item:hover {
-  background-color: #f1f5f9;
+.pos-item:hover { background: #edf2f7; }
+
+.pos-item button {
+  background: #0a66c2;
+  padding: .45rem .75rem;
+  border-radius: 6px;
+  color: white;
+  border: none;
+  transition: .2s;
+}
+.pos-item button:hover { background: #004a99; }
+.pos-item button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
 }
 
-.pos-product-item div {
-  max-width: 70%;
-}
-
-/* ================= CART SECTION ================= */
-.pos-cart {
-  flex: 1;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 1rem;
-
-  /* ⬇ FIX prevent cart overlapping */
+/* ================= MIDDLE COLUMN — CART ================= */
+.pos-cart-area {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
+  gap: .7rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: .8rem;
 }
 
+.pos-cart-area h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+/* Scrollable items */
 .cart-items-container {
   flex: 1;
   overflow-y: auto;
-  margin-top: 0.5rem;
+  padding: .6rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
 }
 
+/* Single cart item */
 .cart-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.6rem;
-  padding: 0.55rem;
-  border-radius: 6px;
-  background-color: #f8fafc;
-}
-.cart-item:hover {
-  background-color: #e8f0ff;
-}
-
-.cart-item-name {
-  font-weight: 600;
-  flex: 1;
-}
-
-.cart-item-qty button {
-  padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-}
-
-.cart-item-qty input {
-  width: 56px;
-  padding: 0.28rem;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
-  text-align: center;
-}
-
-.cart-item-remove {
-  background-color: #ef4444;
-  color: white;
-  border: none;
-  padding: 0.32rem 0.7rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* ================= BUTTONS (shared) ================= */
-.btn-submit {
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  padding: 0.9rem 1.4rem;
-  border-radius: 10px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s ease-in-out;
-}
-
-.btn-cancel {
-  background-color: #e2e8f0;
-  color: #374151;
-  border: none;
-  padding: 0.45rem 0.8rem;
+  background: white;
+  padding: .75rem;
   border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
+  margin-bottom: .6rem;
+  border: 1px solid #e5e7eb;
+}
+.cart-item-name { font-weight: 600; }
+
+/* ================= RIGHT COLUMN — CUSTOMER + PAYMENT ================= */
+.pos-payment-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-/* ================= RECEIPT MODAL ================= */
-.pos-receipt-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+/* ---- CUSTOMER UI ---- */
+.customer-box {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+}
+
+.customer-box h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.customer-row {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+/* small icon buttons */
+.btn-small {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: 700;
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 10010;
+  transition: .2s;
+}
+.btn-small.primary { background: #0a66c2; color:white; }
+.btn-small.primary:hover { background:#004a99; }
+
+.btn-small.success { background:#10b981; color:white; }
+.btn-small.success:hover { background:#059669; }
+
+.customer-details {
+  background: #f1f5f9;
+  padding: .7rem;
+  border-radius: 8px;
+  font-size: .85rem;
+  border-left: 4px solid #0a66c2;
 }
 
-.pos-receipt-box {
-  background-color: #ffffff;
-  padding: 1.25rem;
+/* ================= ACTION BUTTONS ================= */
+.btn-submit {
+  background: #0a66c2;
+  padding: .7rem;
+  color: white;
+  border: none;
   border-radius: 10px;
-  width: 420px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  font-weight: 600;
+  width: 100%;
+  transition: .2s;
 }
+.btn-submit:hover { background: #004a99; }
 
-/* ================= RESPONSIVE FIXES ================= */
-@media (max-width: 1024px) {
-  .pos-main {
-    flex-direction: column;
-    padding: 1rem;
-    overflow: auto; /* Allow scroll in smaller screens */
-  }
-  .pos-product-list,
-  .pos-cart {
-    width: 100%;
-    min-height: 260px;
-  }
+.btn-cancel {
+  background: #d1d5db;
+  padding: .7rem;
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
 }
+.btn-cancel:hover { background: #bcbfc5; }
 
-@media (max-width: 640px) {
-  .pos-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-  }
-}
-
-@media (max-height: 700px) {
-  .pos-main {
-    flex-direction: column;
-    overflow-y: auto;
-  }
+/* ================= RESPONSIVE ================= */
+@media(max-width: 1100px) {
+  .pos-main { grid-template-columns: 1fr; overflow-y: auto; }
 }
