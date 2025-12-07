@@ -1,45 +1,78 @@
-/* Reset some basic elements */
+/* ============================================================
+   GLOBAL RESET + THEME-ALIGNED BASE STYLES
+   Using Palette: 000000 | 151515 | F8A145 | F07900 | D35100
+   ============================================================ */
+
+/* Universal reset */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* Root theme variables */
+:root {
+  --accent: #F07900;
+  --accent-light: #F8A145;
+  --accent-deep: #D35100;
+
+  --dark-0: #000000;
+  --dark-1: #151515;
+
+  --text-main: #151515;
+  --text-light: #ffffff;
+  --text-muted: #7d7d7d;
+
+  --bg: #ffffff;
+  --bg-soft: #f4f4f4;
+  --border: #e3e3e3;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  --shadow-soft: 0 8px 22px rgba(0, 0, 0, 0.12);
+}
+
+/* Base HTML + BODY */
 html, body {
   height: 100%;
   width: 100%;
   font-family: 'Poppins', sans-serif;
-  background-color: #f4f4f4 !important;
-  color: #000000;
+  background-color: var(--bg-soft) !important; /* Updated to match palette */
+  color: var(--text-main);
   line-height: 1.6;
+  scroll-behavior: smooth;
 }
 
-/* Center app vertically on page if needed */
+/* Root container for entire React app */
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Add smooth transitions globally */
+/* Smooth transitions */
 button, a {
   transition: all 0.3s ease;
 }
 
-/* Remove default button styles */
+/* Reset button styling */
 button {
   border: none;
   outline: none;
   cursor: pointer;
+  background: none;
+  font-family: inherit;
 }
 
-/* Link styling */
+/* Links inherit theme colors */
 a {
   text-decoration: none;
   color: inherit;
 }
 
-/* Utility classes (optional) */
+/* Utility classes */
 .text-center {
   text-align: center;
 }
