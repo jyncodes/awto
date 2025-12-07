@@ -1,0 +1,68 @@
+/* ================= PAYMENT SECTION ================= */
+.payment-box {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+.payment-box h3 {
+  margin-bottom: 10px;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* Payment field */
+.payment-field {
+  margin-bottom: 12px;
+}
+
+.payment-field label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.payment-field .input-field,
+.payment-field select {
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.payment-summary {
+  background: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-top: 10px;
+}
+
+.payment-summary p {
+  margin: 4px 0;
+  font-size: 0.95rem;
+}
+
+.payment-summary h3 {
+  margin-top: 10px;
+  font-size: 1.2rem;
+}
+
+/* Checkout button */
+.btn-submit.full-width {
+  width: 100%;
+  margin-top: 12px;
+  background-color: #007bff;
+  padding: 0.9rem 1.4rem;
+  font-size: 1.05rem;
+  border-radius: 10px;
+}
+
+.btn-submit.full-width:hover {
+  background: #0a63c4;
+}

@@ -1,0 +1,61 @@
+/* ================= PRODUCT LIST ================= */
+.pos-search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.pos-search input {
+  flex: 1;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.pos-product-items-container {
+  flex: 1;
+  overflow-y: auto;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.5rem;
+}
+
+.pos-product-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #edf2f7;
+  transition: background 0.12s ease;
+  background-color: #fff;
+}
+
+.pos-product-item:hover {
+  background-color: #f1f5f9;
+}
+
+.pos-product-item div {
+  max-width: 70%;
+}
+
+.pos-product-item strong {
+  font-size: 0.95rem;
+}
+
+.pos-product-item p {
+  margin: 2px 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.pos-product-item .btn-submit {
+  background: #007bff;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.85rem;
+}
+
+.pos-product-item .btn-submit:hover {
+  background: #0a63c4;
+}

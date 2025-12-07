@@ -1,0 +1,40 @@
+/* ================= SERVICE LIST ================= */
+.pos-product-items-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.pos-service-item,
+.pos-product-item { /* Same style as product for consistency */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem;
+  border-bottom: 1px solid #edf2f7;
+  transition: background 0.12s ease;
+  background-color: #fff;
+}
+
+.pos-service-item:hover {
+  background-color: #f1f5f9;
+}
+
+.pos-service-item strong {
+  font-size: 0.95rem;
+}
+
+.pos-service-item p {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.pos-service-item button {
+  background: #007bff;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  color: white;
+}
+
+.pos-service-item button:hover {
+  background: #0a63c4;
+}

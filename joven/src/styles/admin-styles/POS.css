@@ -11,7 +11,7 @@
   flex-direction: column;
   font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #1e293b;
-  overflow: hidden; /* prevent browser scroll */
+  overflow: hidden; /* Prevent page scrolling */
 }
 
 /* ================= POS HEADER ================= */
@@ -47,11 +47,14 @@
 .pos-main {
   display: flex;
   flex: 1;
+
+  /* ⬇ FIX: Allow children to scroll, but container stays fixed */
+  min-height: 0;
+
   gap: 1rem;
   padding: 1rem 1.5rem;
-  overflow: hidden; /* important: prevent double scroll */
-  min-height: 0;
-  transition: all 0.3s ease;
+
+  overflow: hidden; 
 }
 
 /* ================= PRODUCT SEARCH & LIST ================= */
@@ -61,11 +64,12 @@
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 1rem;
+
+  /* ⬇ FIX: Prevent overlapping by forcing the inside to scroll */
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow-y: auto;
-  border-right: 2px solid #f1f5f9; /* subtle divider */
+  overflow: hidden;
 }
 
 .pos-search {
@@ -82,15 +86,6 @@
   font-size: 0.95rem;
 }
 
-.pos-search button {
-  padding: 0.65rem 0.9rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
 .pos-product-items-container {
   flex: 1;
   overflow-y: auto;
@@ -104,16 +99,16 @@
   align-items: center;
   padding: 0.65rem 0.75rem;
   border-bottom: 1px solid #edf2f7;
-  transition: background 0.12s ease;
   background-color: #fff;
+  transition: background 0.12s ease;
 }
 .pos-product-item:hover {
   background-color: #f1f5f9;
 }
+
 .pos-product-item div {
   max-width: 70%;
 }
-
 
 /* ================= CART SECTION ================= */
 .pos-cart {
@@ -122,10 +117,12 @@
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 1rem;
+
+  /* ⬇ FIX prevent cart overlapping */
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .cart-items-container {
@@ -177,14 +174,14 @@
   cursor: pointer;
 }
 
-/* ================= BUTTONS (re-use) ================= */
+/* ================= BUTTONS (shared) ================= */
 .btn-submit {
   background-color: #007bff;
   color: #fff;
   border: none;
-  padding: 0.9rem 1.4rem; /* ⬅ Bigger button */
+  padding: 0.9rem 1.4rem;
   border-radius: 10px;
-  font-size: 1.1rem; /* ⬅ Larger text */
+  font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s ease-in-out;
@@ -197,46 +194,6 @@
   padding: 0.45rem 0.8rem;
   border-radius: 8px;
   font-weight: 600;
-  cursor: pointer;
-}
-
-/* ================= POS FOOTER / PAYMENT ================= */
-.pos-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-
-.pos-totals {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 700;
-  font-size: 1.05rem;
-}
-
-.pos-payment {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-  margin-top: 0.6rem;
-}
-
-.pos-payment select,
-.pos-payment input {
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.95rem;
-}
-
-/* Checkout button */
-.pos-checkout-btn {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 0.65rem 1rem;
-  border-radius: 8px;
-  font-weight: 700;
   cursor: pointer;
 }
 
@@ -261,17 +218,17 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
-/* ================= RESPONSIVE ================= */
+/* ================= RESPONSIVE FIXES ================= */
 @media (max-width: 1024px) {
   .pos-main {
     flex-direction: column;
     padding: 1rem;
-    overflow-y: auto;
+    overflow: auto; /* Allow scroll in smaller screens */
   }
   .pos-product-list,
   .pos-cart {
     width: 100%;
-    max-height: unset;
+    min-height: 260px;
   }
 }
 
@@ -281,78 +238,11 @@
     align-items: flex-start;
     gap: 0.4rem;
   }
-  .pos-footer {
-    padding: 0.75rem;
-  }
 }
 
-/* ✅ AUTO-STACK WHEN SCREEN HEIGHT IS SMALL */
 @media (max-height: 700px) {
   .pos-main {
     flex-direction: column;
-    padding: 0.75rem;
+    overflow-y: auto;
   }
-  .pos-product-list,
-  .pos-cart {
-    width: 100%;
-    max-height: unset;
-  }
-}
-
-.dropdown-suggestions {
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  max-height: 150px;
-  overflow-y: auto;
-  margin-top: 4px;
-}
-
-.dropdown-item {
-  padding: 8px;
-  cursor: pointer;
-}
-
-.dropdown-item:hover {
-  background: #f1f5f9;
-}
-
-/* Customer Modal */
-
-.customer-modal-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.customer-modal {
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  width: 380px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.customer-option {
-  width: 100%;
-  text-align: left;
-  border: 1px solid #cbd5e1;
-  padding: 10px;
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
-  margin-bottom: 6px;
-}
-
-.customer-option:hover {
-  background: #f1f5f9;
 }
