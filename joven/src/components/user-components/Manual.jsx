@@ -18,7 +18,6 @@ const Manual = () => {
 
   const [currentUser, setCurrentUser] = useState(null);
 
-  // 🔐 Detect login state
   useEffect(() => {
     const unlisten = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -26,7 +25,6 @@ const Manual = () => {
     return () => unlisten();
   }, []);
 
-  // 🔄 Fetch fitment data
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "vehicleFitment"),
@@ -63,16 +61,14 @@ const Manual = () => {
     return () => unsubscribe();
   }, []);
 
-  // ⭐ RESET selections
+  // ⭐ FIXED — Clear button now stays on the same page
   const handleClear = () => {
     setBrand("");
     setModel("");
     setType("");
     setSize("");
-    navigate("/user-dashboard", { replace: true });
   };
 
-  // Dropdown options
   const brandOptions = Object.keys(vehicleData);
   const modelOptions = brand ? Object.keys(vehicleData[brand] || {}) : [];
   const typeOptions = ["Tire", "Mags"];
@@ -93,17 +89,14 @@ const Manual = () => {
   const selectedFitmentObj = sizeOptions.find((s) => s.label === size);
   const selectedFitment = selectedFitmentObj?.fitment || null;
 
-  // ⭐ SHOP NOW with login-check logic
   const handleShopNow = (e) => {
     e.preventDefault();
 
-    // ❌ If not logged in → open login popup
     if (!currentUser) {
-      window.dispatchEvent(new Event("open-login")); // <-- triggers LandingPage login modal
+      window.dispatchEvent(new Event("open-login"));
       return;
     }
 
-    // ✔ Logged in → continue normal flow
     if (!brand || !model || !type || !size) {
       alert("⚠️ Please select all fields before proceeding.");
       return;
@@ -114,27 +107,26 @@ const Manual = () => {
       return;
     }
 
-          navigate("/user-dashboard", {
-        state: {
-          selectionType: "fitment",
-          vehicleLabel: `${brand} ${model} - ${type} ${size}`,
+    navigate("/user-dashboard", {
+      state: {
+        selectionType: "fitment",
+        vehicleLabel: `${brand} ${model} - ${type} ${size}`,
+        size,
+        fitment: {
+          type: type.toLowerCase(),
           size,
-          fitment: {
-            type: type.toLowerCase(),
-            size,
-            rimDiameter:
-              selectedFitment.rimDiameter ||
-              selectedFitment.wheelDiameter ||
-              "",
-            width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
-            boltPattern: selectedFitment.boltPattern || "",
-            tireWidth: selectedFitment.tireWidth || "",
-            aspectRatio: selectedFitment.aspectRatio || "",
-          },
+          rimDiameter:
+            selectedFitment.rimDiameter ||
+            selectedFitment.wheelDiameter ||
+            "",
+          width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
+          boltPattern: selectedFitment.boltPattern || "",
+          tireWidth: selectedFitment.tireWidth || "",
+          aspectRatio: selectedFitment.aspectRatio || "",
         },
-      });
-
-        };
+      },
+    });
+  };
 
   return (
     <div className="fitment-container premium-fitment">
