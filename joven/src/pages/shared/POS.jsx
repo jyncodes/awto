@@ -153,29 +153,42 @@ const [customerName, setCustomerName] = useState("");
   const total = subtotal + vat - reservationFeeApplied;
 
   // ================== CHECKOUT ==================
-  const handleCheckout = async () => {
-    if (!customerName.trim()) return alert("Enter customer name.");
-    if (cart.length === 0) return alert("Cart empty.");
+const handleCheckout = async () => {
+  if (!customerName.trim()) return alert("Enter customer name.");
+  if (cart.length === 0) return alert("Cart empty.");
 
-    setIsProcessing(true);
+  if (paymentMode === "Cash") {
+    if (!cashReceived.trim() || Number(cashReceived) <= 0) {
+      return alert("Please enter valid payment amount.");
+    }
 
-    const snapshot = await getDoc(doc(db, "users", auth.currentUser.uid));
-    const userData = snapshot.data();
+    if (Number(cashReceived) < total) {
+      return alert("Cash received is insufficient.");
+    }
+  }
 
-    const saleData = {
-      customer: selectedCustomer || { name: customerName, type: "Walk-in" },
-      items: cart,
-      subtotal,
-      vat,
-      totalAmount: total,
-      paymentMode,
-      paymentRef,
-      createdAt: Timestamp.now(),
-      createdByName: userData.name,
-      createdByRole: userData.role,
-      reservationApplied: reservationFeeApplied > 0,
-      reservationId,
-    };
+  setIsProcessing(true);
+
+   const snapshot = await getDoc(doc(db, "users", auth.currentUser.uid));
+  const userData = snapshot.data();
+
+  const saleData = {
+    customer: selectedCustomer || { name: customerName, type: "Walk-in" },
+    items: cart,
+    subtotal,
+    vat,
+    totalAmount: total,
+    paymentMode,
+    paymentRef: paymentMode === "Cash" ? "" : paymentRef,
+    createdAt: Timestamp.now(),
+    createdByName: userData.name,
+    createdByRole: userData.role,
+    reservationApplied: reservationFeeApplied > 0,
+  };
+
+  if (reservationId) {
+    saleData.reservationId = reservationId;
+  }
 
     const docRef = await addDoc(collection(db, "sales"), saleData);
 
@@ -362,12 +375,14 @@ const [customerName, setCustomerName] = useState("");
               {reservationFeeApplied > 0 && <p>Reservation Discount: -₱{RESERVATION_FEE}</p>}
               <h3>Total: ₱{total.toFixed(2)}</h3>
               <p>Paid via: {lastReceipt?.paymentMode}</p>
-            </div>
 
-            <div className="pos-receipt-actions">
+            <div className="pos-receipt-actions no-print">
               <button className="btn-submit" onClick={handlePrint}>Print</button>
               <button className="btn-cancel" onClick={() => setReceiptOpen(false)}>Close</button>
             </div>
+
+            </div>
+
           </div>
         )}
       </div>

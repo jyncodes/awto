@@ -68,7 +68,10 @@ export default function POSPayment({
       <button
         className="btn-submit full-width"
         onClick={handleCheckout}
-        disabled={isProcessing}
+        disabled={
+          isProcessing ||
+          (paymentMode === "Cash" && (cashReceived.trim() === "" || Number(cashReceived) <= 0))
+        }
       >
         {isProcessing ? "Processing..." : "Complete Sale"}
       </button>
