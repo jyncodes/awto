@@ -15,9 +15,7 @@ import {
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
-  updatePassword,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
+
 } from "firebase/auth";
 import "../../styles/admin-styles/Settings.css";
 
@@ -26,11 +24,6 @@ import ResetCounterModal from "../../components/admin-components/ResetCounterMod
 
 const AdminSettings = () => {
   const [adminData, setAdminData] = useState({ name: "", email: "" });
-  const [editName, setEditName] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [savingName, setSavingName] = useState(false);
 
   // =============================
   // STAFF MANAGEMENT STATES
@@ -103,72 +96,6 @@ const AdminSettings = () => {
     fetchDownpaymentSetting();
   }, []);
 
-  // =============================
-  // UPDATE ADMIN NAME
-  // =============================
-  const handleNameUpdate = async () => {
-    if (!editName.trim()) {
-      alert("Name cannot be empty.");
-      return;
-    }
-
-    try {
-      setSavingName(true);
-      const user = auth.currentUser;
-      if (user) {
-        await updateDoc(doc(db, "users", user.uid), {
-          name: editName.trim(),
-        });
-        setAdminData((prev) => ({ ...prev, name: editName.trim() }));
-        alert("Name updated successfully!");
-      }
-    } catch (error) {
-      console.error("Error updating name:", error);
-      alert("Failed to update name.");
-    } finally {
-      setSavingName(false);
-    }
-  };
-
-  // =============================
-  // CHANGE PASSWORD
-  // =============================
-  const handlePasswordUpdate = async () => {
-    if (!newPassword || !confirmPassword) {
-      alert("Please fill in both password fields.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      alert("Passwords do not match.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const user = auth.currentUser;
-      const currentPassword = prompt("Please re-enter your current password:");
-      if (!currentPassword) {
-        setLoading(false);
-        return;
-      }
-
-      const credential = EmailAuthProvider.credential(
-        user.email,
-        currentPassword
-      );
-      await reauthenticateWithCredential(user, credential);
-
-      await updatePassword(user, newPassword);
-      alert("Password updated successfully!");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error) {
-      console.error("Error updating password:", error);
-      alert(error.message || "Failed to update password.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // =============================
   // STAFF FUNCTIONS
@@ -282,53 +209,13 @@ const AdminSettings = () => {
         <h2>Admin Info</h2>
         <div className="settings-field">
           <label>Name:</label>
-          <input
-            type="text"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-          />
+          <input type="text" value={adminData.name || ""} disabled />
         </div>
         <div className="settings-field">
           <label>Email:</label>
           <input type="email" value={adminData.email || ""} disabled />
         </div>
-        <button
-          className="settings-button"
-          onClick={handleNameUpdate}
-          disabled={savingName}
-        >
-          {savingName ? "Saving..." : "Update Name"}
-        </button>
-      </div>
 
-      {/* =================== CHANGE PASSWORD =================== */}
-      <div className="settings-section">
-        <h2>Change Password</h2>
-        <div className="settings-field">
-          <label>New Password:</label>
-          <input
-            type="password"
-            placeholder="Enter new password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-        </div>
-        <div className="settings-field">
-          <label>Confirm Password:</label>
-          <input
-            type="password"
-            placeholder="Confirm new password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-        </div>
-        <button
-          className="settings-button"
-          onClick={handlePasswordUpdate}
-          disabled={loading}
-        >
-          {loading ? "Updating..." : "Update Password"}
-        </button>
       </div>
 
       {/* =================== DOWNPAYMENT =================== */}
