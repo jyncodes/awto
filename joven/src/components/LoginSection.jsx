@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
@@ -12,9 +12,8 @@ const LoginSection = ({ onClose, origin }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-
-  // ⭐ NEW: Loading state
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const isAllowedEmail = () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -24,7 +23,7 @@ const LoginSection = ({ onClose, origin }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true); // START LOADING
+    setLoading(true);
 
     if (!isAllowedEmail()) {
       setError('Enter a valid email.');
@@ -64,7 +63,31 @@ const LoginSection = ({ onClose, origin }) => {
       setError('Invalid email or password.');
     }
 
-    setLoading(false); // STOP LOADING
+    setLoading(false);
+  };
+
+  // ⭐ Forgot Password Handler
+  const handleForgotPassword = async () => {
+    setError('');
+
+    if (!email) {
+      setError("Enter your email to reset password.");
+      return;
+    }
+
+    if (!isAllowedEmail()) {
+      setError("Enter a valid email first.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetSent(true);
+      alert("Password reset email sent. Check your inbox.");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to send reset email. Account may not exist.");
+    }
   };
 
   return (
@@ -110,14 +133,24 @@ const LoginSection = ({ onClose, origin }) => {
               </button>
             </div>
 
-            {/* ⭐ UPDATED LOGIN BUTTON WITH LOADING */}
+            {/* ⭐ Forgot Password Button */}
+            <button
+              type="button"
+              className="forgot-password-btn"
+              onClick={handleForgotPassword}
+              disabled={resetSent}
+            >
+              {resetSent ? "Reset Email Sent ✔" : "Forgot Password?"}
+            </button>
+
+            {/* Login Button */}
             <button type="submit" className="explore-button mt-5" disabled={loading}>
               {loading ? "Logging in..." : "Login"}
             </button>
           </form>
 
           <div className="mt-4">
-            <p> Don’t have an account?</p>
+            <p>Don’t have an account?</p>
             <Link
               to="/register"
               onClick={onClose}
@@ -126,6 +159,7 @@ const LoginSection = ({ onClose, origin }) => {
               Create an account
             </Link>
           </div>
+
         </div>
       </div>
     </div>
