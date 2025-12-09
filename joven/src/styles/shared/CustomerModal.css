@@ -89,3 +89,10 @@
 .btn-back:hover {
   background: #cbd5e1;
 }
+
+.error-text {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: -6px;
+  margin-bottom: 8px;
+}

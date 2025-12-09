@@ -360,18 +360,8 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
 
       {/* MIDDLE COLUMN — CART ONLY */}
       <div className="pos-column pos-cart-area">
-        <h3>🛒 Cart</h3>
-        <POSCart
-          cart={cart}
-          incQty={incQty}
-          decQty={decQty}
-          removeFromCart={removeFromCart}
-          updateQty={updateQty}
-        />
-      </div>
 
- 
-  {/* RIGHT COLUMN — CUSTOMER + PAYMENT */}
+      {/* RIGHT COLUMN — CUSTOMER + PAYMENT */}
 <div className="pos-column pos-payment-area">
 
   {/* Customer UI */}
@@ -416,6 +406,19 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
       </div>
     )}
   </div>
+
+
+        <h3>🛒 Cart</h3>
+        <POSCart
+          cart={cart}
+          incQty={incQty}
+          decQty={decQty}
+          removeFromCart={removeFromCart}
+          updateQty={updateQty}
+        />
+      </div>
+    </div>
+ 
       <POSPayment
         subtotal={baseSubtotal}
         vat={baseVAT}
@@ -437,7 +440,6 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
         isProcessing={isProcessing}
       />
       </div>
-    </div>
 
         {receiptOpen && (
           <div className="pos-receipt-overlay">
