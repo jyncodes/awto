@@ -303,7 +303,7 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
       <div className="pos-container">
         <div className="pos-header">
           <div>🧾 Point of Sale</div>
-          <button className="pos-close-btn" onClick={() => navigate(role === "Admin" ? "/admin-dashboard/sales" : "/staff-dashboard/sales")}>
+          <button className="pos-close-btn" onClick={() => navigate(-1)}>
             Back
           </button>
         </div>
