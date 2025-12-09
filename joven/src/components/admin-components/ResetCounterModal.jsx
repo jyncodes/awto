@@ -8,9 +8,10 @@ const PRODUCT_TYPE_PREFIXES = {
   Mags: "MA"
 };
 
-// Reservation and Customers have unique prefixes
+// Prefixes
 const RESERVATION_PREFIX = "RES";
 const CUSTOMER_PREFIX = "CU";
+const SALES_PREFIX = "SA"; // <-- NEW
 
 const ResetCounterModal = ({ isOpen, onClose }) => {
   const [selectedType, setSelectedType] = useState("Tire");
@@ -23,33 +24,40 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
     try {
       setLoading(true);
 
-      // Customer Counter Preview
+      // Customer Counter
       if (type === "Customer") {
         const ref = doc(db, "counters", "customerCounter");
         const snap = await getDoc(ref);
         const current = snap.exists() ? snap.data().lastId : 0;
-
         setNextIdPreview(`${CUSTOMER_PREFIX}-${String(current + 1).padStart(5, "0")}`);
         return;
       }
 
-      // Reservation Preview
+      // Reservation Counter
       if (type === "Reservation") {
         const ref = doc(db, "counters", "reservations");
         const snap = await getDoc(ref);
         const current = snap.exists() ? snap.data().lastId : 0;
-
         setNextIdPreview(`${RESERVATION_PREFIX}-${String(current + 1).padStart(5, "0")}`);
         return;
       }
 
-      // Tire / Mags Preview
+      // Sales Counter (NEW)
+      if (type === "Sales") {
+        const ref = doc(db, "counters", "salesCounter");
+        const snap = await getDoc(ref);
+        const current = snap.exists() ? snap.data().lastId : 0;
+        setNextIdPreview(`${SALES_PREFIX}-${String(current + 1).padStart(5, "0")}`);
+        return;
+      }
+
+      // Tire / Mags Counter
       const prefix = PRODUCT_TYPE_PREFIXES[type];
       const counterRef = doc(db, "counters", `productCounter_${prefix}`);
       const snap = await getDoc(counterRef);
       const current = snap.exists() ? snap.data().lastId : 0;
-
       setNextIdPreview(`${prefix}-${String(current + 1).padStart(5, "0")}`);
+
     } catch (err) {
       console.error("Failed to fetch preview:", err);
       setError("Failed to load next ID.");
@@ -63,7 +71,6 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
   const verifyAdmin = async () => {
     const user = auth.currentUser;
     if (!user) return false;
-
     const userDoc = await getDoc(doc(db, "users", user.uid));
     return userDoc.exists() && userDoc.data().role === "Admin";
   };
@@ -81,45 +88,38 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
         return;
       }
 
-      const confirmReset = window.confirm(`Reset ${selectedType} counter?`);
-      if (!confirmReset) {
+      if (!window.confirm(`⚠ Reset ${selectedType} counter? This cannot be undone.`)) {
         setLoading(false);
         return;
       }
 
       // Reset Customer Counter
       if (selectedType === "Customer") {
-        await setDoc(
-          doc(db, "counters", "customerCounter"),
-          { lastId: 0 },
-          { merge: true }
-        );
-
-        alert("✅ Customer counter reset (CU-00001 next).");
+        await setDoc(doc(db, "counters", "customerCounter"), { lastId: 0 }, { merge: true });
+        alert("✅ Customer counter reset.");
         onClose();
         return;
       }
 
       // Reset Reservation Counter
       if (selectedType === "Reservation") {
-        await setDoc(
-          doc(db, "counters", "reservations"),
-          { lastId: 0 },
-          { merge: true }
-        );
-
-        alert("✅ Reservation counter reset (RES-00001 next).");
+        await setDoc(doc(db, "counters", "reservations"), { lastId: 0 }, { merge: true });
+        alert("✅ Reservation counter reset.");
         onClose();
         return;
       }
 
-      // Reset Tire / Mags
+      // Reset Sales Counter (NEW)
+      if (selectedType === "Sales") {
+        await setDoc(doc(db, "counters", "salesCounter"), { lastId: 0 }, { merge: true });
+        alert("✅ Sales counter reset. Next will be SA-00001.");
+        onClose();
+        return;
+      }
+
+      // Reset Tire / Mags Counter
       const prefix = PRODUCT_TYPE_PREFIXES[selectedType];
-      await setDoc(
-        doc(db, `counters/productCounter_${prefix}`),
-        { lastId: 0 },
-        { merge: true }
-      );
+      await setDoc(doc(db, `counters/productCounter_${prefix}`), { lastId: 0 }, { merge: true });
 
       alert(`✅ ${selectedType} counter reset.`);
       onClose();
@@ -156,8 +156,9 @@ const ResetCounterModal = ({ isOpen, onClose }) => {
           >
             <option value="Tire">Tire</option>
             <option value="Mags">Mags</option>
-            <option value="Customer">Customer</option> {/* 👈 Added */}
+            <option value="Customer">Customer</option>
             <option value="Reservation">Reservation</option>
+            <option value="Sales">Sales</option> {/* 👈 NEW */}
           </select>
         </div>
 

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { db, auth } from "../../firebase";
+import { getDocs } from "firebase/firestore";
+
 import {
   collection,
   onSnapshot,
@@ -11,6 +13,9 @@ import {
   getDoc,
   query,
   where,
+  orderBy,
+  limit,
+  setDoc
 } from "firebase/firestore";
 
 import "../../styles/shared/Sales.css";
@@ -44,6 +49,11 @@ export default function POS() {
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [lastReceipt, setLastReceipt] = useState(null);
   const [filter, setFilter] = useState("All");
+  const [customerType, setCustomerType] = useState("Regular");
+const [negotiatedDiscount, setNegotiatedDiscount] = useState(0);
+const [isNegotiated, setIsNegotiated] = useState(false);
+
+
 
 
   const { fromReservation, reservedItems, customerName: reservedCustomer, reservationId } =
@@ -148,60 +158,120 @@ const [customerName, setCustomerName] = useState("");
   const removeFromCart = (id) => setCart(cart.filter((c) => c.id !== id));
 
   // ================== TOTALS ==================
-  const subtotal = cart.reduce((t, i) => t + i.price * i.qty, 0);
-  const vat = subtotal * VAT_RATE;
-  const total = subtotal + vat - reservationFeeApplied;
+const subtotal = cart.reduce((t, i) => t + i.price * i.qty, 0);
+
+const computeTotals = () => {
+  let baseSubtotal = subtotal;
+  let baseVAT = baseSubtotal - (baseSubtotal / 1.12);
+  let computedTotal = baseSubtotal;
+  let pwdDiscount = 0;
+
+  // PWD & Senior Logic — Remove VAT + apply 20% discount
+  if (customerType === "PWD" || customerType === "Senior") {
+    const vatExempt = baseSubtotal / 1.12;
+    pwdDiscount = vatExempt * 0.20;
+    computedTotal = vatExempt - pwdDiscount;
+    baseVAT = 0;
+  }
+
+    if (isNegotiated && negotiatedDiscount > 0) {
+      computedTotal -= negotiatedDiscount;
+      if (computedTotal < 0) computedTotal = 0;
+    }
+
+
+  return { baseSubtotal, baseVAT, computedTotal, pwdDiscount };
+};
+
+const { baseSubtotal, baseVAT, computedTotal, pwdDiscount } = computeTotals();
+
+const change = paymentMode === "Cash" 
+  ? Math.max(Number(cashReceived || 0) - computedTotal, 0)
+  : 0;
 
   // ================== CHECKOUT ==================
 const handleCheckout = async () => {
-  if (!customerName.trim()) return alert("Enter customer name.");
-  if (cart.length === 0) return alert("Cart empty.");
+  try {
+    if (!customerName.trim()) return alert("Enter customer name.");
+    if (cart.length === 0) return alert("Cart empty.");
 
-  if (paymentMode === "Cash") {
-    if (!cashReceived.trim() || Number(cashReceived) <= 0) {
-      return alert("Please enter valid payment amount.");
-    }
+    if (paymentMode === "Cash") {
+      if (!cashReceived.trim() || Number(cashReceived) <= 0) {
+        return alert("Please enter valid payment amount.");
+      }
 
-    if (Number(cashReceived) < total) {
-      return alert("Cash received is insufficient.");
+      if (Number(cashReceived) < computedTotal) {
+        return alert("Cash received is insufficient.");
+      }
     }
-  }
 
   setIsProcessing(true);
 
    const snapshot = await getDoc(doc(db, "users", auth.currentUser.uid));
   const userData = snapshot.data();
 
+// ---- USE SALES COUNTER ----
+const counterRef = doc(db, "counters", "salesCounter");
+const counterSnap = await getDoc(counterRef);
+
+
+let nextSaleNumber = 1;
+
+if (counterSnap.exists()) {
+  nextSaleNumber = counterSnap.data().lastId + 1;
+}
+
+const formattedSaleId = `SA-${String(nextSaleNumber).padStart(5, "0")}`;
+
+await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
+
+
   const saleData = {
+    salesId: formattedSaleId,
     customer: selectedCustomer || { name: customerName, type: "Walk-in" },
     items: cart,
-    subtotal,
-    vat,
-    totalAmount: total,
+    subtotal: baseSubtotal,
+    vat: baseVAT,
+    pwdDiscount, 
+    totalAmount: computedTotal,
+    customerType,
+    negotiatedDiscount,
     paymentMode,
     paymentRef: paymentMode === "Cash" ? "" : paymentRef,
+    cashReceived: paymentMode === "Cash" ? Number(cashReceived) : 0,
     createdAt: Timestamp.now(),
     createdByName: userData.name,
     createdByRole: userData.role,
     reservationApplied: reservationFeeApplied > 0,
   };
 
-  if (reservationId) {
-    saleData.reservationId = reservationId;
-  }
+  await setDoc(doc(db, "sales", formattedSaleId), saleData);
 
-    const docRef = await addDoc(collection(db, "sales"), saleData);
-
+    // update product stocks
     for (const item of cart.filter((i) => i.type === "product")) {
-      await updateDoc(doc(db, item.category === "mags" ? "products_mags" : "products_tires", item.firestoreId), {
-        stock: item.stock - item.qty,
-      });
+      await updateDoc(
+        doc(db, item.category === "mags" ? "products_mags" : "products_tires", item.firestoreId),
+        { stock: item.stock - item.qty }
+      );
     }
 
-    setLastReceipt({ id: docRef.id, ...saleData });
+    setLastReceipt({ id: formattedSaleId, ...saleData });
     setReceiptOpen(true);
+
+    // RESET UI
     setCart([]);
-  };
+    setCashReceived("");
+    setPaymentRef("");
+    setSelectedCustomer(null);
+    setCustomerName("");
+
+  } catch (error) {
+    console.error("Checkout Error:", error);
+    alert("❌ Something went wrong. Try again.");
+  } finally {
+    setIsProcessing(false); // <- ALWAYS resets button, even when failed
+  }
+};
 
   // ================== PRINT ==================
   const handlePrint = () => {
@@ -210,6 +280,14 @@ const handleCheckout = async () => {
     win.document.close();
     win.print();
   };
+
+        // ================== COMPUTE RECEIPT VALUES ==================
+    const receiptSubtotal = Number(lastReceipt?.subtotal || 0);
+    const receiptVAT = Number(lastReceipt?.vat || 0);
+    const receiptPWD = Number(lastReceipt?.pwdDiscount || 0);
+    const receiptNegotiated = Number(lastReceipt?.negotiatedDiscount || 0);
+    const receiptTotal = Number(lastReceipt?.totalAmount || 0);
+    const receiptCash = Number(lastReceipt?.cashReceived || 0);
 
   // ================== ⛔ FIXED — CONDITIONAL RETURN MOVED HERE ==================
   if (!role)
@@ -338,19 +416,26 @@ const handleCheckout = async () => {
       </div>
     )}
   </div>
-        <POSPayment
-          subtotal={subtotal}
-          vat={vat}
-          total={total}
-          paymentMode={paymentMode}
-          setPaymentMode={setPaymentMode}
-          cashReceived={cashReceived}
-          setCashReceived={setCashReceived}
-          paymentRef={paymentRef}
-          setPaymentRef={setPaymentRef}
-          handleCheckout={handleCheckout}
-          isProcessing={isProcessing}
-        />
+      <POSPayment
+        subtotal={baseSubtotal}
+        vat={baseVAT}
+        total={computedTotal}
+        pwdDiscount={pwdDiscount}
+        paymentMode={paymentMode}
+        setPaymentMode={setPaymentMode}
+        customerType={customerType}
+        setCustomerType={setCustomerType}
+        isNegotiated={isNegotiated}
+        setIsNegotiated={setIsNegotiated}
+        negotiatedDiscount={negotiatedDiscount}
+        setNegotiatedDiscount={setNegotiatedDiscount}
+        cashReceived={cashReceived}
+        setCashReceived={setCashReceived}
+        paymentRef={paymentRef}
+        setPaymentRef={setPaymentRef}
+        handleCheckout={handleCheckout}
+        isProcessing={isProcessing}
+      />
       </div>
     </div>
 
@@ -358,23 +443,52 @@ const handleCheckout = async () => {
           <div className="pos-receipt-overlay">
             <div ref={receiptRef} className="pos-receipt-box">
               <h3>Joven Tire Enterprise</h3>
-              <p><strong>Receipt #:</strong> {lastReceipt?.id}</p>
+              <p><strong>Receipt #:</strong> {lastReceipt?.salesId}</p>
               <p><strong>Customer:</strong> {lastReceipt?.customer.name}</p>
-              <hr/>
+              <hr/> 
 
-              {lastReceipt?.items.map((i, idx) => (
-                <div key={`receipt-${idx}`} className="receipt-row">
+        {lastReceipt?.items.map((i, idx) => (
+          <div key={`${i.firestoreId || i.id}-${idx}`}>
                   <span>{i.name} x{i.qty}</span>
                   <span>₱{(i.price * i.qty).toFixed(2)}</span>
                 </div>
               ))}
 
               <hr />
-              <p>Subtotal: ₱{subtotal.toFixed(2)}</p>
-              <p>VAT: ₱{vat.toFixed(2)}</p>
-              {reservationFeeApplied > 0 && <p>Reservation Discount: -₱{RESERVATION_FEE}</p>}
-              <h3>Total: ₱{total.toFixed(2)}</h3>
-              <p>Paid via: {lastReceipt?.paymentMode}</p>
+      <p>Subtotal: ₱{receiptSubtotal.toFixed(2)}</p>
+      <p>Product Price: ₱{(receiptSubtotal - receiptVAT).toFixed(2)}</p>
+
+            {/* VAT logic */}
+            {lastReceipt?.customerType === "Regular" && (
+              <p>VAT (12%): ₱{lastReceipt?.vat?.toFixed(2)}</p>
+            )}
+
+            {(lastReceipt?.customerType === "PWD" || lastReceipt?.customerType === "Senior") && (
+              <>
+                <p>VAT Included in Price: ₱{lastReceipt?.vat?.toFixed(2)}</p>
+                <p>VAT Exempted: -₱{lastReceipt?.vat?.toFixed(2)}</p>
+                {lastReceipt?.pwdDiscount > 0 && (
+                  <p>PWD/Senior Discount (20%): -₱{lastReceipt?.pwdDiscount.toFixed(2)}</p>
+                )}
+              </>
+            )}
+
+            {/* Negotiated Discount */}
+            {lastReceipt?.negotiatedDiscount > 0 && (
+              <p>Negotiated Discount: -₱{lastReceipt?.negotiatedDiscount.toFixed(2)}</p>
+            )}
+
+            <h3>Total: ₱{lastReceipt?.totalAmount?.toFixed(2)}</h3>
+
+            <p>Paid via: {lastReceipt?.paymentMode}</p>
+
+            {lastReceipt?.paymentMode !== "Cash" && (
+            <p>Reference No: {lastReceipt?.paymentRef || "N/A"}</p>
+          )}
+
+            {lastReceipt?.paymentMode === "Cash" && (
+              <p>Change: ₱{Math.max((lastReceipt?.cashReceived || 0) - lastReceipt?.totalAmount, 0).toFixed(2)}</p>
+            )}
 
             <div className="pos-receipt-actions no-print">
               <button className="btn-submit" onClick={handlePrint}>Print</button>

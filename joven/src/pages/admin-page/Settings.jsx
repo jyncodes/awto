@@ -22,8 +22,12 @@ import "../../styles/admin-styles/Settings.css";
 // ✅ ADDED IMPORT
 import ResetCounterModal from "../../components/admin-components/ResetCounterModal";
 
-const AdminSettings = () => {
+const AdminSettings = () => { 
   const [adminData, setAdminData] = useState({ name: "", email: "" });
+    // Required for editable admin fields
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPassword, setEditPassword] = useState("");
 
   // =============================
   // STAFF MANAGEMENT STATES
