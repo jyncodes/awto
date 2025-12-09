@@ -309,7 +309,8 @@
 }
 
 /* ================= RECEIPT MODAL ================= */
-.receipt-modal {
+/* ================= RECEIPT MODAL (FIXED) ================= */
+.pos-receipt-modal {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
@@ -319,7 +320,7 @@
   z-index: 99999;
 }
 
-.receipt-box {
+.pos-receipt-box {
   background: #ffffff;
   width: 350px;
   padding: 1.5rem;
@@ -328,43 +329,8 @@
   color: #111;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
   animation: fadeIn 0.25s ease;
-}
-
-.receipt-header {
-  text-align: center;
-  margin-bottom: 1rem;
-  border-bottom: 1px dashed #444;
-  padding-bottom: 0.5rem;
-}
-
-.receipt-footer {
-  text-align: center;
-  margin-top: 1rem;
-  border-top: 1px dashed #444;
-  padding-top: 0.5rem;
-  font-size: 12px;
-}
-
-.close-receipt-btn {
-  width: 100%;
-  background-color: #e11d48;
-  color: white;
-  border: none;
-  padding: 0.55rem;
-  border-radius: 6px;
-  margin-top: 1rem;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.close-receipt-btn:hover {
-  background-color: #be123c;
-}
-
-/* Modal Fade In */
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 /* ================= PRINT ONLY RECEIPT ================= */
@@ -373,15 +339,50 @@
     visibility: hidden;
   }
 
-  .receipt-box,
-  .receipt-box * {
+  .pos-receipt-box,
+  .pos-receipt-box * {
     visibility: visible;
   }
 
-  .receipt-box {
+  .pos-receipt-box {
     position: absolute;
     left: 0;
     top: 0;
+  }
+}
+
+
+/* Modal Fade In */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ================= PRINT ONLY RECEIPT (FIXED) ================= */
+@media print {
+
+  /* hide everything */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* show only receipt */
+  .pos-receipt-box, 
+  .pos-receipt-box * {
+    visibility: visible !important;
+  }
+
+  /* hide buttons inside receipt */
+  .pos-receipt-actions {
+    display: none !important;
+  }
+
+  /* position receipt correctly */
+  .pos-receipt-box {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
   }
 }
 
