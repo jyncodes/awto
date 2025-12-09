@@ -131,6 +131,11 @@
   transition: background-color 0.2s ease;
 }
 
+.text-yellow {
+  color: #d4a106;
+  font-weight: 600;
+}
+
 .text-red {
   color: #e11d48;
   font-weight: 600;

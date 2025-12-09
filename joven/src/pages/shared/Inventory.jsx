@@ -282,8 +282,22 @@ const Inventory = ({ role }) => {
                     ? `${product.brand} ${product.model} ${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`
                     : `${product.brand} ${product.model} ${product.wheelDiameter}x${product.wheelWidth}`;
 
-                const lowStock = product.type === "Tire" ? 3 : 1;
-                const isLowStock = Number(product.stock || 0) <= lowStock;
+                  const stock = Number(product.stock || 0);
+
+                  let status = "";
+                  let statusClass = "";
+
+                  // Rule-based status
+                  if (stock === 0) {
+                    status = "Out of Stock";
+                    statusClass = "text-red";
+                  } else if (stock > 0 && stock <= 3) {
+                    status = "Low Stock";
+                    statusClass = "text-yellow";
+                  } else {
+                    status = "In Stock";
+                    statusClass = "text-green";
+                  }
 
                 return (
                   <tr key={product.firestoreId}>
@@ -291,9 +305,7 @@ const Inventory = ({ role }) => {
                     <td>{productName}</td>
                     <td>{product.stock || 0}</td>
 
-                    <td className={isLowStock ? "text-red" : "text-green"}>
-                      {isLowStock ? "Out of Stock" : "In Stock"}
-                    </td>
+                    <td className={statusClass}>{status}</td>
 
                     <td className="actions-cell">
                       {(role === "admin" || role === "staff") && (
