@@ -12,29 +12,26 @@ import '../../styles/admin-styles/Customers.css';
 const AdminCustomers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'users'), async (snapshot) => {
-      const userDocs = snapshot.docs.filter(
-        (docSnap) => docSnap.data().role === 'User'
-      );
-
+    const unsub = onSnapshot(collection(db, 'customers'), async (snapshot) => {
       const list = await Promise.all(
-        userDocs.map(async (docSnap) => {
-          const userData = docSnap.data();
+        snapshot.docs.map(async (docSnap) => {
+          const c = docSnap.data();
 
-          // 📝 Count total reservations for this user
+          const lookupId = c.uid || c.customerCode || docSnap.id;
+
           const reservationsQuery = query(
             collection(db, 'reservations'),
-            where('userId', '==', docSnap.id)
+            where('userId', '==', lookupId)
           );
           const reservationsSnap = await getDocs(reservationsQuery);
-          const totalReservations = reservationsSnap.size;
 
           return {
             id: docSnap.id,
-            ...userData,
-            totalReservations,
+            ...c,
+            totalReservations: reservationsSnap.size,
           };
         })
       );
@@ -45,9 +42,10 @@ const AdminCustomers = () => {
     return () => unsub();
   }, []);
 
-  const filtered = customers.filter((c) =>
-    `${c.name} ${c.email}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = customers.filter((c) => {
+    const searchable = `${c.name || ''} ${c.email || ''} ${c.customerCode || ''}`.toLowerCase();
+    return searchable.includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="customers-container">
@@ -66,8 +64,7 @@ const AdminCustomers = () => {
         <table className="customers-table">
           <thead>
             <tr>
-              <th>Avatar</th>
-              <th>Name</th>
+              <th>Customer ID</th>
               <th>Email</th>
               <th>Date Joined</th>
               <th>Total Reservations</th>
@@ -84,21 +81,21 @@ const AdminCustomers = () => {
             ) : (
               filtered.map((customer) => (
                 <tr key={customer.id}>
+                  <td>{customer.customerCode || '—'}</td>
+                  <td>{customer.email || 'Walk-in'}</td>
                   <td>
-                    <div className="avatar">
-                      {customer.name?.charAt(0).toUpperCase() || '?'}
-                    </div>
-                  </td>
-                  <td>{customer.name || '—'}</td>
-                  <td>{customer.email || '—'}</td>
-                  <td>
-                    {customer.createdAt
-                      ? new Date(customer.createdAt.seconds * 1000).toLocaleString()
+                    {customer.registeredAt
+                      ? new Date(customer.registeredAt.seconds * 1000).toLocaleString()
                       : '—'}
                   </td>
                   <td>{customer.totalReservations || 0}</td>
                   <td>
-                    <button className="delete-btn">🗑 Delete</button>
+                    <button
+                      className="view-btn"
+                      onClick={() => setSelectedCustomer(customer)}
+                    >
+                      👁 View
+                    </button>
                   </td>
                 </tr>
               ))
@@ -106,6 +103,25 @@ const AdminCustomers = () => {
           </tbody>
         </table>
       </div>
+
+      {/* VIEW MODAL */}
+      {selectedCustomer && (
+        <div className="modal-overlay" onClick={() => setSelectedCustomer(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>👤 Customer Details</h2>
+            <p><strong>Customer ID:</strong> {selectedCustomer.customerCode}</p>
+            <p><strong>Name:</strong> {selectedCustomer.name || '—'}</p>
+            <p><strong>Email:</strong> {selectedCustomer.email || 'Walk-in'}</p>
+            <p><strong>Contact:</strong> {selectedCustomer.contact || '—'}</p>
+            <p><strong>Address:</strong> {selectedCustomer.address || '—'}</p>
+            <p><strong>Gender:</strong> {selectedCustomer.gender || '—'}</p>
+            <p><strong>Birthday:</strong> {selectedCustomer.birthday || '—'}</p>
+            <p><strong>Total Reservations:</strong> {selectedCustomer.totalReservations}</p>
+
+            <button className="close-btn" onClick={() => setSelectedCustomer(null)}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
