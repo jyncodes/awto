@@ -29,19 +29,33 @@ const PaymentSuccess = () => {
 
     setTransactionId(txId);
 
-    const tempLockId =
-      queryParams.get("custom") || localStorage.getItem("activeTempLockId");
-
     const verifyPayment = async () => {
-      let fetchedReservationId = tempLockId;
+      let fetchedReservationId = null;
 
       // ---- Localhost Mode Always Shows Receipt ----
       if (window.location.hostname === "localhost") {
         setStatus("🧪 Local Test Mode — No PayPal Connected");
         fetchedReservationId = "TEST-RESERVATION";
       } else {
-        // ---- LIVE MODE: Skip verification and still load Firebase ----
+        // ---- LIVE MODE: Call backend and get the fresh reservation ID ----
         setStatus("✔ Payment Received — Processing Reservation...");
+
+        try {
+          const response = await fetch(`${BACKEND_URL}/paypal-complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: txId }),
+          });
+
+          const result = await response.json();
+
+          // 🔥 FIX: use returned reservation id
+          if (result?.reservationId) {
+            fetchedReservationId = result.reservationId;
+          }
+        } catch {
+          setStatus("⚠ Error validating payment, loading anyway...");
+        }
       }
 
       setReservationId(fetchedReservationId);
@@ -66,20 +80,12 @@ const PaymentSuccess = () => {
             setStatus(`⏳ Finalizing payment... (${attempts}/${maxAttempts})`);
             setTimeout(fetchWithRetry, 2000);
           } else {
-            setStatus("⚠ Reservation not found — showing stored details.");
+            setStatus("⚠ Reservation not found — please refresh.");
           }
         };
 
         fetchWithRetry();
       }
-
-      // ---- Local fallback ----
-      if (window.location.hostname === "localhost" && !reservation) {
-        const draft = JSON.parse(localStorage.getItem("reservationDraft"));
-        if (draft) setReservation(draft);
-      }
-
-      localStorage.removeItem("activeTempLockId");
     };
 
     verifyPayment();

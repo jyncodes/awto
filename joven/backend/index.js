@@ -94,21 +94,16 @@ const getPayPalToken = async () => {
 };
 
 /* ======================================================
-   📦 SMART CHECKOUT COMPLETION FOR HOSTED BUTTON
+   🎯 SIMPLIFIED PAYPAL PAYMENT COMPLETION
 ====================================================== */
 app.post("/paypal-complete", async (req, res) => {
   console.log("📩 Request received:", req.body);
 
   try {
-    const { orderId, tempLockId } = req.body;
+    const { orderId } = req.body;
 
-    if (!orderId || !tempLockId) {
-      console.log("❌ Missing required values:", req.body);
-      return res.json({
-        success: false,
-        message: "Missing orderId or tempLockId",
-        reservationId: tempLockId,
-      });
+    if (!orderId) {
+      return res.json({ success: false, message: "Missing order ID" });
     }
 
     console.log("🔑 Getting PayPal Token...");
@@ -125,140 +120,70 @@ app.post("/paypal-complete", async (req, res) => {
       }
     );
 
-    const order = txLookup.data.transaction_details?.[0] || null;
+    const order = txLookup.data.transaction_details?.[0];
 
-    if (!order) {
-      console.log("❌ No PayPal transaction found!");
-      return res.json({
-        success: false,
-        message: "Transaction not found.",
-        reservationId: tempLockId,
-      });
-    }
+    if (!order) return res.json({ success: false, message: "PayPal transaction not found." });
 
-    const rawStatus = order.transaction_info?.transaction_status || "";
-    const status = typeof rawStatus === "string" ? rawStatus.trim() : "";
-
+    const status = order.transaction_info?.transaction_status?.toUpperCase() || "UNKNOWN";
     console.log("💳 PayPal Status:", status);
 
-    const validStatuses = ["S","COMPLETED", "SUCCESS"];
+    const allowed = ["COMPLETED", "SUCCESS", "S", "OK", "CAPTURED"];
+    const isPaid = allowed.some((s) => status.includes(s));
 
-    if (!validStatuses.some((s) => status.toUpperCase().includes(s.toUpperCase()))) {
-      console.log("⚠ Payment invalid:", status);
+    if (!isPaid) {
       return res.json({
         success: false,
         message: `Payment not completed. Status: ${status}`,
-        reservationId: tempLockId,
       });
     }
 
-    console.log("🔍 Finding temp lock:", tempLockId);
-    const tempDoc = await db.collection("temp_locks").doc(tempLockId).get();
-
-    if (!tempDoc.exists) {
-      console.log("❌ temp_locks NOT found");
-      return res.json({
-        success: false,
-        message: "Temp reservation not found.",
-        reservationId: tempLockId,
-      });
-    }
-
-    const draftData = tempDoc.data();
-    console.log("📌 Temp Data:", draftData);
-
-    /* ---------- AUTO INCREMENT ---------- */
+    /* ---------- AUTO INCREMENT RESERVATION ID ---------- */
     const counterRef = db.collection("counters").doc("reservations");
-    const counterSnap = await counterRef.get();
-    const nextId = (counterSnap.exists ? counterSnap.data().lastId : 0) + 1;
+    const snap = await counterRef.get();
+    const nextId = (snap.exists ? snap.data().lastId : 0) + 1;
 
     await counterRef.set({ lastId: nextId }, { merge: true });
 
     const reservationId = `RES${String(nextId).padStart(5, "0")}`;
-    console.log("🆕 Reservation ID:", reservationId);
 
-    /* ---------- SAVE FINAL BOOKING ---------- */
+    /* ---------- STORE BASIC RESERVATION (NO tempLockId NEEDED) ---------- */
+    const payerEmail = order.payer_info?.email_id || "unknown@customer.com";
+    const buyer = order.payer_info?.payer_name?.alternate_full_name || "Customer";
+
+    const amount =
+      order.transaction_info?.transaction_amount?.value || "0";
+
     await db.collection("reservations").doc(reservationId).set({
       id: reservationId,
-      ...draftData,
+      userEmail: payerEmail,
+      userName: buyer,
+      totalPrice: amount,
+      downpayment: amount,
+      productName: "No linked product (Manual Assignment Required)",
       status: "Paid",
-      paymentStatus: "Paid",
       paymentMethod: "PayPal",
-      paypalStatus: status,
       paypalTransactionId: orderId,
-      paidAt: new Date(),
+      paypalStatus: status,
       createdAt: new Date(),
+      paidAt: new Date(),
       isCancelled: false,
     });
 
-    await db.collection("temp_locks").doc(tempLockId).delete();
-
-    const amountPaid =
-      order.transaction_info?.transaction_amount?.value || draftData.downpayment;
-
-    await sendPaymentEmail(
-      draftData.userEmail,
-      draftData.userName,
-      reservationId,
-      amountPaid
-    );
+    await sendPaymentEmail(payerEmail, buyer, reservationId, amount);
 
     return res.json({ success: true, reservationId });
 
   } catch (err) {
     console.error("❌ ERROR:", err.response?.data || err);
-    return res.json({
-      success: false,
-      message: "Server error",
-      reservationId: req.body.tempLockId || null,
-    });
+    return res.json({ success: false, message: "Server Error" });
   }
 });
-
-app.post("/send-reservation-email", async (req, res) => {
-  const { email, name, reservationId, product, date } = req.body;
-
-  try {
-    await axios.post(
-      "https://api.brevo.com/v3/smtp/email",
-      {
-        sender: {
-          name: "Joven Tire Enterprise",
-          email: process.env.SENDER_EMAIL,
-        },
-        to: [{ email, name }],
-        subject: `Reservation Confirmed - ${reservationId}`,
-        htmlContent: `
-          <h2>Reservation Confirmed</h2>
-          <p>Hello <strong>${name}</strong>, your reservation has been submitted.</p>
-          <p><strong>Reservation ID:</strong> ${reservationId}</p>
-          <p><strong>Product:</strong> ${product}</p>
-          <p><strong>Appointment Date:</strong> ${date}</p>
-          <br>
-          <p>You will receive another email if changes occur.</p>
-        `,
-      },
-      {
-        headers: {
-          "api-key": process.env.BREVO_API_KEY,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Failed email:", err.response?.data || err.message);
-    res.status(500).json({ success: false });
-  }
-});
-
 
 /* ======================================================
    🧪 TEST ROUTE
 ====================================================== */
 app.get("/test", (req, res) => {
-  res.send("Backend is working!");
+  res.send("Backend is running and accessible!");
 });
 
 /* ======================================================
