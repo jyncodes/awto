@@ -36,47 +36,72 @@ const PaymentSuccess = () => {
     const verifyPayment = async () => {
       let fetchedReservationId = tempLockId;
 
-      // ================= LOCALHOST UI TEST MODE (NO PAYMENT) =================
+      // ============ TEST MODE (LOCALHOST) ============
       if (window.location.hostname === "localhost") {
         setStatus("🧪 Local Test Mode — No PayPal Connected");
         setIsVerified(false);
         fetchedReservationId = "TEST-RESERVATION";
       }
 
-      // ================= PAYPAL VERIFY FLOW (LIVE WEBSITE ONLY) =================
-      if (txId && tempLockId && window.location.hostname !== "localhost") {
-        try {
-          const response = await fetch(`${BACKEND_URL}/paypal-complete`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId: txId, tempLockId }),
-          });
+      // ============ PAYPAL LIVE VERIFICATION ============
+      if (window.location.hostname !== "localhost") {
+        if (!txId) {
+          setStatus("⚠ No PayPal parameters found — attempting stored reservation lookup.");
+          setIsVerified(false);
+        } else {
+          try {
+            const response = await fetch(`${BACKEND_URL}/paypal-complete`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: txId, tempLockId }),
+            });
 
-          const result = await response.json();
-          fetchedReservationId = result?.reservationId ?? tempLockId;
+            const result = await response.json();
+            fetchedReservationId = result?.reservationId ?? tempLockId;
 
-          if (result?.success === true) {
-            setStatus("🎉 Payment Verified Successfully!");
-            setIsVerified(true);
-          } else {
-            setStatus("⚠ Payment could not be verified — but details are shown.");
+            if (result?.success === true) {
+              setStatus("🎉 Payment Verified Successfully!");
+              setIsVerified(true);
+            } else {
+              setStatus("⚠ Payment could not be verified — showing stored details.");
+              setIsVerified(false);
+            }
+          } catch {
+            setStatus("⚠ Verification failed — showing stored details.");
             setIsVerified(false);
           }
-        } catch {
-          setStatus("⚠ Verification failed — showing stored details.");
-          setIsVerified(false);
         }
       }
 
+      // ============ LOAD RESERVATION WITH RETRY ============
       setReservationId(fetchedReservationId);
 
-      // =============== LOAD RESERVATION FROM FIREBASE IF EXISTS ===============
-      if (fetchedReservationId !== "TEST-RESERVATION") {
-        const snap = await getDoc(doc(db, "reservations", fetchedReservationId));
-        if (snap.exists()) setReservation(snap.data());
+      if (fetchedReservationId && fetchedReservationId !== "TEST-RESERVATION") {
+        let attempts = 0;
+        const maxAttempts = 6; // 12 seconds total
+
+        const fetchWithRetry = async () => {
+          const snap = await getDoc(doc(db, "reservations", fetchedReservationId));
+
+          if (snap.exists()) {
+            setReservation(snap.data());
+            return;
+          }
+
+          attempts++;
+
+          if (attempts < maxAttempts) {
+            setStatus(`⏳ Finalizing payment... (${attempts}/${maxAttempts})`);
+            setTimeout(fetchWithRetry, 2000);
+          } else {
+            setStatus("⚠ Reservation not found — please refresh or check email.");
+          }
+        };
+
+        fetchWithRetry();
       }
 
-      // =============== FALLBACK FOR LOCALHOST FROM DRAFT ======================
+      // ============ FALLBACK FOR LOCAL ============
       if (window.location.hostname === "localhost" && !reservation) {
         const draft = JSON.parse(localStorage.getItem("reservationDraft"));
         if (draft) setReservation(draft);
@@ -88,7 +113,7 @@ const PaymentSuccess = () => {
     verifyPayment();
   }, [location, BACKEND_URL]);
 
-  /* Generate PDF Receipt */
+  /* ---- PDF ---- */
   const downloadReceipt = () => {
     if (!reservation) return;
 
@@ -109,13 +134,10 @@ const PaymentSuccess = () => {
     docPDF.text(`Transaction ID: ${transactionId || "Not detected"}`, 15, 100);
     docPDF.text(`Printed On: ${new Date().toLocaleString()}`, 15, 110);
 
-    docPDF.line(15, 120, 195, 120);
-    docPDF.text("Please present this receipt upon arrival.", 15, 135);
-
     docPDF.save(`Receipt-${reservationId}.pdf`);
   };
 
-  /* Save Final Reservation */
+  /* ---- FINALIZE ---- */
   const finalizeReservation = async () => {
     if (!reservation || isSaved || !isVerified) return;
 
@@ -126,7 +148,6 @@ const PaymentSuccess = () => {
         finalizedAt: serverTimestamp(),
       });
 
-      // send email
       await fetch(`${BACKEND_URL}/send-reservation-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -145,7 +166,6 @@ const PaymentSuccess = () => {
       alert("🎉 Reservation Completed! Awaiting approval.");
       navigate("/profile?tab=reservations");
     } catch (error) {
-      console.error(error);
       alert("❌ Something went wrong. Try again.");
     }
   };
@@ -169,15 +189,6 @@ const PaymentSuccess = () => {
               <p><strong>Vehicle:</strong> {reservation.vehicleBrand} {reservation.vehicleModel} {reservation.vehicleYear}</p>
               <p><strong>Plate:</strong> {reservation.plateNumber}</p>
               <p><strong>Transaction ID:</strong> {transactionId || "Not detected"}</p>
-            </div>
-
-            <div className="next-steps">
-              <h4>📌 Next Steps</h4>
-              <ol>
-                <li>Print or download your receipt.</li>
-                <li>Wait for your appointment confirmation email.</li>
-                <li>Show this receipt during your scheduled visit.</li>
-              </ol>
             </div>
 
             <button className="success-button" onClick={downloadReceipt}>
