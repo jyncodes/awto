@@ -101,11 +101,11 @@ const PaymentPage = () => {
 
               <p><strong>Product:</strong> {draft.product?.brand} {draft.product?.model}</p>
 
-              <h3>Vehicle</h3>
+              <h3>Vehicle Info</h3>
               <p><strong>Brand:</strong> {draft.vehicleBrand}</p>
               <p><strong>Model:</strong> {draft.vehicleModel}</p>
               <p><strong>Year:</strong> {draft.vehicleYear}</p>
-              <p><strong>Plate:</strong> {draft.plateNumber}</p>
+              <p><strong>Plate Number:</strong> {draft.plateNumber}</p>
 
               <hr />
               <h3>Pricing</h3>

@@ -9,7 +9,7 @@ import {
   increment,
 } from "firebase/firestore";
 import { jsPDF } from "jspdf";
-import { db, auth } from "../../firebase";
+import { db } from "../../firebase";
 import "../../styles/user-styles/PaymentSuccess.css";
 
 const PaymentSuccess = () => {
@@ -23,18 +23,39 @@ const PaymentSuccess = () => {
   const [reservationId, setReservationId] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
 
-  // ---------------- Load Data Saved in PaymentPage ----------------
+  /* ---------------- Fetch Draft from Local Storage ---------------- */
   useEffect(() => {
-    const stored = localStorage.getItem("finalReservationData");
-    if (stored) {
-      setDoneData(JSON.parse(stored));
+    const loadData = async () => {
+      const stored = localStorage.getItem("finalReservationData");
+
+      if (!stored) {
+        setStatus("⚠ No reservation data found.");
+        return;
+      }
+
+      let parsed = JSON.parse(stored);
+
+      try {
+        // Get real customer name from Firestore
+        const userRef = doc(db, "users", parsed.userId);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          parsed.userName = userSnap.data().name;
+          parsed.userEmail = userSnap.data().email;
+        }
+      } catch (err) {
+        console.log("⚠ Failed to fetch Firestore user name:", err);
+      }
+
+      setDoneData(parsed);
       setStatus("✔ Waiting for PayPal confirmation...");
-    } else {
-      setStatus("⚠ No reservation data found.");
-    }
+    };
+
+    loadData();
   }, []);
 
-  // ---------------- Detect PayPal return parameters ----------------
+  /* ---------------- Detect PayPal Return Parameters ---------------- */
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
 
@@ -59,7 +80,16 @@ const PaymentSuccess = () => {
           body: JSON.stringify({ orderId: txId }),
         });
 
-        await response.json(); // You can store this if needed later
+        const result = await response.json();
+
+        setDoneData((prev) => ({
+          ...prev,
+          paypalAmount: result.amount,
+          paypalEmail: result.email,
+          paypalPayerName: result.name,
+          transactionStatus: result.status,
+        }));
+
         setStatus("✔ Payment Confirmed — Click Finish to save reservation");
       } catch {
         setStatus("⚠ Could not verify payment — using fallback.");
@@ -69,29 +99,47 @@ const PaymentSuccess = () => {
     verifyPayment();
   }, [location, BACKEND_URL]);
 
-  // ---------------- Generate PDF Receipt ----------------
+  /* ---------------- Generate PDF Receipt ---------------- */
   const downloadReceipt = () => {
     if (!doneData) return;
 
     const finalId = reservationId || `TEMP-${transactionId?.slice(-6)}`;
     const docPDF = new jsPDF();
 
+    // Header
     docPDF.setFontSize(18);
     docPDF.text("Joven Tire Enterprise", 15, 15);
 
     docPDF.setFontSize(12);
-    docPDF.text("Official Downpayment Receipt", 15, 25);
+    docPDF.text("Reservation Downpayment Receipt", 15, 23);
     docPDF.line(15, 30, 195, 30);
 
-    docPDF.text(`Customer Name: ${doneData.userName}`, 15, 50);
-    docPDF.text(`Amount Paid: ₱${doneData.downpayment}`, 15, 60);
-    docPDF.text(`Payment Method: PayPal`, 15, 70);
-    docPDF.text(`Printed On: ${new Date().toLocaleString()}`, 15, 80);
+    // Customer Info
+    docPDF.text("Customer Information:", 15, 40);
+    docPDF.text(`Name: ${doneData.userName || doneData.paypalPayerName || "N/A"}`, 15, 48);
+    docPDF.text(`Email: ${doneData.userEmail}`, 15, 56);
+
+    // Payment Info
+    docPDF.text("Payment Details:", 15, 72);
+    docPDF.text(`Amount Paid: ₱${doneData.downpayment}`, 15, 80);
+    docPDF.text(`Payment Method: PayPal`, 15, 88);
+
+    if (transactionId) {
+      docPDF.text(`Transaction ID: ${transactionId}`, 15, 96);
+    }
+
+    docPDF.text(`Order ID: ${finalId}`, 15, 104);
+    docPDF.text(`Date: ${new Date().toLocaleString()}`, 15, 112);
+
+    // Footer
+    docPDF.line(15, 120, 195, 120);
+    docPDF.text("Thank you for choosing Joven Tire Enterprise!", 15, 130);
+    docPDF.text("Powered by PayPal", 15, 138);
 
     docPDF.save(`Receipt-${finalId}.pdf`);
   };
 
-  // ---------------- Save Reservation to Firestore ----------------
+  /* ---------------- Save Reservation to Firestore ---------------- */
   const finalizeReservation = async () => {
     if (isSaved || !doneData) return;
 
@@ -133,6 +181,8 @@ const PaymentSuccess = () => {
         preferredDate: new Date(doneData.preferredDate),
 
         paymentMethod: "PayPal",
+        transactionId: transactionId || null,
+
         status: "Awaiting Approval",
         createdAt: serverTimestamp(),
         isCancelled: false,
@@ -166,6 +216,7 @@ const PaymentSuccess = () => {
               <p><strong>Customer:</strong> {doneData.userName}</p>
               <p><strong>Email:</strong> {doneData.userEmail}</p>
               <p><strong>Amount Paid:</strong> ₱{doneData.downpayment}</p>
+              {transactionId && <p><strong>Transaction ID:</strong> {transactionId}</p>}
             </div>
 
             <button className="success-button" onClick={downloadReceipt}>
