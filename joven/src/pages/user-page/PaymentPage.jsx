@@ -10,15 +10,14 @@ import Navbar from "../../components/Navbar";
 
 const PaymentPage = () => {
   const navigate = useNavigate();
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [tempLockId, setTempLockId] = useState(null);
 
-  /* -----------------------------------------
-     AUTH CHECK
-  ----------------------------------------- */
+  /* ---------------- AUTH CHECK ---------------- */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) return navigate("/login");
@@ -27,9 +26,7 @@ const PaymentPage = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  /* -----------------------------------------
-     LOAD RESERVATION DRAFT
-  ----------------------------------------- */
+  /* ---------------- LOAD LOCAL DRAFT ---------------- */
   useEffect(() => {
     const reservationDraft = localStorage.getItem("reservationDraft");
 
@@ -42,9 +39,7 @@ const PaymentPage = () => {
     setLoading(false);
   }, [navigate]);
 
-  /* -----------------------------------------
-     CREATE TEMP LOCK BEFORE PAYMENT
-  ----------------------------------------- */
+  /* ---------------- CREATE TEMP LOCK ---------------- */
   const createTemporaryReservationLock = async () => {
     if (!currentUser || !draft) return;
 
@@ -52,7 +47,7 @@ const PaymentPage = () => {
       const docRef = await addDoc(collection(db, "temp_locks"), {
         userId: currentUser.uid,
         createdAt: serverTimestamp(),
-        expiresAt: serverTimestamp(), // Will be replaced by Cloud Function later
+        expiresAt: serverTimestamp(),
         ...draft,
         status: "pending-payment",
       });
@@ -65,18 +60,12 @@ const PaymentPage = () => {
     }
   };
 
-  /* -----------------------------------------
-     HANDLE PAYPAL BUTTON CLICK
-  ----------------------------------------- */
+  /* ---------------- HANDLE PAY CLICK ---------------- */
   const handlePayClick = async () => {
     if (!tempLockId) await createTemporaryReservationLock();
-
     alert("Redirecting to PayPal...");
   };
 
-  /* -----------------------------------------
-     UI LOADING STATE
-  ----------------------------------------- */
   if (loading || !draft) return <div className="payment-page">Loading...</div>;
 
   const totalPrice = draft.pricePerItem * draft.quantity;
@@ -89,7 +78,7 @@ const PaymentPage = () => {
         <h2>Reservation Payment</h2>
 
         <div className="payment-layout">
-          {/* LEFT SECTION */}
+          {/* LEFT */}
           <div className="payment-left">
             <div className="payment-card">
               <h3>Order Summary</h3>
@@ -109,19 +98,17 @@ const PaymentPage = () => {
               <p><strong>Quantity:</strong> {draft.quantity}</p>
               <p><strong>Total Price:</strong> ₱{totalPrice.toLocaleString()}</p>
               <p><strong>Downpayment Required:</strong> ₱{draft.downpayment.toLocaleString()}</p>
-
             </div>
           </div>
 
-          {/* RIGHT SECTION */}
+          {/* RIGHT */}
           <div className="payment-right">
 
-            {/* PAYPAL BUTTON */}
             <div className="paypal-section">
               <h4>Pay with PayPal / Card</h4>
 
               <form
-                action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?return=http://awto.vercel.app/payment-success&cancel_return=http://awto.vercel.app/payment-failed`}
+                action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?return=https://awto.vercel.app/payment-success&cancel_return=https://awto.vercel.app/payment-failed&custom=${tempLockId}`}
                 method="post"
                 target="_self"
                 onSubmit={handlePayClick}

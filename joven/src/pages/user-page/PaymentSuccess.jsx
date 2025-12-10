@@ -19,7 +19,7 @@ const PaymentSuccess = () => {
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
 
-    // 🔥 UPDATED — Detect all possible PayPal return params
+    // Detect all possible PayPal return params
     const txId =
       queryParams.get("tx") ||
       queryParams.get("txn_id") ||
@@ -29,8 +29,9 @@ const PaymentSuccess = () => {
 
     setTransactionId(txId);
 
-    // Get temp lock ID stored before redirect
-    const tempLockId = localStorage.getItem("activeTempLockId");
+    // ✅ FIX: Read tempLockId from PayPal response OR localStorage
+    const tempLockId =
+      queryParams.get("custom") || localStorage.getItem("activeTempLockId");
 
     if (!txId || !tempLockId) {
       setStatus("⚠ Unable to verify payment.");
@@ -70,14 +71,14 @@ const PaymentSuccess = () => {
         setStatus("❌ Error verifying payment.");
       }
 
-      // Redirect after 5 seconds
+      // Auto redirect after 5s
       setTimeout(() => navigate("/profile?tab=reservations"), 5000);
     };
 
     verifyPayment();
   }, [location, navigate, BACKEND_URL]);
 
-  /* ------------------------------ PDF Receipt Download ------------------------------ */
+  /* PDF Download */
   const downloadReceipt = () => {
     if (!reservation) return;
 
