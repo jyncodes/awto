@@ -430,7 +430,7 @@ await setDoc(doc(db, "sales", formattedSaleId), saleData, { merge: false });
       <div className="customer-details">
         <p><strong>Customer ID:</strong> {selectedCustomer.customerCode}</p>
         <p><strong>Name:</strong> {selectedCustomer.name}</p>
-        <p><strong>Contact:</strong> {selectedCustomer.contact || "N/A"}</p>
+        <p><strong>Plate Number:</strong> {selectedCustomer.lastPlateNumber || selectedCustomer.plateNo || "None"}</p>
       </div>
     )}
   </div>

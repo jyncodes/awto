@@ -50,8 +50,10 @@ export default function CustomerModal({ onClose, onSelect, mode }) {
       c.customerCode?.toLowerCase().includes(q) ||
       c.name?.toLowerCase().includes(q) ||
       c.contact?.includes(search) ||
-      c.plateNo?.toLowerCase().includes(q)
-    );
+      (c.lastPlateNumber || c.plateNo || "")
+        .toLowerCase()
+        .includes(q)
+          );
   });
 
   // Generate CU-xxxxx
@@ -175,7 +177,7 @@ const handleAddCustomer = async () => {
                     <strong>{cust.customerCode} — {cust.name}</strong>
                     <br />
                     <small style={{ color: "#475569" }}>
-                      📞 {cust.contact || "N/A"} • 🚗 {cust.plateNo || "None"}
+                      🚗 {cust.lastPlateNumber || cust.plateNo || "None"}
                     </small>
                   </button>
                 ))
