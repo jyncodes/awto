@@ -1,4 +1,4 @@
-// src/pages/user-page/PaymentSuccess.jsx
+//  rc/pages/user-page/PaymentSuccess.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -116,7 +116,11 @@ const PaymentSuccess = () => {
 
     // Customer Info
     docPDF.text("Customer Information:", 15, 40);
-    docPDF.text(`Name: ${doneData.userName || doneData.paypalPayerName || "N/A"}`, 15, 48);
+    docPDF.text(
+      `Name: ${doneData.userName || doneData.paypalPayerName || "N/A"}`,
+      15,
+      48
+    );
     docPDF.text(`Email: ${doneData.userEmail}`, 15, 56);
 
     // Payment Info
@@ -139,7 +143,7 @@ const PaymentSuccess = () => {
     docPDF.save(`Receipt-${finalId}.pdf`);
   };
 
-  /* ---------------- Save Reservation to Firestore ---------------- */
+  /* ---------------- Save Reservation to Firestore + SEND EMAIL ---------------- */
   const finalizeReservation = async () => {
     if (isSaved || !doneData) return;
 
@@ -159,36 +163,49 @@ const PaymentSuccess = () => {
         userId: doneData.userId,
         userEmail: doneData.userEmail,
         userName: doneData.userName,
-
         productId: doneData.selectedDocId,
         productName: `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
         brand: doneData.product?.brand,
         model: doneData.product?.model,
         type: doneData.product?.type || "Tire",
         size: doneData.selectedSize,
-
         quantity: doneData.quantity,
         price: doneData.pricePerItem,
         totalPrice: doneData.pricePerItem * doneData.quantity,
         downpayment: doneData.downpayment,
-
         vehicleBrand: doneData.vehicleBrand,
         vehicleModel: doneData.vehicleModel,
         vehicleYear: doneData.vehicleYear,
         plateNumber: doneData.plateNumber,
-
         note: doneData.note || "",
         preferredDate: new Date(doneData.preferredDate),
-
         paymentMethod: "PayPal",
         transactionId: transactionId || null,
-
         status: "Awaiting Approval",
         createdAt: serverTimestamp(),
         isCancelled: false,
       });
 
-      // Cleanup
+      // 🔥 Send Confirmation Email
+      try {
+        await fetch(`${BACKEND_URL}/send-confirmation`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: doneData.userEmail,
+            name: doneData.userName,
+            reservationId: newResId,
+            productName: `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
+            date: new Date(doneData.preferredDate).toLocaleDateString(),
+          }),
+        });
+
+        console.log("📩 Email request sent to backend");
+      } catch (err) {
+        console.error("❌ Email send failed:", err);
+      }
+
+      // Cleanup local storage
       localStorage.removeItem("finalReservationData");
       localStorage.removeItem("reservationDraft");
 
@@ -213,10 +230,20 @@ const PaymentSuccess = () => {
           <>
             <div className="receipt-box">
               <h4>Payment Summary</h4>
-              <p><strong>Customer:</strong> {doneData.userName}</p>
-              <p><strong>Email:</strong> {doneData.userEmail}</p>
-              <p><strong>Amount Paid:</strong> ₱{doneData.downpayment}</p>
-              {transactionId && <p><strong>Transaction ID:</strong> {transactionId}</p>}
+              <p>
+                <strong>Customer:</strong> {doneData.userName}
+              </p>
+              <p>
+                <strong>Email:</strong> {doneData.userEmail}
+              </p>
+              <p>
+                <strong>Amount Paid:</strong> ₱{doneData.downpayment}
+              </p>
+              {transactionId && (
+                <p>
+                  <strong>Transaction ID:</strong> {transactionId}
+                </p>
+              )}
             </div>
 
             <button className="success-button" onClick={downloadReceipt}>

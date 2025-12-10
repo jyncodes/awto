@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 /* ======================================================
    📩 SEND EMAIL FUNCTION (Brevo)
 ====================================================== */
-const sendPaymentEmail = async (customerEmail, name, reservationId, amount) => {
+const sendPaymentEmail = async (customerEmail, name, reservationId, productName, appointmentDate) => {
   try {
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
@@ -34,12 +34,18 @@ const sendPaymentEmail = async (customerEmail, name, reservationId, amount) => {
           email: process.env.SENDER_EMAIL,
         },
         to: [{ email: customerEmail, name }],
-        subject: `Payment Confirmed - Reservation ${reservationId}`,
+        subject: `✔ Reservation Confirmed - ${reservationId}`,
         htmlContent: `
-          <h2>✔ Payment Successful</h2>
-          <p>Thank you for your payment.</p>
+          <h2>Thank you, ${name}!</h2>
+          <p>Your reservation has been successfully submitted.</p>
+
           <p><strong>Reservation ID:</strong> ${reservationId}</p>
-          <p><strong>Amount Paid:</strong> ₱${amount}</p>
+          <p><strong>Product:</strong> ${productName}</p>
+          <p><strong>Appointment Date:</strong> ${appointmentDate}</p>
+
+          <br/><br/>
+          <p>We will notify you once your schedule is approved.</p>
+          <p>— Joven Tire Enterprise</p>
         `,
       },
       {
@@ -50,11 +56,12 @@ const sendPaymentEmail = async (customerEmail, name, reservationId, amount) => {
       }
     );
 
-    console.log("📩 Email sent:", customerEmail);
+    console.log("📩 Confirmation email sent.");
   } catch (err) {
-    console.error("❌ Failed to send email:", err.response?.data || err.message);
+    console.error("❌ Email sending error:", err.response?.data || err.message);
   }
 };
+
 
 /* ======================================================
    🔥 PAYPAL TOKEN
@@ -136,6 +143,25 @@ app.post("/paypal-complete", async (req, res) => {
     return res.json({ success: false, message: "Server Error" });
   }
 });
+
+/* ======================================================
+   📧 Trigger Email After Reservation Save
+====================================================== */
+app.post("/send-confirmation", async (req, res) => {
+  const { email, name, reservationId, productName, date } = req.body;
+
+  if (!email || !reservationId) {
+    return res.status(400).json({ success: false, message: "Missing required fields" });
+  }
+
+  try {
+    await sendPaymentEmail(email, name, reservationId, productName, date);
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 /* ======================================================
    🧪 TEST ROUTE
