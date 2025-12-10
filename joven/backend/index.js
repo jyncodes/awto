@@ -6,14 +6,14 @@ require("dotenv").config();
 const app = express();
 
 /* ======================================================
-   🔥 GLOBAL MIDDLEWARE (JSON for ALL normal routes)
+   🔥 GLOBAL MIDDLEWARE
 ====================================================== */
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.urlencoded({ extended: true }));
 
 /* ======================================================
-   🔥 FIREBASE ADMIN SETUP (SERVER-SIDE)
+   🔥 FIREBASE ADMIN SETUP
 ====================================================== */
 const admin = require("firebase-admin");
 
@@ -63,7 +63,7 @@ const sendPaymentEmail = async (customerEmail, name, reservationId, amount) => {
 };
 
 /* ======================================================
-   🔥 PAYPAL TOKEN (LIVE)
+   🔥 PAYPAL TOKEN
 ====================================================== */
 const getPayPalToken = async () => {
   const auth = Buffer.from(
@@ -85,24 +85,28 @@ const getPayPalToken = async () => {
 };
 
 /* ======================================================
-   📦 SMART CHECKOUT COMPLETION ~ HOSTED BUTTON
+   📦 SMART CHECKOUT COMPLETION FOR HOSTED BUTTON
 ====================================================== */
 app.post("/paypal-complete", async (req, res) => {
+  console.log("📩 Request received:", req.body);
+
   try {
-    // ⭐ UPDATED — now expecting tempLockId instead of reservationId
     const { orderId, tempLockId } = req.body;
 
     if (!orderId || !tempLockId) {
+      console.log("❌ Missing required values:", req.body);
       return res.status(400).json({
         success: false,
         message: "Missing orderId or tempLockId",
       });
     }
 
+    console.log("🔑 Getting PayPal Token...");
     const token = await getPayPalToken();
 
-    const orderRes = await axios.get(
-      `https://api-m.paypal.com/v2/checkout/orders/${orderId}/capture`,
+    console.log("🔍 Checking PayPal Transaction...");
+    const txLookup = await axios.get(
+      `https://api-m.paypal.com/v1/reporting/transactions?transaction_id=${orderId}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -111,34 +115,43 @@ app.post("/paypal-complete", async (req, res) => {
       }
     );
 
-    const order = orderRes.data;
-    console.log("🔍 PayPal response status:", order.status);
+    console.log("📨 PayPal Response:", JSON.stringify(txLookup.data, null, 2));
 
-    const validStatuses = [
-      "COMPLETED",
-      "PENDING",
-      "APPROVED",
-      "PAYER_ACTION_REQUIRED",
-      "HELD",
-      "ONHOLD",
-      "PARTIALLY_CAPTURED",
-      "AWAITING_SELLER_ACTION",
-    ];
+    const order = txLookup.data.transaction_details?.[0] || null;
 
-    if (!validStatuses.includes(order.status)) {
-      console.log("❌ PayPal order rejected:", order.status);
-      return res.status(400).json({ success: false });
+    if (!order) {
+      console.log("❌ No PayPal transaction found!");
+      return res.status(400).json({ success: false, message: "Transaction not found." });
     }
 
-    /* ---------------- Step 1: Get Temp Reservation Draft ---------------- */
+    const status = order.transaction_info.transaction_status;
+    console.log("💳 PayPal Status:", status);
+
+    const validStatuses = ["S", "Completed", "COMPLETED", "SUCCESS", "Captured"];
+
+    if (!validStatuses.some((s) => status.includes(s))) {
+      console.log("⚠ Payment invalid:", status);
+      return res.status(400).json({
+        success: false,
+        message: `Payment not completed. Status: ${status}`,
+      });
+    }
+
+    console.log("🔍 Finding temp lock:", tempLockId);
     const tempDoc = await db.collection("temp_locks").doc(tempLockId).get();
+
     if (!tempDoc.exists) {
-      return res.status(404).json({ success: false, message: "Temp reservation not found." });
+      console.log("❌ temp_locks NOT found");
+      return res.status(404).json({
+        success: false,
+        message: "Temp reservation not found.",
+      });
     }
 
     const draftData = tempDoc.data();
+    console.log("📌 Temp Data:", draftData);
 
-    /* ---------------- Step 2: Generate new reservationId ---------------- */
+    /* ---------- AUTO INCREMENT ---------- */
     const counterRef = db.collection("counters").doc("reservations");
     const counterSnap = await counterRef.get();
     const nextId = (counterSnap.exists ? counterSnap.data().lastId : 0) + 1;
@@ -146,89 +159,36 @@ app.post("/paypal-complete", async (req, res) => {
     await counterRef.set({ lastId: nextId }, { merge: true });
 
     const reservationId = `RES${String(nextId).padStart(5, "0")}`;
+    console.log("🆕 Reservation ID:", reservationId);
 
-    /* ---------------- Step 3: Create Final Reservation ---------------- */
+    /* ---------- SAVE FINAL BOOKING ---------- */
     await db.collection("reservations").doc(reservationId).set({
       id: reservationId,
       ...draftData,
-      status: order.status === "COMPLETED" ? "Paid" : "Payment Under Review",
-      paymentStatus: "paid",
-      paypalStatus: order.status,
+      status: "Paid",
+      paymentStatus: "Paid",
+      paymentMethod: "PayPal",
+      paypalStatus: status,
+      paypalTransactionId: orderId,
       paidAt: new Date(),
-      paypalOrderId: orderId,
-      isCancelled: false,
       createdAt: new Date(),
+      isCancelled: false,
     });
 
-    /* ---------------- Step 4: Cleanup temp lock ---------------- */
-    await db.collection("temp_locks").doc(tempLockId).delete();
+    console.log("💾 Reservation stored successfully.");
 
-    /* ---------------- Step 5: Email Confirmation ---------------- */
-    const paymentDetails = order?.purchase_units?.[0]?.payments?.captures?.[0];
-    const amountPaid = paymentDetails?.amount?.value || draftData.downpayment;
+    await db.collection("temp_locks").doc(tempLockId).delete();
+    console.log("🗑️ Temp lock removed.");
+
+    const amountPaid = order.transaction_info?.transaction_amount?.value || draftData.downpayment;
 
     await sendPaymentEmail(draftData.userEmail, draftData.userName, reservationId, amountPaid);
-
-    console.log("✔ Reservation finalized:", reservationId);
 
     return res.json({ success: true, reservationId });
 
   } catch (err) {
-    console.error("❌ PayPal complete error:", err.response?.data || err);
+    console.error("❌ ERROR:", err.response?.data || err);
     res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-/* ======================================================
-   💳 PAYMONGO (LEGACY)
-====================================================== */
-app.post("/create-payment", async (req, res) => {
-  const { amount, description, email, reservationId } = req.body;
-
-  try {
-    const response = await axios.post(
-      "https://api.paymongo.com/v1/checkout_sessions",
-      {
-        data: {
-          attributes: {
-            line_items: [
-              {
-                name: description || "Downpayment",
-                amount: Math.round(amount * 100),
-                currency: "PHP",
-                quantity: 1,
-              },
-            ],
-            payment_method_types: ["card", "gcash", "grab_pay"],
-            send_email_receipt: true,
-            description: description || "Reservation Payment",
-            billing: { email, name: email },
-            success_url: "https://awto.vercel.app/payment-success",
-            cancel_url: "https://awto.vercel.app/payment-failed",
-            metadata: { reservationId },
-          },
-        },
-      },
-      {
-        headers: {
-          Authorization:
-            "Basic " +
-            Buffer.from(process.env.PAYMONGO_SECRET_KEY + ":").toString(
-              "base64"
-            ),
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const checkoutUrl =
-      response.data.data.attributes.checkout_url ||
-      response.data.data.attributes.redirect?.checkout_url;
-
-    res.status(200).send({ success: true, checkoutUrl });
-  } catch (error) {
-    console.error("❌ FULL PayMongo ERROR:", error.response?.data || error);
-    res.status(500).send({ success: false });
   }
 });
 
@@ -243,6 +203,4 @@ app.get("/test", (req, res) => {
    🚀 START SERVER
 ====================================================== */
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`✅ Backend running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log(`🚀 Backend running on port ${PORT}`));
