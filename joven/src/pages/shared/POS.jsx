@@ -245,7 +245,7 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
     reservationApplied: reservationFeeApplied > 0,
   };
 
-  await setDoc(doc(db, "sales", formattedSaleId), saleData);
+await setDoc(doc(db, "sales", formattedSaleId), saleData, { merge: false });
 
     // update product stocks
     for (const item of cart.filter((i) => i.type === "product")) {

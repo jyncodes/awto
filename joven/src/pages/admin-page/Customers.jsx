@@ -65,7 +65,7 @@ const AdminCustomers = () => {
           <thead>
             <tr>
               <th>Customer ID</th>
-              <th>Email</th>
+              <th>Name</th>
               <th>Date Joined</th>
               <th>Total Reservations</th>
               <th>Action</th>
@@ -82,7 +82,7 @@ const AdminCustomers = () => {
               filtered.map((customer) => (
                 <tr key={customer.id}>
                   <td>{customer.customerCode || '—'}</td>
-                  <td>{customer.email || 'Walk-in'}</td>
+                  <td>{customer.name || '—'}</td>
                   <td>
                     {customer.registeredAt
                       ? new Date(customer.registeredAt.seconds * 1000).toLocaleString()
