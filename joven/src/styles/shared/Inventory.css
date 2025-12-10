@@ -93,6 +93,38 @@
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
+/* ================= STOCK FILTER BUTTONS (All / Out / Low) ================= */
+.status-filter {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.status-filter button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #475569;
+  transition: 0.25s ease;
+}
+
+.status-filter button:hover {
+  background-color: #e2e8f0;
+}
+
+/* Active state matching the existing inventory tabs */
+.status-filter .active-tab {
+  background-color: #e11d48; /* red highlight for quick visual alert */
+  border-color: #be123c;
+  color: white;
+  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.3);
+}
+
+
 /* ================= INVENTORY TABLE ================= */
 .inventory-card {
   background-color: #fff;
@@ -386,4 +418,91 @@
   .btn-delete {
     width: 100%;
   }
+}
+
+/* ================= BULK RESTOCK BUTTON ================= */
+.btn-bulk {
+  background-color: #0ea5e9;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.btn-bulk:hover {
+  background-color: #0284c7;
+  transform: scale(1.05);
+}
+
+/* ================= BULK RESTOCK MODAL ================= */
+.bulk-restock {
+  max-width: 650px;
+}
+
+.bulk-restock h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1.2rem;
+}
+
+/* List item layout */
+.bulk-restock-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 0.9rem 1.2rem;
+  border-radius: 10px;
+  margin-bottom: 0.9rem;
+  border: 1px solid #e2e8f0;
+}
+
+/* Stock input field */
+.bulk-restock-item .stock-input {
+  width: 80px;
+  padding: 0.4rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+}
+
+.bulk-restock-item .stock-input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+/* Actions inside bulk modal */
+/* Actions inside bulk modal */
+.bulk-restock .restock-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.3rem;
+  width: 100%;        /* 👈 THIS IS THE FIX */
+}
+
+.bulk-restock .submit-btn {
+  background-color: #22c55e;
+  min-width: 100px;
+  color: white;
+}
+
+.bulk-restock .submit-btn:hover {
+  background-color: #16a34a;
+}
+
+.bulk-restock .cancel-btn {
+  background-color: #ef4444;
+  min-width: 100px;
+  color: white;
+}
+
+.bulk-restock .cancel-btn:hover {
+  background-color: #b91c1c;
 }
