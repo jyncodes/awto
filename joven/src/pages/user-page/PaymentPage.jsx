@@ -61,10 +61,25 @@ const PaymentPage = () => {
   };
 
   /* ---------------- HANDLE PAY CLICK ---------------- */
-  const handlePayClick = async () => {
-    if (!tempLockId) await createTemporaryReservationLock();
-    alert("Redirecting to PayPal...");
+ const handlePayClick = (e) => {
+  if (!draft || !currentUser) {
+    e.preventDefault();
+    return alert("Missing reservation details.");
+  }
+
+  // Save final copy before opening PayPal
+  const finalReservationData = {
+    ...draft,
+    userId: currentUser.uid,
+    userEmail: currentUser.email,
+    userName: currentUser.displayName || "Customer",
+    timestamp: Date.now()
   };
+
+  localStorage.setItem("finalReservationData", JSON.stringify(finalReservationData));
+
+  alert("Redirecting to PayPal...");
+};
 
   if (loading || !draft) return <div className="payment-page">Loading...</div>;
 

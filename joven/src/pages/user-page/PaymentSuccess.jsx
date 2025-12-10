@@ -7,10 +7,6 @@ import {
   setDoc,
   serverTimestamp,
   increment,
-  collection,
-  query,
-  where,
-  getDocs,
 } from "firebase/firestore";
 import { jsPDF } from "jspdf";
 import { db, auth } from "../../firebase";
@@ -27,6 +23,18 @@ const PaymentSuccess = () => {
   const [reservationId, setReservationId] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
 
+  // ---------------- Load Data Saved in PaymentPage ----------------
+  useEffect(() => {
+    const stored = localStorage.getItem("finalReservationData");
+    if (stored) {
+      setDoneData(JSON.parse(stored));
+      setStatus("✔ Waiting for PayPal confirmation...");
+    } else {
+      setStatus("⚠ No reservation data found.");
+    }
+  }, []);
+
+  // ---------------- Detect PayPal return parameters ----------------
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
 
@@ -51,45 +59,17 @@ const PaymentSuccess = () => {
           body: JSON.stringify({ orderId: txId }),
         });
 
-        const result = await response.json();
-        const currentUser = auth.currentUser;
-
-        setStatus(
-          result.success
-            ? "✔ Payment Verified — Ready to finalize reservation"
-            : "⚠ Payment detected but not verified — manual confirmation required"
-        );
-
-        // 🔥 Get logged-in user's customer record
-        const q = query(
-          collection(db, "customers"),
-          where("uid", "==", currentUser.uid)
-        );
-        const customerSnap = await getDocs(q);
-        const customerData = customerSnap.docs.length
-          ? customerSnap.docs[0].data()
-          : {};
-
-        // 🔥 Get downpayment setting
-        const settingsSnap = await getDoc(doc(db, "settings", "payments"));
-        const downpayment = settingsSnap.exists()
-          ? settingsSnap.data().downpayment
-          : 500;
-
-        setDoneData({
-          uid: currentUser.uid,
-          name: customerData.name || result.name,
-          email: customerData.email || result.email,
-          amount: downpayment,
-        });
+        await response.json(); // You can store this if needed later
+        setStatus("✔ Payment Confirmed — Click Finish to save reservation");
       } catch {
-        setStatus("⚠ Unable to contact server — showing fallback details.");
+        setStatus("⚠ Could not verify payment — using fallback.");
       }
     };
 
     verifyPayment();
   }, [location, BACKEND_URL]);
 
+  // ---------------- Generate PDF Receipt ----------------
   const downloadReceipt = () => {
     if (!doneData) return;
 
@@ -103,15 +83,15 @@ const PaymentSuccess = () => {
     docPDF.text("Official Downpayment Receipt", 15, 25);
     docPDF.line(15, 30, 195, 30);
 
-    docPDF.text(`Reservation ID: ${finalId}`, 15, 40);
-    docPDF.text(`Customer Name: ${doneData.name}`, 15, 50);
-    docPDF.text(`Amount Paid: ₱${doneData.amount}`, 15, 60);
+    docPDF.text(`Customer Name: ${doneData.userName}`, 15, 50);
+    docPDF.text(`Amount Paid: ₱${doneData.downpayment}`, 15, 60);
     docPDF.text(`Payment Method: PayPal`, 15, 70);
     docPDF.text(`Printed On: ${new Date().toLocaleString()}`, 15, 80);
 
     docPDF.save(`Receipt-${finalId}.pdf`);
   };
 
+  // ---------------- Save Reservation to Firestore ----------------
   const finalizeReservation = async () => {
     if (isSaved || !doneData) return;
 
@@ -128,15 +108,39 @@ const PaymentSuccess = () => {
 
       await setDoc(doc(db, "reservations", newResId), {
         id: newResId,
-        userId: doneData.uid,
-        userEmail: doneData.email,
-        userName: doneData.name,
-        downpayment: doneData.amount,
-        totalPrice: doneData.amount,
+        userId: doneData.userId,
+        userEmail: doneData.userEmail,
+        userName: doneData.userName,
+
+        productId: doneData.selectedDocId,
+        productName: `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
+        brand: doneData.product?.brand,
+        model: doneData.product?.model,
+        type: doneData.product?.type || "Tire",
+        size: doneData.selectedSize,
+
+        quantity: doneData.quantity,
+        price: doneData.pricePerItem,
+        totalPrice: doneData.pricePerItem * doneData.quantity,
+        downpayment: doneData.downpayment,
+
+        vehicleBrand: doneData.vehicleBrand,
+        vehicleModel: doneData.vehicleModel,
+        vehicleYear: doneData.vehicleYear,
+        plateNumber: doneData.plateNumber,
+
+        note: doneData.note || "",
+        preferredDate: new Date(doneData.preferredDate),
+
         paymentMethod: "PayPal",
         status: "Awaiting Approval",
         createdAt: serverTimestamp(),
+        isCancelled: false,
       });
+
+      // Cleanup
+      localStorage.removeItem("finalReservationData");
+      localStorage.removeItem("reservationDraft");
 
       setIsSaved(true);
       setStatus("✔ Reservation successfully created!");
@@ -159,9 +163,9 @@ const PaymentSuccess = () => {
           <>
             <div className="receipt-box">
               <h4>Payment Summary</h4>
-              <p><strong>Customer:</strong> {doneData.name}</p>
-              <p><strong>Email:</strong> {doneData.email}</p>
-              <p><strong>Amount Paid:</strong> ₱{doneData.amount}</p>
+              <p><strong>Customer:</strong> {doneData.userName}</p>
+              <p><strong>Email:</strong> {doneData.userEmail}</p>
+              <p><strong>Amount Paid:</strong> ₱{doneData.downpayment}</p>
             </div>
 
             <button className="success-button" onClick={downloadReceipt}>
