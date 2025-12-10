@@ -1,4 +1,4 @@
-//  rc/pages/user-page/PaymentSuccess.jsx
+//  src/pages/user-page/PaymentSuccess.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -7,6 +7,10 @@ import {
   setDoc,
   serverTimestamp,
   increment,
+  collection,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 import { jsPDF } from "jspdf";
 import { db } from "../../firebase";
@@ -36,7 +40,6 @@ const PaymentSuccess = () => {
       let parsed = JSON.parse(stored);
 
       try {
-        // Get real customer name from Firestore
         const userRef = doc(db, "users", parsed.userId);
         const userSnap = await getDoc(userRef);
 
@@ -106,7 +109,6 @@ const PaymentSuccess = () => {
     const finalId = reservationId || `TEMP-${transactionId?.slice(-6)}`;
     const docPDF = new jsPDF();
 
-    // Header
     docPDF.setFontSize(18);
     docPDF.text("Joven Tire Enterprise", 15, 15);
 
@@ -114,7 +116,6 @@ const PaymentSuccess = () => {
     docPDF.text("Reservation Downpayment Receipt", 15, 23);
     docPDF.line(15, 30, 195, 30);
 
-    // Customer Info
     docPDF.text("Customer Information:", 15, 40);
     docPDF.text(
       `Name: ${doneData.userName || doneData.paypalPayerName || "N/A"}`,
@@ -122,8 +123,8 @@ const PaymentSuccess = () => {
       48
     );
     docPDF.text(`Email: ${doneData.userEmail}`, 15, 56);
+    docPDF.text(`Plate Number: ${doneData.plateNumber}`, 15, 64);
 
-    // Payment Info
     docPDF.text("Payment Details:", 15, 72);
     docPDF.text(`Amount Paid: ₱${doneData.downpayment}`, 15, 80);
     docPDF.text(`Payment Method: PayPal`, 15, 88);
@@ -135,15 +136,13 @@ const PaymentSuccess = () => {
     docPDF.text(`Order ID: ${finalId}`, 15, 104);
     docPDF.text(`Date: ${new Date().toLocaleString()}`, 15, 112);
 
-    // Footer
     docPDF.line(15, 120, 195, 120);
     docPDF.text("Thank you for choosing Joven Tire Enterprise!", 15, 130);
-    docPDF.text("Powered by PayPal", 15, 138);
 
     docPDF.save(`Receipt-${finalId}.pdf`);
   };
 
-  /* ---------------- Save Reservation to Firestore + SEND EMAIL ---------------- */
+  /* ---------------- Save Reservation + Update Customer ---------------- */
   const finalizeReservation = async () => {
     if (isSaved || !doneData) return;
 
@@ -165,10 +164,6 @@ const PaymentSuccess = () => {
         userName: doneData.userName,
         productId: doneData.selectedDocId,
         productName: `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
-        brand: doneData.product?.brand,
-        model: doneData.product?.model,
-        type: doneData.product?.type || "Tire",
-        size: doneData.selectedSize,
         quantity: doneData.quantity,
         price: doneData.pricePerItem,
         totalPrice: doneData.pricePerItem * doneData.quantity,
@@ -186,29 +181,32 @@ const PaymentSuccess = () => {
         isCancelled: false,
       });
 
-            // ---------------- SAVE VEHICLE TO CUSTOMER DOCUMENT ----------------
+      // ---------------- SAVE ONLY LAST PLATE NUMBER ----------------
       try {
-        const customerRef = doc(db, "customers", doneData.userId);
-
-        await setDoc(
-          customerRef,
-          {
-            lastUsedPlate: doneData.plateNumber,
-            lastVehicle: {
-              brand: doneData.vehicleBrand,
-              model: doneData.vehicleModel,
-              year: doneData.vehicleYear,
-              plateNumber: doneData.plateNumber,
-            },
-          },
-          { merge: true }
+        const q = query(
+          collection(db, "customers"),
+          where("uid", "==", doneData.userId)
         );
 
-        console.log("🚗 Customer vehicle info saved.");
-      } catch (err) {
-        console.log("❌ Failed to update customer vehicle info:", err);
-      }
+        const snap = await getDocs(q);
 
+        if (!snap.empty) {
+          const customerDoc = snap.docs[0];
+          const customerId = customerDoc.id;
+
+          await setDoc(
+            doc(db, "customers", customerId),
+            {
+              lastPlateNumber: doneData.plateNumber,
+            },
+            { merge: true }
+          );
+
+          console.log("🚗 Last plate number saved for:", customerId);
+        }
+      } catch (err) {
+        console.log("❌ Failed to update last plate number:", err);
+      }
 
       // 🔥 Send Confirmation Email
       try {
@@ -220,16 +218,14 @@ const PaymentSuccess = () => {
             name: doneData.userName,
             reservationId: newResId,
             productName: `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
+            plateNumber: doneData.plateNumber,
             date: new Date(doneData.preferredDate).toLocaleDateString(),
           }),
         });
-
-        console.log("📩 Email request sent to backend");
       } catch (err) {
         console.error("❌ Email send failed:", err);
       }
 
-      // Cleanup local storage
       localStorage.removeItem("finalReservationData");
       localStorage.removeItem("reservationDraft");
 
@@ -254,19 +250,12 @@ const PaymentSuccess = () => {
           <>
             <div className="receipt-box">
               <h4>Payment Summary</h4>
-              <p>
-                <strong>Customer:</strong> {doneData.userName}
-              </p>
-              <p>
-                <strong>Email:</strong> {doneData.userEmail}
-              </p>
-              <p>
-                <strong>Amount Paid:</strong> ₱{doneData.downpayment}
-              </p>
+              <p><strong>Customer:</strong> {doneData.userName}</p>
+              <p><strong>Email:</strong> {doneData.userEmail}</p>
+              <p><strong>Plate Number:</strong> {doneData.plateNumber}</p>
+              <p><strong>Amount Paid:</strong> ₱{doneData.downpayment}</p>
               {transactionId && (
-                <p>
-                  <strong>Transaction ID:</strong> {transactionId}
-                </p>
+                <p><strong>Transaction ID:</strong> {transactionId}</p>
               )}
             </div>
 

@@ -41,6 +41,7 @@ const sendPaymentEmail = async (customerEmail, name, reservationId, productName,
 
           <p><strong>Reservation ID:</strong> ${reservationId}</p>
           <p><strong>Product:</strong> ${productName}</p>
+          <p><strong>Plate Number:</strong> ${plateNumber}</p>
           <p><strong>Appointment Date:</strong> ${appointmentDate}</p>
 
           <br/><br/>
@@ -148,7 +149,7 @@ app.post("/paypal-complete", async (req, res) => {
    📧 Trigger Email After Reservation Save
 ====================================================== */
 app.post("/send-confirmation", async (req, res) => {
-  const { email, name, reservationId, productName, date } = req.body;
+  const { email, name, reservationId, productName, date, plateNumber } = req.body;
 
   if (!email || !reservationId) {
     return res.status(400).json({ success: false, message: "Missing required fields" });
