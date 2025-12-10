@@ -186,6 +186,30 @@ const PaymentSuccess = () => {
         isCancelled: false,
       });
 
+            // ---------------- SAVE VEHICLE TO CUSTOMER DOCUMENT ----------------
+      try {
+        const customerRef = doc(db, "customers", doneData.userId);
+
+        await setDoc(
+          customerRef,
+          {
+            lastUsedPlate: doneData.plateNumber,
+            lastVehicle: {
+              brand: doneData.vehicleBrand,
+              model: doneData.vehicleModel,
+              year: doneData.vehicleYear,
+              plateNumber: doneData.plateNumber,
+            },
+          },
+          { merge: true }
+        );
+
+        console.log("🚗 Customer vehicle info saved.");
+      } catch (err) {
+        console.log("❌ Failed to update customer vehicle info:", err);
+      }
+
+
       // 🔥 Send Confirmation Email
       try {
         await fetch(`${BACKEND_URL}/send-confirmation`, {
