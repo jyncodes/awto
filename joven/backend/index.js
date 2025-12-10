@@ -8,7 +8,16 @@ const app = express();
 /* ======================================================
    🔥 GLOBAL MIDDLEWARE
 ====================================================== */
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://awto.vercel.app",
+    ],
+    methods: ["GET", "POST"],
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -127,12 +136,14 @@ app.post("/paypal-complete", async (req, res) => {
       });
     }
 
-    const status = order.transaction_info.transaction_status;
+    const rawStatus = order.transaction_info?.transaction_status || "";
+    const status = typeof rawStatus === "string" ? rawStatus.trim() : "";
+
     console.log("💳 PayPal Status:", status);
 
-    const validStatuses = ["S", "Completed", "COMPLETED", "SUCCESS", "Captured"];
+    const validStatuses = ["S","COMPLETED", "SUCCESS"];
 
-    if (!validStatuses.some((s) => status.includes(s))) {
+    if (!validStatuses.some((s) => status.toUpperCase().includes(s.toUpperCase()))) {
       console.log("⚠ Payment invalid:", status);
       return res.json({
         success: false,
@@ -203,6 +214,45 @@ app.post("/paypal-complete", async (req, res) => {
     });
   }
 });
+
+app.post("/send-reservation-email", async (req, res) => {
+  const { email, name, reservationId, product, date } = req.body;
+
+  try {
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: {
+          name: "Joven Tire Enterprise",
+          email: process.env.SENDER_EMAIL,
+        },
+        to: [{ email, name }],
+        subject: `Reservation Confirmed - ${reservationId}`,
+        htmlContent: `
+          <h2>Reservation Confirmed</h2>
+          <p>Hello <strong>${name}</strong>, your reservation has been submitted.</p>
+          <p><strong>Reservation ID:</strong> ${reservationId}</p>
+          <p><strong>Product:</strong> ${product}</p>
+          <p><strong>Appointment Date:</strong> ${date}</p>
+          <br>
+          <p>You will receive another email if changes occur.</p>
+        `,
+      },
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Failed email:", err.response?.data || err.message);
+    res.status(500).json({ success: false });
+  }
+});
+
 
 /* ======================================================
    🧪 TEST ROUTE

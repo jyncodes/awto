@@ -1,7 +1,7 @@
 // src/pages/user-page/PaymentSuccess.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { jsPDF } from "jspdf";
 import { db } from "../../firebase";
 import "../../styles/user-styles/PaymentSuccess.css";
@@ -16,7 +16,7 @@ const PaymentSuccess = () => {
   const [reservationId, setReservationId] = useState(null);
   const [transactionId, setTransactionId] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
-  const [isVerified, setIsVerified] = useState(false); // NEW FLAG
+  const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
@@ -33,47 +33,56 @@ const PaymentSuccess = () => {
     const tempLockId =
       queryParams.get("custom") || localStorage.getItem("activeTempLockId");
 
-    // ❗ Do NOT stop UI if these are missing — just mark as unverified
-    if (!txId || !tempLockId) {
-      setStatus("⚠ Payment could not be verified, but details are shown.");
-      setIsVerified(false);
-      return;
-    }
-
     const verifyPayment = async () => {
-      try {
-        const response = await fetch(`${BACKEND_URL}/paypal-complete`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: txId, tempLockId }),
-        });
+      let fetchedReservationId = tempLockId;
 
-        const result = await response.json();
-
-        if (!result.success) {
-          setStatus("⚠ Payment could not be verified.");
-          setIsVerified(false);
-        } else {
-          setStatus("🎉 Payment Verified Successfully!");
-          setIsVerified(true);
-        }
-
-        const newReservationId = result?.reservationId;
-        setReservationId(newReservationId);
-
-        if (newReservationId) {
-          const finalSnap = await getDoc(doc(db, "reservations", newReservationId));
-          if (finalSnap.exists()) {
-            setReservation(finalSnap.data());
-          }
-        }
-
-        localStorage.removeItem("activeTempLockId");
-      } catch (err) {
-        console.error(err);
-        setStatus("⚠ Something went wrong.");
+      // ================= LOCALHOST UI TEST MODE (NO PAYMENT) =================
+      if (window.location.hostname === "localhost") {
+        setStatus("🧪 Local Test Mode — No PayPal Connected");
         setIsVerified(false);
+        fetchedReservationId = "TEST-RESERVATION";
       }
+
+      // ================= PAYPAL VERIFY FLOW (LIVE WEBSITE ONLY) =================
+      if (txId && tempLockId && window.location.hostname !== "localhost") {
+        try {
+          const response = await fetch(`${BACKEND_URL}/paypal-complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: txId, tempLockId }),
+          });
+
+          const result = await response.json();
+          fetchedReservationId = result?.reservationId ?? tempLockId;
+
+          if (result?.success === true) {
+            setStatus("🎉 Payment Verified Successfully!");
+            setIsVerified(true);
+          } else {
+            setStatus("⚠ Payment could not be verified — but details are shown.");
+            setIsVerified(false);
+          }
+        } catch {
+          setStatus("⚠ Verification failed — showing stored details.");
+          setIsVerified(false);
+        }
+      }
+
+      setReservationId(fetchedReservationId);
+
+      // =============== LOAD RESERVATION FROM FIREBASE IF EXISTS ===============
+      if (fetchedReservationId !== "TEST-RESERVATION") {
+        const snap = await getDoc(doc(db, "reservations", fetchedReservationId));
+        if (snap.exists()) setReservation(snap.data());
+      }
+
+      // =============== FALLBACK FOR LOCALHOST FROM DRAFT ======================
+      if (window.location.hostname === "localhost" && !reservation) {
+        const draft = JSON.parse(localStorage.getItem("reservationDraft"));
+        if (draft) setReservation(draft);
+      }
+
+      localStorage.removeItem("activeTempLockId");
     };
 
     verifyPayment();
@@ -89,7 +98,6 @@ const PaymentSuccess = () => {
 
     docPDF.setFontSize(12);
     docPDF.text("Official Downpayment Receipt", 15, 25);
-
     docPDF.line(15, 30, 195, 30);
 
     docPDF.text(`Reservation ID: ${reservationId}`, 15, 40);
@@ -98,61 +106,49 @@ const PaymentSuccess = () => {
     docPDF.text(`Price: ₱${reservation.totalPrice?.toLocaleString()}`, 15, 70);
     docPDF.text(`Downpayment: ₱${reservation.downpayment?.toLocaleString()}`, 15, 80);
     docPDF.text(`Payment Method: PayPal Invoice`, 15, 90);
-    docPDF.text(`Transaction ID: ${transactionId}`, 15, 100);
-    docPDF.text(`Paid On: ${new Date().toLocaleString()}`, 15, 110);
+    docPDF.text(`Transaction ID: ${transactionId || "Not detected"}`, 15, 100);
+    docPDF.text(`Printed On: ${new Date().toLocaleString()}`, 15, 110);
 
     docPDF.line(15, 120, 195, 120);
-
     docPDF.text("Please present this receipt upon arrival.", 15, 135);
 
     docPDF.save(`Receipt-${reservationId}.pdf`);
   };
 
-  /* Save Reservation Record - Only allowed when verified */
+  /* Save Final Reservation */
   const finalizeReservation = async () => {
     if (!reservation || isSaved || !isVerified) return;
 
     try {
-      const reservationFormat = {
-        id: reservationId,
-        userId: reservation.userId,
-        userName: reservation.userName || "Customer",
-        userEmail: reservation.userEmail,
-        productName: reservation.productName,
-        productId: reservation.productId,
-        type: reservation.type,
-        brand: reservation.brand,
-        model: reservation.model,
-        size: reservation.size,
-        selectedSize: reservation.selectedSize,
-        selectedDocId: reservation.selectedDocId,
-        quantity: reservation.quantity,
-        price: reservation.price,
-        totalPrice: reservation.totalPrice,
-        downpayment: reservation.downpayment,
-        paymentMethod: "PayPal Invoice",
-        vehicleBrand: reservation.vehicleBrand,
-        vehicleModel: reservation.vehicleModel,
-        vehicleYear: reservation.vehicleYear,
-        plateNumber: reservation.plateNumber,
-        preferredDate: reservation.preferredDate,
-        status: "Downpayment Pending",
-        note: reservation.note || "",
-        createdAt: serverTimestamp(),
-        isCancelled: false,
-      };
+      await updateDoc(doc(db, "reservations", reservationId), {
+        status: "Awaiting Approval",
+        transactionId: transactionId || null,
+        finalizedAt: serverTimestamp(),
+      });
 
-      await addDoc(collection(db, "reservations"), reservationFormat);
+      // send email
+      await fetch(`${BACKEND_URL}/send-reservation-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: reservation.userEmail,
+          name: reservation.userName,
+          reservationId,
+          product: reservation.productName,
+          date: reservation.preferredDate
+            ? new Date(reservation.preferredDate.seconds * 1000).toLocaleDateString()
+            : "Scheduled",
+        }),
+      });
 
       setIsSaved(true);
-      alert("Reservation successfully recorded!");
+      alert("🎉 Reservation Completed! Awaiting approval.");
       navigate("/profile?tab=reservations");
     } catch (error) {
-      console.error("Error saving reservation:", error);
-      alert("Error saving reservation. Try again.");
+      console.error(error);
+      alert("❌ Something went wrong. Try again.");
     }
   };
-
 
   return (
     <div className="payment-success-page">
@@ -168,17 +164,19 @@ const PaymentSuccess = () => {
               <p><strong>Reservation ID:</strong> {reservationId}</p>
               <p><strong>Product:</strong> {reservation.productName}</p>
               <p><strong>Total Price:</strong> ₱{reservation.totalPrice?.toLocaleString()}</p>
-              <p><strong>Downpayment Paid:</strong> ₱{reservation.downpayment?.toLocaleString()}</p>
+              <p><strong>Downpayment:</strong> ₱{reservation.downpayment?.toLocaleString()}</p>
               <p><strong>Customer:</strong> {reservation.userName}</p>
+              <p><strong>Vehicle:</strong> {reservation.vehicleBrand} {reservation.vehicleModel} {reservation.vehicleYear}</p>
+              <p><strong>Plate:</strong> {reservation.plateNumber}</p>
               <p><strong>Transaction ID:</strong> {transactionId || "Not detected"}</p>
             </div>
 
             <div className="next-steps">
-              <h4>📌 What happens next?</h4>
+              <h4>📌 Next Steps</h4>
               <ol>
-                <li>Download and print your receipt.</li>
-                <li>Check your email for appointment confirmation.</li>
-                <li>Visit the shop on your scheduled date and present your receipt.</li>
+                <li>Print or download your receipt.</li>
+                <li>Wait for your appointment confirmation email.</li>
+                <li>Show this receipt during your scheduled visit.</li>
               </ol>
             </div>
 
@@ -186,12 +184,12 @@ const PaymentSuccess = () => {
               📄 Download Receipt
             </button>
 
-            <button 
+            <button
               className="success-button finish-btn"
               disabled={!isVerified || isSaved}
               onClick={finalizeReservation}
             >
-              ✅ Finish Reservation
+              {isVerified ? "✅ Finish Reservation" : "🔒 PayPal Required to Finish"}
             </button>
           </>
         )}
