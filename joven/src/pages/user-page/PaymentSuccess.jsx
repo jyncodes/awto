@@ -19,11 +19,17 @@ const PaymentSuccess = () => {
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
 
-    // PayPal may return ?tx or ?token depending on checkout type
-    const txId = queryParams.get("tx") || queryParams.get("token");
+    // 🔥 UPDATED — Detect all possible PayPal return params
+    const txId =
+      queryParams.get("tx") ||
+      queryParams.get("txn_id") ||
+      queryParams.get("token") ||
+      queryParams.get("PayerID") ||
+      queryParams.get("paymentId");
+
     setTransactionId(txId);
 
-    // ⬇️ NEW: Get temp lock ID from localStorage
+    // Get temp lock ID stored before redirect
     const tempLockId = localStorage.getItem("activeTempLockId");
 
     if (!txId || !tempLockId) {
@@ -46,11 +52,9 @@ const PaymentSuccess = () => {
           return;
         }
 
-        // Backend returns the FINAL reservation ID
         const newReservationId = result.reservationId;
         setReservationId(newReservationId);
 
-        // Fetch final reservation details
         const finalSnap = await getDoc(doc(db, "reservations", newReservationId));
 
         if (finalSnap.exists()) {
@@ -60,7 +64,6 @@ const PaymentSuccess = () => {
           setStatus("⚠ Reservation not found but payment succeeded.");
         }
 
-        // Remove lock from localStorage
         localStorage.removeItem("activeTempLockId");
       } catch (err) {
         console.error(err);
@@ -124,7 +127,6 @@ const PaymentSuccess = () => {
           </div>
         )}
 
-        {/* Download PDF only if reservation exists */}
         {reservation && (
           <button
             className="pay-button"
