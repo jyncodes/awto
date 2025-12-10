@@ -95,9 +95,10 @@ app.post("/paypal-complete", async (req, res) => {
 
     if (!orderId || !tempLockId) {
       console.log("❌ Missing required values:", req.body);
-      return res.status(400).json({
+      return res.json({
         success: false,
         message: "Missing orderId or tempLockId",
+        reservationId: tempLockId,
       });
     }
 
@@ -115,13 +116,15 @@ app.post("/paypal-complete", async (req, res) => {
       }
     );
 
-    console.log("📨 PayPal Response:", JSON.stringify(txLookup.data, null, 2));
-
     const order = txLookup.data.transaction_details?.[0] || null;
 
     if (!order) {
       console.log("❌ No PayPal transaction found!");
-      return res.status(400).json({ success: false, message: "Transaction not found." });
+      return res.json({
+        success: false,
+        message: "Transaction not found.",
+        reservationId: tempLockId,
+      });
     }
 
     const status = order.transaction_info.transaction_status;
@@ -131,9 +134,10 @@ app.post("/paypal-complete", async (req, res) => {
 
     if (!validStatuses.some((s) => status.includes(s))) {
       console.log("⚠ Payment invalid:", status);
-      return res.status(400).json({
+      return res.json({
         success: false,
         message: `Payment not completed. Status: ${status}`,
+        reservationId: tempLockId,
       });
     }
 
@@ -142,9 +146,10 @@ app.post("/paypal-complete", async (req, res) => {
 
     if (!tempDoc.exists) {
       console.log("❌ temp_locks NOT found");
-      return res.status(404).json({
+      return res.json({
         success: false,
         message: "Temp reservation not found.",
+        reservationId: tempLockId,
       });
     }
 
@@ -175,20 +180,27 @@ app.post("/paypal-complete", async (req, res) => {
       isCancelled: false,
     });
 
-    console.log("💾 Reservation stored successfully.");
-
     await db.collection("temp_locks").doc(tempLockId).delete();
-    console.log("🗑️ Temp lock removed.");
 
-    const amountPaid = order.transaction_info?.transaction_amount?.value || draftData.downpayment;
+    const amountPaid =
+      order.transaction_info?.transaction_amount?.value || draftData.downpayment;
 
-    await sendPaymentEmail(draftData.userEmail, draftData.userName, reservationId, amountPaid);
+    await sendPaymentEmail(
+      draftData.userEmail,
+      draftData.userName,
+      reservationId,
+      amountPaid
+    );
 
     return res.json({ success: true, reservationId });
 
   } catch (err) {
     console.error("❌ ERROR:", err.response?.data || err);
-    res.status(500).json({ success: false, message: "Server error" });
+    return res.json({
+      success: false,
+      message: "Server error",
+      reservationId: req.body.tempLockId || null,
+    });
   }
 });
 

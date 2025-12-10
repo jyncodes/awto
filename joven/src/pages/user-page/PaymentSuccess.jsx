@@ -1,10 +1,10 @@
 // src/pages/user-page/PaymentSuccess.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { jsPDF } from "jspdf";
 import { db } from "../../firebase";
-import "../../styles/user-styles/PaymentPage.css";
+import "../../styles/user-styles/PaymentSuccess.css";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
@@ -15,11 +15,12 @@ const PaymentSuccess = () => {
   const [reservation, setReservation] = useState(null);
   const [reservationId, setReservationId] = useState(null);
   const [transactionId, setTransactionId] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isVerified, setIsVerified] = useState(false); // NEW FLAG
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
 
-    // Detect all possible PayPal return params
     const txId =
       queryParams.get("tx") ||
       queryParams.get("txn_id") ||
@@ -29,12 +30,13 @@ const PaymentSuccess = () => {
 
     setTransactionId(txId);
 
-    // ✅ FIX: Read tempLockId from PayPal response OR localStorage
     const tempLockId =
       queryParams.get("custom") || localStorage.getItem("activeTempLockId");
 
+    // ❗ Do NOT stop UI if these are missing — just mark as unverified
     if (!txId || !tempLockId) {
-      setStatus("⚠ Unable to verify payment.");
+      setStatus("⚠ Payment could not be verified, but details are shown.");
+      setIsVerified(false);
       return;
     }
 
@@ -49,36 +51,35 @@ const PaymentSuccess = () => {
         const result = await response.json();
 
         if (!result.success) {
-          setStatus("⚠ Payment verification failed.");
-          return;
+          setStatus("⚠ Payment could not be verified.");
+          setIsVerified(false);
+        } else {
+          setStatus("🎉 Payment Verified Successfully!");
+          setIsVerified(true);
         }
 
-        const newReservationId = result.reservationId;
+        const newReservationId = result?.reservationId;
         setReservationId(newReservationId);
 
-        const finalSnap = await getDoc(doc(db, "reservations", newReservationId));
-
-        if (finalSnap.exists()) {
-          setReservation(finalSnap.data());
-          setStatus("🎉 Payment Confirmed!");
-        } else {
-          setStatus("⚠ Reservation not found but payment succeeded.");
+        if (newReservationId) {
+          const finalSnap = await getDoc(doc(db, "reservations", newReservationId));
+          if (finalSnap.exists()) {
+            setReservation(finalSnap.data());
+          }
         }
 
         localStorage.removeItem("activeTempLockId");
       } catch (err) {
         console.error(err);
-        setStatus("❌ Error verifying payment.");
+        setStatus("⚠ Something went wrong.");
+        setIsVerified(false);
       }
-
-      // Auto redirect after 5s
-      setTimeout(() => navigate("/profile?tab=reservations"), 5000);
     };
 
     verifyPayment();
-  }, [location, navigate, BACKEND_URL]);
+  }, [location, BACKEND_URL]);
 
-  /* PDF Download */
+  /* Generate PDF Receipt */
   const downloadReceipt = () => {
     if (!reservation) return;
 
@@ -87,69 +88,114 @@ const PaymentSuccess = () => {
     docPDF.text("Joven Tire Enterprise", 15, 15);
 
     docPDF.setFontSize(12);
-    docPDF.text("Official Payment Receipt", 15, 25);
+    docPDF.text("Official Downpayment Receipt", 15, 25);
 
     docPDF.line(15, 30, 195, 30);
 
     docPDF.text(`Reservation ID: ${reservationId}`, 15, 40);
-    docPDF.text(`Customer: ${reservation.userName}`, 15, 50);
+    docPDF.text(`Customer Name: ${reservation.userName}`, 15, 50);
     docPDF.text(`Product: ${reservation.productName}`, 15, 60);
-    docPDF.text(`Downpayment: ₱${reservation.downpayment?.toLocaleString()}`, 15, 70);
-    docPDF.text(`Transaction ID: ${transactionId}`, 15, 80);
-    docPDF.text(`Date Paid: ${new Date().toLocaleString()}`, 15, 90);
+    docPDF.text(`Price: ₱${reservation.totalPrice?.toLocaleString()}`, 15, 70);
+    docPDF.text(`Downpayment: ₱${reservation.downpayment?.toLocaleString()}`, 15, 80);
+    docPDF.text(`Payment Method: PayPal Invoice`, 15, 90);
+    docPDF.text(`Transaction ID: ${transactionId}`, 15, 100);
+    docPDF.text(`Paid On: ${new Date().toLocaleString()}`, 15, 110);
 
-    docPDF.line(15, 100, 195, 100);
+    docPDF.line(15, 120, 195, 120);
 
-    docPDF.text("Thank you for your payment!", 15, 115);
+    docPDF.text("Please present this receipt upon arrival.", 15, 135);
 
     docPDF.save(`Receipt-${reservationId}.pdf`);
   };
 
+  /* Save Reservation Record - Only allowed when verified */
+  const finalizeReservation = async () => {
+    if (!reservation || isSaved || !isVerified) return;
+
+    try {
+      const reservationFormat = {
+        id: reservationId,
+        userId: reservation.userId,
+        userName: reservation.userName || "Customer",
+        userEmail: reservation.userEmail,
+        productName: reservation.productName,
+        productId: reservation.productId,
+        type: reservation.type,
+        brand: reservation.brand,
+        model: reservation.model,
+        size: reservation.size,
+        selectedSize: reservation.selectedSize,
+        selectedDocId: reservation.selectedDocId,
+        quantity: reservation.quantity,
+        price: reservation.price,
+        totalPrice: reservation.totalPrice,
+        downpayment: reservation.downpayment,
+        paymentMethod: "PayPal Invoice",
+        vehicleBrand: reservation.vehicleBrand,
+        vehicleModel: reservation.vehicleModel,
+        vehicleYear: reservation.vehicleYear,
+        plateNumber: reservation.plateNumber,
+        preferredDate: reservation.preferredDate,
+        status: "Downpayment Pending",
+        note: reservation.note || "",
+        createdAt: serverTimestamp(),
+        isCancelled: false,
+      };
+
+      await addDoc(collection(db, "reservations"), reservationFormat);
+
+      setIsSaved(true);
+      alert("Reservation successfully recorded!");
+      navigate("/profile?tab=reservations");
+    } catch (error) {
+      console.error("Error saving reservation:", error);
+      alert("Error saving reservation. Try again.");
+    }
+  };
+
+
   return (
-    <div className="payment-page" style={{ animation: "fadeIn 0.4s" }}>
-      <h2>✔ Payment Successful</h2>
+    <div className="payment-success-page">
+      <h2>✔ Payment Status</h2>
 
-      <div className="payment-card">
-        <p style={{ fontWeight: "bold", color: "#008000", fontSize: "18px" }}>
-          {status}
-        </p>
+      <div className="payment-success-card">
+        <p className="payment-success-status">{status}</p>
 
         {reservation && (
-          <div style={{ marginTop: "12px", textAlign: "left" }}>
-            <p><strong>Reservation ID:</strong> {reservationId}</p>
-            <p><strong>Product:</strong> {reservation.productName}</p>
-            <p><strong>Downpayment Paid:</strong> ₱{reservation.downpayment?.toLocaleString()}</p>
-            <p><strong>Customer:</strong> {reservation.userName}</p>
-            <p><strong>Transaction ID:</strong> {transactionId}</p>
-            <br />
-            <p style={{ fontSize: "12px", opacity: 0.7 }}>
-              A confirmation email has also been sent to you.
-            </p>
-          </div>
-        )}
+          <>
+            <div className="receipt-box">
+              <h4>Reservation Receipt</h4>
+              <p><strong>Reservation ID:</strong> {reservationId}</p>
+              <p><strong>Product:</strong> {reservation.productName}</p>
+              <p><strong>Total Price:</strong> ₱{reservation.totalPrice?.toLocaleString()}</p>
+              <p><strong>Downpayment Paid:</strong> ₱{reservation.downpayment?.toLocaleString()}</p>
+              <p><strong>Customer:</strong> {reservation.userName}</p>
+              <p><strong>Transaction ID:</strong> {transactionId || "Not detected"}</p>
+            </div>
 
-        {reservation && (
-          <button
-            className="pay-button"
-            style={{ marginTop: "18px", background: "#4A90E2" }}
-            onClick={downloadReceipt}
-          >
-            📄 Download Receipt (PDF)
-          </button>
-        )}
+            <div className="next-steps">
+              <h4>📌 What happens next?</h4>
+              <ol>
+                <li>Download and print your receipt.</li>
+                <li>Check your email for appointment confirmation.</li>
+                <li>Visit the shop on your scheduled date and present your receipt.</li>
+              </ol>
+            </div>
 
-        <p style={{ marginTop: "16px", fontSize: "14px", opacity: 0.7 }}>
-          Redirecting you to your reservation list...
-        </p>
+            <button className="success-button" onClick={downloadReceipt}>
+              📄 Download Receipt
+            </button>
+
+            <button 
+              className="success-button finish-btn"
+              disabled={!isVerified || isSaved}
+              onClick={finalizeReservation}
+            >
+              ✅ Finish Reservation
+            </button>
+          </>
+        )}
       </div>
-
-      <button
-        className="pay-button"
-        onClick={() => navigate("/profile?tab=reservations")}
-        style={{ marginTop: "16px" }}
-      >
-        View My Reservations →
-      </button>
     </div>
   );
 };
