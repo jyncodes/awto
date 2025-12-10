@@ -318,3 +318,111 @@
     padding: 15px;
   }
 }
+
+/* ===========================
+   MODAL (Final Clean Layout)
+=========================== */
+
+.reservation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  justify-content: center !important; /* force center */
+  align-items: center !important;     /* force center */
+  padding: 20px;
+  z-index: 9999;
+}
+
+.reservation-modal {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 12px;
+  width: 480px;                     /* fixed clean width */
+  max-width: 95%;                   /* safe for mobile */
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  border: 1px solid #e2e8f0;
+  display: block !important;        /* prevent flex/grid issues */
+}
+
+/* Title */
+.modal-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+/* Fixing unintentional side-by-side layout */
+.receipt-section {
+  width: 100%;                       /* enforce full width */
+  display: block;                    /* avoid auto columns */
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.receipt-section:last-child {
+  border-bottom: none;
+}
+
+.receipt-section h4 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #f39c12;
+}
+
+.receipt-section p {
+  margin: 4px 0;
+  font-size: 0.95rem;
+  color: #334155;
+  word-break: break-word;            /* prevent text overflow */
+}
+
+/* Buttons */
+.modal-buttons {
+  margin-top: 25px;
+  display: flex;
+  justify-content: center;
+}
+
+.close-modal {
+  background: #1e293b;
+  color: #fff;
+  padding: 12px 22px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.close-modal:hover {
+  background: #0f172a;
+}
+
+
+
+/* ===========================
+   SORT DROPDOWN
+=========================== */
+.reservation-sort-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.reservation-sort-select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}

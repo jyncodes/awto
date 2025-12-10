@@ -44,6 +44,10 @@ const UserProfile = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordErrors, setPasswordErrors] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+const [selectedReservation, setSelectedReservation] = useState(null);
+const [sortOption, setSortOption] = useState("newest");
+
 
   const formatTimestamp = (ts) => {
     if (!ts?.toDate) return "N/A";
@@ -72,7 +76,10 @@ const UserProfile = () => {
       const snap = await getDocs(q);
       const arr = [];
 
-      snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+      snap.forEach((d) => {
+        const data = d.data();
+        arr.push({ id: data.id || d.id, ...data });
+      });
 
       arr.sort((a, b) => {
         const aDate = a.preferredDate?.toDate?.() || 0;
@@ -387,52 +394,164 @@ const UserProfile = () => {
             <>
               <h2>My Reservations</h2>
 
+              <div className="reservation-sort-box">
+                <label>Sort by: </label>
+                <select
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value)}
+                  className="reservation-sort-select"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="upcoming">Upcoming Date</option>
+                  <option value="status">Status (A→Z)</option>
+                  <option value="price-high">Price: High → Low</option>
+                  <option value="price-low">Price: Low → High</option>
+                </select>
+              </div>
+
+
               {reservations.length === 0 ? (
                 <p>No reservations found.</p>
               ) : (
                 <div className="orders-list">
-                  {reservations.map((res) => (
-                    <div key={res.id} className="order-card">
-                      <p><strong>Product:</strong> {res.productName}</p>
-                      <p><strong>Brand:</strong> {res.brand}</p>
-                      <p><strong>Size:</strong> {res.size}</p>
-                      <p><strong>Date:</strong> {formatTimestamp(res.preferredDate)}</p>
+                  
+                  {[...reservations]
+                    .sort((a, b) => {
+                      
+                      if (sortOption === "newest") {
+                        return (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0);
+                      }
 
-                      <p>
-                        <strong>Status:</strong>{" "}
-                        <span style={{ color: res.status === "Completed" ? "green" : "orange" }}>
-                          {res.status}
-                        </span>
-                      </p>
+                      if (sortOption === "oldest") {
+                        return (a.createdAt?.toDate?.() || 0) - (b.createdAt?.toDate?.() || 0);
+                      }
 
-                      <p>
-                        <strong>Payment:</strong>{" "}
-                        <span style={{ color: res.paymentStatus === "paid" ? "green" : "red" }}>
-                          {res.paymentStatus === "paid" ? "Paid" : "Unpaid"}
-                        </span>
-                      </p>
+                      if (sortOption === "upcoming") {
+                        return (a.preferredDate?.toDate?.() || 0) - (b.preferredDate?.toDate?.() || 0);
+                      }
 
-                      {res.status === "Downpayment Paid" || res.status === "Approved" ? (
-                        <button
-                          className="receipt-button"
-                          onClick={() => navigate(`/receipt/${res.id}`)}
-                        >
-                          View Receipt
-                        </button>
-                      ) : (
-                        <button
-                          className="pay-button"
-                          onClick={() => navigate(`/payment/${res.id}`)}
-                        >
-                          Proceed to Payment
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                      if (sortOption === "status") {
+                        return a.status.localeCompare(b.status);
+                      }
+
+                      if (sortOption === "price-high") {
+                        return b.totalPrice - a.totalPrice;
+                      }
+
+                      if (sortOption === "price-low") {
+                        return a.totalPrice - b.totalPrice;
+                      }
+
+                      return 0;
+                    })
+                    .map((res) => (
+
+                      <div key={res.id} className="order-card">
+                        
+                        <p><strong>Reservation ID:</strong> {res.id}</p>
+                        <p><strong>Customer:</strong> {res.userName}</p>
+                        <p><strong>Date Scheduled:</strong> {formatTimestamp(res.preferredDate)}</p>
+
+                        <p>
+                          <strong>Status:</strong>{" "}
+                          <span style={{ color: res.status === "Completed" ? "green" : "orange" }}>
+                            {res.status}
+                          </span>
+                        </p>
+
+                        <br />
+
+                        {res.paymentMethod && (
+                          <p><strong>Payment Method:</strong> {res.paymentMethod}</p>
+                        )}
+
+                        {res.transactionId && (
+                          <p><strong>Transaction ID:</strong> {res.transactionId}</p>
+                        )}
+
+                        <p><strong>Total:</strong> ₱{res.totalPrice?.toLocaleString()}</p>
+
+                        <div className="reservation-actions">
+                          <button
+                            className="receipt-button"
+                            onClick={() => {
+                              setSelectedReservation(res);
+                              setShowModal(true);
+                            }}
+                          >
+                            View Receipt
+                          </button>
+                        </div>
+
+
+                      </div>
+                    ))}
+
                 </div>
               )}
             </>
           )}
+
+          {showModal && selectedReservation && (
+            <div className="reservation-modal-overlay"
+            onClick={() => setShowModal(false)}>
+              <div className="reservation-modal"
+              onClick={(e) => e.stopPropagation()}>
+                <h3 className="modal-title">Reservation Receipt</h3>
+
+                  <div className="receipt-section">
+                    <h4>Customer Info</h4>
+                    <p><strong>Name:</strong> {selectedReservation.userName}</p>
+                    <p><strong>Email:</strong> {selectedReservation.userEmail}</p>
+                  </div>
+
+                  <div className="receipt-section">
+                    <h4>Reservation Details</h4>
+                    <p><strong>Reservation ID:</strong> {selectedReservation.id}</p>
+                    <p><strong>Date Scheduled:</strong> {formatTimestamp(selectedReservation.preferredDate)}</p>
+                    <p><strong>Status:</strong> {selectedReservation.status}</p>
+                  </div>
+
+                  <div className="receipt-section">
+                    <h4>Product</h4>
+                    <p><strong>Name:</strong> {selectedReservation.productName}</p>
+                    <p><strong>Brand:</strong> {selectedReservation.brand}</p>
+                    <p><strong>Model:</strong> {selectedReservation.model}</p>
+                    <p><strong>Size:</strong> {selectedReservation.size}</p>
+                  </div>
+
+                  <div className="receipt-section">
+                    <h4>Vehicle</h4>
+                    <p>{selectedReservation.vehicleYear} {selectedReservation.vehicleBrand} {selectedReservation.vehicleModel}</p>
+                    <p><strong>Plate:</strong> {selectedReservation.plateNumber}</p>
+                  </div>
+
+                  <div className="receipt-section">
+                    <h4>Payment</h4>
+                    <p><strong>Downpayment:</strong> ₱{selectedReservation.downpayment}</p>
+                    <p><strong>Total Price:</strong> ₱{selectedReservation.totalPrice?.toLocaleString()}</p>
+                    <p><strong>Payment Method:</strong> {selectedReservation.paymentMethod}</p>
+                    <p><strong>Transaction ID:</strong> {selectedReservation.transactionId}</p>
+                  </div>
+
+                  {selectedReservation.note && (
+                    <div className="receipt-section">
+                      <h4>Note</h4>
+                      <p>{selectedReservation.note}</p>
+                    </div>
+                  )}
+
+
+                <div className="modal-buttons">
+                  <button className="close-modal" onClick={() => setShowModal(false)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
     </>
