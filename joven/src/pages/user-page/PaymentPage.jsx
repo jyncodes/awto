@@ -121,7 +121,7 @@ const PaymentPage = () => {
               <h4>Pay with PayPal / Card</h4>
 
               <form
-                action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?return=http://localhost:5173/payment-success&cancel_return=http://localhost:5173/payment-failed`}
+                action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?return=http://awto.vercel.app/payment-success&cancel_return=http://awto.vercel.app/payment-failed`}
                 method="post"
                 target="_self"
                 onSubmit={handlePayClick}

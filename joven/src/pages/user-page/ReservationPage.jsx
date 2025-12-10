@@ -182,7 +182,7 @@ const ReservationPage = () => {
 
     localStorage.setItem("reservationDraft", JSON.stringify(draftData));
 
-    navigate("/payment-page");
+    navigate("/payment");
   };
 
   // ================= DISABLE DATES =================
