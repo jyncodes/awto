@@ -4,9 +4,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  background-color: var(--bg) !important; /* Clean white surface */
+  background-color: var(--bg) !important;
   color: var(--text-main) !important;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 0;
@@ -36,7 +36,7 @@
   color: var(--dark-0) !important;
 }
 
-/* CENTER: Navigation Links */
+/* CENTER NAV */
 .center-nav {
   display: flex;
   align-items: center;
@@ -51,7 +51,7 @@
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 1px;
-  transition: color 0.2s ease, transform 0.2s ease;
+  transition: 0.2s ease;
 }
 
 .nav-link:hover {
@@ -59,44 +59,43 @@
   transform: scale(1.05);
 }
 
-/* RIGHT: Icons + Account Dropdown */
+/* RIGHT SECTION */
 .right-nav {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 1rem;
-  flex: 0 0 auto;
 }
 
 /* ICON BUTTONS */
-.icon-buttons {
+.icon-buttons,
+.account-nav {
   display: flex;
-  gap: 0.8rem;
   align-items: center;
+  gap: 0.7rem;
 }
 
 .icon-button {
   position: relative;
   background: none;
   border: none;
-  color: var(--dark-0) !important;
+  color: var(--dark-0);
   cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
   padding: 0.4rem 0.6rem;
   border-radius: 8px;
+  transition: 0.2s ease;
 }
 
 .icon-button:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  transform: scale(1.05);
+  background-color: rgba(0, 0, 0, 0.06);
+  transform: scale(1.1);
 }
 
-/* Cart Badge */
+/* Badge */
 .badge {
   position: absolute;
   top: -6px;
   right: -6px;
-  background: var(--accent-deep); /* deep orange #D35100 */
+  background: var(--accent-deep);
   color: white;
   font-size: 0.65rem;
   padding: 2px 6px;
@@ -104,89 +103,117 @@
   font-weight: bold;
 }
 
-/* ACCOUNT BUTTON / DROPDOWN */
-.profile-dropdown {
-  position: relative;
-  display: inline-block;
-}
-
+/* ACCOUNT BUTTON */
 .account-link {
   background: none;
   border: none;
-  color: var(--dark-1) !important;
-  text-transform: uppercase;
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
-  transition: color 0.2s ease, transform 0.2s ease;
-  padding: 0.4rem 0.8rem;
+  color: var(--dark-1);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: 0.2s ease;
 }
 
 .account-link:hover {
-  color: var(--accent) !important;
-  transform: scale(1.05);
+  color: var(--accent);
+}
+
+.account-text {
+  display: inline-block;
+}
+
+/* Profile Icon */
+.account-icon {
+  display: inline-block;
 }
 
 /* DROPDOWN MENU */
+.profile-dropdown {
+  position: relative;
+}
+
 .dropdown-menu {
   position: absolute;
   top: 110%;
   right: 0;
-  background-color: #ffffff;
-  min-width: 140px;
+  background: #fff;
+  min-width: 150px;
   border-radius: 8px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   overflow: hidden;
-  z-index: 1000;
+  z-index: 2000;
 }
 
 .dropdown-item {
-  padding: 0.75rem 1rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: none;
+  background: none;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--dark-1) !important;
-  background-color: transparent;
-  border: none;
-  width: 100%;
-  text-align: left;
+  color: var(--dark-1);
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  text-align: left;
+  transition: 0.2s ease;
+  white-space: nowrap; /* <- FIXES the broken text */
+  display: block;      /* <- Ensures pantay width */
 }
 
-.dropdown-item:hover {
-  background-color: var(--bg-soft);
-  color: var(--accent) !important;
-}
-
-/* MOBILE RESPONSIVE */
-.menu-toggle {
-  display: none;
-  background: none;
-  border: none;
-  color: var(--dark-0) !important;
-  font-size: 1.2rem;
+.dropdown-greeting {
+  padding: 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dark-1);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: var(--bg-soft);
 }
 
 @media (max-width: 768px) {
-  .menu-toggle {
-    display: block;
-  }
+  .account-text { display: none !important; }
+}
 
+
+.dropdown-item:hover {
+  background: var(--bg-soft);
+  color: var(--accent);
+}
+
+/* ================= MOBILE RESPONSIVE ================= */
+
+/* REMOVE HAMBURGER ON MOBILE */
+.menu-toggle {
+  display: none !important;
+}
+
+/* MOBILE RULES */
+@media (max-width: 768px) {
+  /* Hide center nav on mobile (Fitment/Brand/Services/About) */
   .center-nav {
-    flex-direction: column;
-    width: 100%;
-    align-items: flex-start;
-    display: none;
-    margin-top: 1rem;
+    display: none !important;
   }
 
-  .center-nav.open {
-    display: flex;
+  /* Hide email text, show only icon */
+  .account-text {
+    display: none !important;
   }
 
-  .nav-link,
+  .account-icon {
+    display: inline-block !important;
+    font-size: 1.35rem;
+  }
+
+  /* Reduce spacing to fit icons nicely */
+  .right-nav {
+    gap: 0.6rem;
+  }
+
+  /* Larger tap targets for mobile */
+  .icon-button,
   .account-link {
-    font-size: 0.9rem;
+    padding: 0.5rem;
   }
 }

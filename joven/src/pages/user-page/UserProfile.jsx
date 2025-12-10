@@ -39,8 +39,6 @@ const UserProfile = () => {
 
   const [activeTab, setActiveTab] = useState("myaccount");
   const [reservations, setReservations] = useState([]);
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -107,10 +105,10 @@ const UserProfile = () => {
     if (tab) setActiveTab(tab);
   }, [location.search]);
 
+  // ⭐ ADDED — Required Tab Switch Handler
   const handleTabSwitch = (tab) => {
     setActiveTab(tab);
     navigate(`/profile?tab=${tab}`);
-    setSidebarVisible(false);
   };
 
   const handleInputChange = (e) => {
@@ -118,16 +116,14 @@ const UserProfile = () => {
     setEditedData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ⭐ UPDATED: Save to users AND customers collections
+  // ⭐ Save to Users + Customers
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
     try {
-      // 1️⃣ Update users/{uid}
       await updateDoc(doc(db, "users", user.uid), editedData);
 
-      // 2️⃣ Find customer doc by uid
       const customerQuery = query(
         collection(db, "customers"),
         where("uid", "==", user.uid)
@@ -139,20 +135,18 @@ const UserProfile = () => {
         const customerDoc = customerSnap.docs[0];
         const customerId = customerDoc.id;
 
-        // 3️⃣ Update customers/{CU-xxxxx}
         await updateDoc(doc(db, "customers", customerId), {
           name: editedData.name,
           email: editedData.email,
           address: editedData.address,
           gender: editedData.gender,
           birthday: editedData.birthday,
-          contact: editedData.contact, // ⭐ included
+          contact: editedData.contact,
         });
       }
 
       setUserData(editedData);
       alert("Profile updated!");
-
     } catch (err) {
       console.error("save error:", err);
       alert("Error saving profile: " + err.message);
@@ -195,10 +189,7 @@ const UserProfile = () => {
 
     try {
       const user = auth.currentUser;
-      const cred = EmailAuthProvider.credential(
-        user.email,
-        currentPassword
-      );
+      const cred = EmailAuthProvider.credential(user.email, currentPassword);
 
       await reauthenticateWithCredential(user, cred);
       await updatePassword(user, newPassword);
@@ -234,45 +225,26 @@ const UserProfile = () => {
     <>
       <Navbar />
 
-      <div className="user-profile-page">
+      {/* ⭐ TOP TABS */}
+      <div className="profile-top-tabs">
         <button
-          className="sidebar-toggle"
-          onClick={() => setSidebarVisible((s) => !s)}
+          className={activeTab === "myaccount" ? "active" : ""}
+          onClick={() => handleTabSwitch("myaccount")}
         >
-          ☰
+          My Account
         </button>
 
-        {/* SIDEBAR */}
-        <aside className={`profile-sidebar ${sidebarVisible ? "show" : ""}`}>
-          <button className="back-home" onClick={() => navigate("/")}>
-            ← Back to Home
-          </button>
+        <button
+          className={activeTab === "reservations" ? "active" : ""}
+          onClick={() => handleTabSwitch("reservations")}
+        >
+          Reservations
+        </button>
 
-          <h2>My Account</h2>
+      </div>
 
-          <ul>
-            <li
-              className={activeTab === "myaccount" ? "active" : ""}
-              onClick={() => handleTabSwitch("myaccount")}
-            >
-              My Account
-            </li>
-
-            <li
-              className={activeTab === "reservations" ? "active" : ""}
-              onClick={() => handleTabSwitch("reservations")}
-            >
-              Reservations
-            </li>
-
-            <li onClick={handleLogout}>Logout</li>
-          </ul>
-        </aside>
-
-        {/* MAIN CONTENT */}
+      <div className="user-profile-page">
         <main className="profile-content">
-
-          {/* MY ACCOUNT */}
           {activeTab === "myaccount" && (
             <>
               <div className="profile-details-view">
@@ -296,11 +268,7 @@ const UserProfile = () => {
                   placeholder="Name"
                 />
 
-                <input
-                  type="email"
-                  value={editedData.email || ""}
-                  readOnly
-                />
+                <input type="email" value={editedData.email || ""} readOnly />
 
                 <select
                   name="gender"
@@ -425,7 +393,6 @@ const UserProfile = () => {
                 <div className="orders-list">
                   {reservations.map((res) => (
                     <div key={res.id} className="order-card">
-
                       <p><strong>Product:</strong> {res.productName}</p>
                       <p><strong>Brand:</strong> {res.brand}</p>
                       <p><strong>Size:</strong> {res.size}</p>
@@ -460,14 +427,12 @@ const UserProfile = () => {
                           Proceed to Payment
                         </button>
                       )}
-
                     </div>
                   ))}
                 </div>
               )}
             </>
           )}
-
         </main>
       </div>
     </>
