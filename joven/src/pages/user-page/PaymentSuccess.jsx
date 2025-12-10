@@ -1,9 +1,19 @@
 // src/pages/user-page/PaymentSuccess.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { doc, getDoc, setDoc, serverTimestamp, increment } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  increment,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { jsPDF } from "jspdf";
-import { db } from "../../firebase";
+import { db, auth } from "../../firebase";
 import "../../styles/user-styles/PaymentSuccess.css";
 
 const PaymentSuccess = () => {
@@ -13,7 +23,7 @@ const PaymentSuccess = () => {
 
   const [status, setStatus] = useState("Processing payment...");
   const [transactionId, setTransactionId] = useState(null);
-  const [paymentInfo, setPaymentInfo] = useState(null);
+  const [doneData, setDoneData] = useState(null);
   const [reservationId, setReservationId] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
 
@@ -42,14 +52,36 @@ const PaymentSuccess = () => {
         });
 
         const result = await response.json();
+        const currentUser = auth.currentUser;
 
-        if (!result.success) {
-          setStatus("⚠ Payment detected but not verified — manual confirmation required");
-        } else {
-          setStatus("✔ Payment Verified — Ready to finalize reservation");
-        }
+        setStatus(
+          result.success
+            ? "✔ Payment Verified — Ready to finalize reservation"
+            : "⚠ Payment detected but not verified — manual confirmation required"
+        );
 
-        setPaymentInfo(result);
+        // 🔥 Get logged-in user's customer record
+        const q = query(
+          collection(db, "customers"),
+          where("uid", "==", currentUser.uid)
+        );
+        const customerSnap = await getDocs(q);
+        const customerData = customerSnap.docs.length
+          ? customerSnap.docs[0].data()
+          : {};
+
+        // 🔥 Get downpayment setting
+        const settingsSnap = await getDoc(doc(db, "settings", "payments"));
+        const downpayment = settingsSnap.exists()
+          ? settingsSnap.data().downpayment
+          : 500;
+
+        setDoneData({
+          uid: currentUser.uid,
+          name: customerData.name || result.name,
+          email: customerData.email || result.email,
+          amount: downpayment,
+        });
       } catch {
         setStatus("⚠ Unable to contact server — showing fallback details.");
       }
@@ -58,14 +90,12 @@ const PaymentSuccess = () => {
     verifyPayment();
   }, [location, BACKEND_URL]);
 
-  /* -------------- PDF RECEIPT -------------- */
   const downloadReceipt = () => {
-    if (!paymentInfo) return;
+    if (!doneData) return;
 
-    // FIX: use generated reservation ID OR fallback format
-    const fallbackId = reservationId || `TEMP-${transactionId?.slice(-6)}`;
-
+    const finalId = reservationId || `TEMP-${transactionId?.slice(-6)}`;
     const docPDF = new jsPDF();
+
     docPDF.setFontSize(18);
     docPDF.text("Joven Tire Enterprise", 15, 15);
 
@@ -73,24 +103,21 @@ const PaymentSuccess = () => {
     docPDF.text("Official Downpayment Receipt", 15, 25);
     docPDF.line(15, 30, 195, 30);
 
-    docPDF.text(`Reservation ID: ${fallbackId}`, 15, 40);
-    docPDF.text(`Customer Name: ${paymentInfo.name || ""}`, 15, 50);
-    docPDF.text(`Amount Paid: ₱${paymentInfo.amount || ""}`, 15, 60);
+    docPDF.text(`Reservation ID: ${finalId}`, 15, 40);
+    docPDF.text(`Customer Name: ${doneData.name}`, 15, 50);
+    docPDF.text(`Amount Paid: ₱${doneData.amount}`, 15, 60);
     docPDF.text(`Payment Method: PayPal`, 15, 70);
-    docPDF.text(`Transaction ID: ${transactionId || "Not detected"}`, 15, 80);
-    docPDF.text(`Printed On: ${new Date().toLocaleString()}`, 15, 90);
+    docPDF.text(`Printed On: ${new Date().toLocaleString()}`, 15, 80);
 
-    docPDF.save(`Receipt-${fallbackId}.pdf`);
+    docPDF.save(`Receipt-${finalId}.pdf`);
   };
 
-  /* -------------- CREATE RESERVATION ONLY WHEN USER CLICKS FINISH -------------- */
   const finalizeReservation = async () => {
-    if (isSaved || !paymentInfo) return;
+    if (isSaved || !doneData) return;
 
     setStatus("📦 Saving reservation...");
 
     try {
-      // Auto-increment counter
       const counterRef = doc(db, "counters", "reservations");
       await setDoc(counterRef, { lastId: increment(1) }, { merge: true });
 
@@ -99,37 +126,22 @@ const PaymentSuccess = () => {
       const newResId = `RES${String(nextId).padStart(5, "0")}`;
       setReservationId(newResId);
 
-      // Save reservation
       await setDoc(doc(db, "reservations", newResId), {
         id: newResId,
-        userEmail: paymentInfo.email,
-        userName: paymentInfo.name,
-        downpayment: paymentInfo.amount,
-        totalPrice: paymentInfo.amount,
-        transactionId,
-        productName: "(Customer product is stored separately)",
-        status: "Awaiting Approval",
+        userId: doneData.uid,
+        userEmail: doneData.email,
+        userName: doneData.name,
+        downpayment: doneData.amount,
+        totalPrice: doneData.amount,
         paymentMethod: "PayPal",
+        status: "Awaiting Approval",
         createdAt: serverTimestamp(),
-      });
-
-      // Send confirmation email
-      await fetch(`${BACKEND_URL}/send-reservation-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: paymentInfo.email,
-          name: paymentInfo.name,
-          reservationId: newResId,
-          product: "(Order submitted)",
-          date: new Date().toLocaleDateString(),
-        }),
       });
 
       setIsSaved(true);
       setStatus("✔ Reservation successfully created!");
-
       alert("🎉 Reservation Completed!");
+      navigate("/profile?tab=reservations");
     } catch (err) {
       console.log(err);
       alert("❌ Could not save reservation. Try again.");
@@ -143,14 +155,13 @@ const PaymentSuccess = () => {
       <div className="payment-success-card">
         <p className="payment-success-status">{status}</p>
 
-        {paymentInfo && (
+        {doneData && (
           <>
             <div className="receipt-box">
               <h4>Payment Summary</h4>
-              <p><strong>Customer:</strong> {paymentInfo.name}</p>
-              <p><strong>Email:</strong> {paymentInfo.email}</p>
-              <p><strong>Amount Paid:</strong> ₱{paymentInfo.amount}</p>
-              <p><strong>Transaction ID:</strong> {transactionId}</p>
+              <p><strong>Customer:</strong> {doneData.name}</p>
+              <p><strong>Email:</strong> {doneData.email}</p>
+              <p><strong>Amount Paid:</strong> ₱{doneData.amount}</p>
             </div>
 
             <button className="success-button" onClick={downloadReceipt}>
