@@ -89,12 +89,13 @@ const getPayPalToken = async () => {
 ====================================================== */
 app.post("/paypal-complete", async (req, res) => {
   try {
-    const { orderId, reservationId } = req.body;
+    // ⭐ UPDATED — now expecting tempLockId instead of reservationId
+    const { orderId, tempLockId } = req.body;
 
-    if (!orderId || !reservationId) {
+    if (!orderId || !tempLockId) {
       return res.status(400).json({
         success: false,
-        message: "Missing orderId or reservationId",
+        message: "Missing orderId or tempLockId",
       });
     }
 
@@ -129,27 +130,48 @@ app.post("/paypal-complete", async (req, res) => {
       return res.status(400).json({ success: false });
     }
 
-    /** 🔥 UPDATE FIRESTORE */
-    await db.collection("reservations").doc(reservationId).update({
+    /* ---------------- Step 1: Get Temp Reservation Draft ---------------- */
+    const tempDoc = await db.collection("temp_locks").doc(tempLockId).get();
+    if (!tempDoc.exists) {
+      return res.status(404).json({ success: false, message: "Temp reservation not found." });
+    }
+
+    const draftData = tempDoc.data();
+
+    /* ---------------- Step 2: Generate new reservationId ---------------- */
+    const counterRef = db.collection("counters").doc("reservations");
+    const counterSnap = await counterRef.get();
+    const nextId = (counterSnap.exists ? counterSnap.data().lastId : 0) + 1;
+
+    await counterRef.set({ lastId: nextId }, { merge: true });
+
+    const reservationId = `RES${String(nextId).padStart(5, "0")}`;
+
+    /* ---------------- Step 3: Create Final Reservation ---------------- */
+    await db.collection("reservations").doc(reservationId).set({
+      id: reservationId,
+      ...draftData,
+      status: order.status === "COMPLETED" ? "Paid" : "Payment Under Review",
       paymentStatus: "paid",
       paypalStatus: order.status,
-      status: order.status === "COMPLETED" ? "Paid" : "Payment Under Review",
       paidAt: new Date(),
       paypalOrderId: orderId,
+      isCancelled: false,
+      createdAt: new Date(),
     });
 
-    console.log("✔ Firestore updated for:", reservationId);
+    /* ---------------- Step 4: Cleanup temp lock ---------------- */
+    await db.collection("temp_locks").doc(tempLockId).delete();
 
-    /** 📩 SEND EMAIL */
+    /* ---------------- Step 5: Email Confirmation ---------------- */
     const paymentDetails = order?.purchase_units?.[0]?.payments?.captures?.[0];
-    const amountPaid = paymentDetails?.amount?.value || "Unknown";
+    const amountPaid = paymentDetails?.amount?.value || draftData.downpayment;
 
-    const reservationDoc = await db.collection("reservations").doc(reservationId).get();
-    const reservation = reservationDoc.data();
+    await sendPaymentEmail(draftData.userEmail, draftData.userName, reservationId, amountPaid);
 
-    await sendPaymentEmail(reservation.userEmail, reservation.userName, reservationId, amountPaid);
+    console.log("✔ Reservation finalized:", reservationId);
 
-    res.json({ success: true });
+    return res.json({ success: true, reservationId });
 
   } catch (err) {
     console.error("❌ PayPal complete error:", err.response?.data || err);

@@ -10,7 +10,7 @@ import {
 // Public Pages
 import LandingPage from "./pages/LandingPage";
 import AboutUs from "./pages/user-page/AboutUs";
-import Register from "./pages/Register";
+import Register from "./pages/Register";  
 import ViewProduct from "./pages/user-page/ViewProduct";
 import Verify from "./pages/Verify";
 import ServicesPage from "./pages/user-page/ServicesPage";
@@ -153,6 +153,17 @@ export default function App() {
             <RequireVerifiedEmail>
               <ProtectedRoute allowedRole="User">
                 <InvoicePage />
+              </ProtectedRoute>
+            </RequireVerifiedEmail>
+          }
+        />
+
+        <Route
+          path="/payment"
+          element={
+            <RequireVerifiedEmail>
+              <ProtectedRoute allowedRole="User">
+                <PaymentPage />
               </ProtectedRoute>
             </RequireVerifiedEmail>
           }

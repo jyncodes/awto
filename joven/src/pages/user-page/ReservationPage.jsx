@@ -4,23 +4,19 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   doc,
   getDoc,
-  setDoc,
   collection,
   getDocs,
   query,
   where,
-  serverTimestamp,
-  runTransaction,
   Timestamp,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../firebase";
 import Calendar from "react-calendar";
-import axios from "axios";
 import "react-calendar/dist/Calendar.css";
 import "../../styles/user-styles/ReservationPage.css";
 
-import Navbar from "../../components/Navbar"; // ⭐ ADDED
+import Navbar from "../../components/Navbar";
 
 const ReservationPage = () => {
   const { productId } = useParams();
@@ -56,8 +52,6 @@ const ReservationPage = () => {
   const [loadingDownpayment, setLoadingDownpayment] = useState(true);
 
   const MAX_BOOKINGS_PER_DATE = 3;
-  const BACKEND_URL =
-    import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
   // ================= LOAD DOWNPAYMENT =================
   useEffect(() => {
@@ -66,8 +60,7 @@ const ReservationPage = () => {
         const paymentsRef = doc(db, "settings", "payments");
         const snap = await getDoc(paymentsRef);
         setDownpayment(snap.exists() ? snap.data().downpayment : 0);
-      } catch (err) {
-        console.error("Error loading downpayment:", err);
+      } catch {
         setDownpayment(0);
       } finally {
         setLoadingDownpayment(false);
@@ -82,10 +75,8 @@ const ReservationPage = () => {
       const [brandModel] = passedVehicle.split(" - ");
       if (brandModel) {
         const parts = brandModel.trim().split(" ");
-        const brand = parts[0] || "";
-        const model = parts.slice(1).join(" ") || "";
-        setVehicleBrand(brand);
-        setVehicleModel(model);
+        setVehicleBrand(parts[0] || "");
+        setVehicleModel(parts.slice(1).join(" ") || "");
       }
     }
   }, [passedVehicle]);
@@ -111,8 +102,6 @@ const ReservationPage = () => {
         if (!snap.exists()) snap = await getDoc(magsRef);
 
         if (snap.exists()) setProduct({ ...snap.data(), id: snap.id });
-      } catch (err) {
-        console.error("Product fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -153,90 +142,10 @@ const ReservationPage = () => {
     fetchFullyBooked();
   }, [productId]);
 
-  // ================= GENERATE RESERVATION ID =================
-  const generateReservationId = async () => {
-    const counterRef = doc(db, "counters", "reservations");
-    return await runTransaction(db, async (transaction) => {
-      const counterSnap = await transaction.get(counterRef);
-      const lastId = counterSnap.exists() ? counterSnap.data().lastId : 0;
-      const nextId = lastId + 1;
-
-      transaction.set(counterRef, { lastId: nextId }, { merge: true });
-      return `RES${String(nextId).padStart(5, "0")}`;
-    });
-  };
-
-  // ================= SEND EMAIL =================
-  const sendReservationEmail = async (
-    email,
-    name,
-    appointmentDate,
-    reservationId,
-    productName
-  ) => {
-    try {
-      await axios.post(`${BACKEND_URL.replace(/\/$/, "")}/send-email`, {
-        to: email,
-        name,
-        subject: `Reservation Confirmed - ${reservationId}`,
-        htmlContent: `
-          <h3>Hello ${name},</h3>
-          <p>Your reservation has been successfully submitted.</p>
-          <ul>
-            <li><strong>Reservation ID:</strong> ${reservationId}</li>
-            <li><strong>Product:</strong> ${productName}</li>
-            <li><strong>Appointment Date:</strong> ${appointmentDate}</li>
-          </ul>
-        `,
-      });
-    } catch (err) {
-      console.error("Email failed:", err);
-    }
-  };
-
-  // ================= BUILD PRODUCT DETAILS =================
-  const buildProductDetails = (prod) => {
-    if (!prod) return { productName: "Unknown Product", size: "", type: "" };
-
-    const type =
-      prod.type ||
-      (prod.productId?.startsWith("MA-") ? "Mags" : "Tire") ||
-      "";
-
-    if (type.toLowerCase().includes("tire")) {
-      const w = prod.tireWidth || prod.width || "";
-      const ar = prod.aspectRatio || prod.aspect || "";
-      const rim = prod.rimDiameter || prod.rim || "";
-      const size =
-        w && ar ? `${w}/${ar}R${rim || ""}`.replace(/R$/, "") : prod.size || "";
-      return {
-        productName: `${prod.brand || ""} ${prod.model || ""} ${size}`.trim(),
-        size,
-        type: "Tire",
-      };
-    }
-
-    if (type.toLowerCase().includes("mag")) {
-      const w = prod.wheelWidth || "";
-      const dia = prod.wheelDiameter || "";
-      const size = w && dia ? `${w}x${dia}` : prod.size || "";
-      return {
-        productName: `${prod.brand || ""} ${prod.model || ""} ${size}`.trim(),
-        size,
-        type: "Mags",
-      };
-    }
-
-    return {
-      productName: `${prod.brand || ""} ${prod.model || ""} ${prod.size || ""}`.trim(),
-      size: prod.size || "",
-      type,
-    };
-  };
-
-  // ================= SUBMIT RESERVATION =================
-  const handleSubmit = async () => {
+  // ================= CONTINUE TO PAYMENT =================
+  const handleProceedToPayment = () => {
     if (!user) return alert("You must be logged in to reserve.");
+
     if (
       !vehicleBrand.trim() ||
       !vehicleModel.trim() ||
@@ -245,103 +154,64 @@ const ReservationPage = () => {
       !preferredDate
     )
       return alert("Fill out all required fields.");
-    if (!product) return alert("Product not found.");
 
     if (vehicleYearError || plateError)
-      return alert("Fix errors before submitting.");
+      return alert("Fix validation errors first.");
 
     const chosenDate = new Date(preferredDate);
     chosenDate.setHours(0, 0, 0, 0);
 
     const chosenKey = chosenDate.toDateString();
     if (fullyBookedDates.includes(chosenKey))
-      return alert("Date fully booked.");
+      return alert("Date is fully booked.");
 
-    try {
-      const reservationId = await generateReservationId();
-      const { productName, size, type } = buildProductDetails(product);
+    const draftData = {
+      product,
+      selectedSize,
+      selectedDocId,
+      pricePerItem,
+      quantity,
+      vehicleBrand,
+      vehicleModel,
+      vehicleYear,
+      plateNumber,
+      preferredDate: chosenDate.toISOString(),
+      note,
+      downpayment,
+    };
 
-      const reservationData = {
-        id: reservationId,
-        userId: user.uid,
-        userEmail: user.email,
-        userName: user.displayName || "Customer",
-        productId: product.id,
-        productName,
-        brand: product.brand || "",
-        model: product.model || "",
-        size: size || "",
-        type,
-        price: Number(pricePerItem),
-        quantity: quantity,
-        totalPrice: Number(pricePerItem) * quantity,
-        selectedSize: selectedSize || "",
-        selectedDocId: selectedDocId || "",
-        downpayment,
-        vehicleBrand: vehicleBrand.trim(),
-        vehicleModel: vehicleModel.trim(),
-        vehicleYear: vehicleYear.trim(),
-        plateNumber: plateNumber.trim(),
-        preferredDate: Timestamp.fromDate(chosenDate),
-        note: note.trim(),
+    localStorage.setItem("reservationDraft", JSON.stringify(draftData));
 
-        paymentMethod: "PayPal Invoice",
-        status: "Downpayment Pending",
-        isCancelled: false,
-        createdAt: serverTimestamp(),
-      };
-
-      await setDoc(doc(db, "reservations", reservationId), reservationData);
-
-      sendReservationEmail(
-        user.email,
-        user.displayName || "Customer",
-        chosenDate.toLocaleDateString(),
-        reservationId,
-        productName
-      );
-
-      alert("Reservation submitted!");
-
-      navigate(`/payment/${reservationId}`, {
-        state: { reservation: reservationData },
-      });
-    } catch (err) {
-      console.error("Reservation submission error:", err);
-      alert("Failed to reserve.");
-    }
+    navigate("/payment-page");
   };
 
   // ================= DISABLE DATES =================
   const tileDisabled = ({ date }) => {
     const now = new Date();
     const key = date.toDateString();
-    if (date <= now) return true;
-    if (fullyBookedDates.includes(key)) return true;
-    return false;
+    return date <= now || fullyBookedDates.includes(key);
   };
 
-  // ================= RENDER =================
   if (loading || loadingDownpayment)
     return <div className="reservation-page">Loading...</div>;
 
   if (!product)
     return <div className="reservation-page">Product not found.</div>;
 
-  const { productName: headerName } = buildProductDetails(product);
-
   return (
     <div className="reservation-page-wrapper">
-      <Navbar /> {/* ⭐ ADDED */}
+      <Navbar />
 
       <div className="reservation-page">
         <button className="back-button" onClick={() => navigate(-1)}>
           ← Back
         </button>
 
-        <h2>Reserve: {headerName}</h2>
+        <h2>Reserve: {product?.brand} {product?.model}</h2>
 
         <div className="reservation-form">
+          {/* --- FORM FIELDS REMAIN SAME --- */}
+
           <label>Vehicle Info</label>
           <div className="vehicle-row">
             <input
@@ -394,15 +264,11 @@ const ReservationPage = () => {
                 setPlateNumber(value);
 
                 const newPlate = /^[A-Z]{3}[0-9]{3,4}$/;
-                const isValid = newPlate.test(value);
-
-                if (!isValid && value !== "") {
-                  setPlateError(
-                    "Invalid plate number (Format: AAA123 or AAA1234)"
-                  );
-                } else {
-                  setPlateError("");
-                }
+                setPlateError(
+                  !newPlate.test(value) && value !== ""
+                    ? "Invalid plate number (Format: AAA123 or AAA1234)"
+                    : ""
+                );
               }}
               placeholder="AAA123 or AAA1234"
             />
@@ -426,24 +292,14 @@ const ReservationPage = () => {
           />
 
           <div className="price-summary">
-            <p>
-              <strong>Price per Item:</strong> ₱
-              {pricePerItem.toLocaleString()}
-            </p>
-            <p>
-              <strong>Quantity:</strong> {quantity}
-            </p>
-            <p>
-              <strong>Total Price:</strong> ₱
-              {(pricePerItem * quantity).toLocaleString()}
-            </p>
-            <p>
-              <strong>Downpayment:</strong> ₱{downpayment}
-            </p>
+            <p><strong>Price per Item:</strong> ₱{pricePerItem.toLocaleString()}</p>
+            <p><strong>Quantity:</strong> {quantity}</p>
+            <p><strong>Total Price:</strong> ₱{(pricePerItem * quantity).toLocaleString()}</p>
+            <p><strong>Downpayment:</strong> ₱{downpayment}</p>
           </div>
 
-          <button className="submit-btn" onClick={handleSubmit}>
-            Submit Reservation
+          <button className="submit-btn" onClick={handleProceedToPayment}>
+            Continue to Payment
           </button>
         </div>
       </div>

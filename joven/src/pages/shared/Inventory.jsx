@@ -215,7 +215,7 @@ const Inventory = ({ role }) => {
         </div>
 
         {(role === "admin" || role === "staff") && (
-          <button className="btn-bulk" onClick={openBulkRestockModal}> Bundle Restock</button>
+          <button className="btn-bulk" onClick={openBulkRestockModal}> Restock</button>
         )}
       </div>
 
@@ -268,7 +268,7 @@ const Inventory = ({ role }) => {
       {isBulkRestockOpen && (
         <div className="modal-overlay">
           <div className="modal-content bulk-restock">
-            <h2>Bundle Restock</h2>
+            <h2> Restock</h2>
 
             <select
               className="sort-select"
