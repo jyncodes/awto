@@ -44,9 +44,11 @@ const Sales = () => {
     const unsub = onSnapshot(salesRef, (snapshot) => {
       const logs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-      const sorted = logs.sort(
-        (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
-      );
+      const sorted = logs.sort((a, b) => {
+        const numA = Number(a.salesId?.replace("SA-", "") || 0);
+        const numB = Number(b.salesId?.replace("SA-", "") || 0);
+        return numB - numA; // Newest first
+      });
 
       setSalesLog(sorted);
       setFilteredList(sorted);
@@ -105,19 +107,14 @@ const Sales = () => {
   const handleDeleteSale = async (sale) => {
     if (role !== "Admin") return alert("Only Admin can delete sales records.");
 
-    if (
-      !window.confirm(
-        `Delete sale?\nCustomer: ${sale.customer?.name || "Walk-in"}
-Total: ₱${sale.totalAmount.toFixed(2)}`
-      )
-    )
-      return;
+    if (!window.confirm(
+      `Delete sale?\nCustomer: ${sale.customer?.name || "Walk-in"}\nTotal: ₱${sale.totalAmount.toFixed(2)}`
+    )) return;
 
     try {
       await deleteDoc(doc(db, "sales", sale.id));
       alert("Sale deleted successfully.");
     } catch (error) {
-      console.error(error);
       alert("Failed to delete sale.");
     }
   };
@@ -168,9 +165,7 @@ Total: ₱${sale.totalAmount.toFixed(2)}`
           <tbody>
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: "center" }}>
-                  No sales found.
-                </td>
+                <td colSpan="6" style={{ textAlign: "center" }}>No sales found.</td>
               </tr>
             ) : (
               paginatedData.map((sale) => {
@@ -180,17 +175,12 @@ Total: ₱${sale.totalAmount.toFixed(2)}`
                     <td>{sale.salesId}</td>
                     <td>{customer.name || "Walk-in"}</td>
                     <td>{customer.plateNo || "—"}</td>
-                    <td>
-                      {sale.createdAt?.toDate
-                        ? sale.createdAt.toDate().toLocaleDateString()
-                        : "—"}
-                    </td>
+                    <td>{sale.createdAt?.toDate ? sale.createdAt.toDate().toLocaleDateString() : "—"}</td>
                     <td>₱{(sale.totalAmount || 0).toFixed(2)}</td>
-                    <td style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                    <td style={{ textAlign: "center" }}>
                       <button className="view-receipt-btn" onClick={() => openReceipt(sale)}>
                         Receipt
                       </button>
-
                     </td>
                   </tr>
                 );
@@ -203,85 +193,84 @@ Total: ₱${sale.totalAmount.toFixed(2)}`
       {/* SIMPLE PAGINATION */}
       {filteredList.length > ITEMS_PER_PAGE && (
         <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
-          <button
-            disabled={page === 1}
-            className="btn-cancel"
-            onClick={() => setPage(page - 1)}
-          >
-            Prev
-          </button>
-
-          <button
-            disabled={page * ITEMS_PER_PAGE >= filteredList.length}
-            className="btn-submit"
-            onClick={() => setPage(page + 1)}
-          >
-            Next
-          </button>
+          <button disabled={page === 1} className="btn-cancel" onClick={() => setPage(page - 1)}>Prev</button>
+          <button disabled={page * ITEMS_PER_PAGE >= filteredList.length} className="btn-submit" onClick={() => setPage(page + 1)}>Next</button>
         </div>
       )}
 
-      {/* Receipt Modal */}
-      {receiptOpen && activeReceipt && (
-        <div className="pos-receipt-modal">
-          <div ref={receiptRef} className="pos-receipt-box">
-          <h3>Joven Tire Enterprise</h3>
-          <p><strong>Receipt #:</strong> {activeReceipt.salesId}</p>
-          <p><strong>Customer:</strong> {activeReceipt.customer?.name || "Walk-in"}</p>
-          <p><strong>Plate:</strong> {activeReceipt.customer?.plateNo || "—"}</p>
-          <hr />
+      {/* RECEIPT MODAL (UPDATED TO MATCH POS.jsx) */}
+      {receiptOpen && activeReceipt && (() => {
+        let productTotal = 0;
+        let serviceTotal = 0;
 
-          {activeReceipt.items?.map((i, idx) => (
-            <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>{i.name} x{i.qty}</span>
-              <span>₱{(i.price * i.qty).toFixed(2)}</span>
-            </div>
-          ))}
+        activeReceipt.items?.forEach(item => {
+          if (item.type === "service") serviceTotal += item.price * item.qty;
+          else productTotal += item.price * item.qty;
+        });
 
-          <hr />
+        const productVat = productTotal - (productTotal / 1.12);
+        const serviceVat = serviceTotal - (serviceTotal / 1.12);
 
-          <p>Subtotal: ₱{(activeReceipt.subtotal || 0).toFixed(2)}</p>
-          <p>Product Price: ₱{((activeReceipt.subtotal || 0) - (activeReceipt.vat || 0)).toFixed(2)}</p>
+        const isPwd = activeReceipt.customerType === "PWD" || activeReceipt.customerType === "Senior";
+        const removedVat = isPwd ? serviceVat : 0;
+        const serviceBase = isPwd ? serviceTotal / 1.12 : serviceTotal;
+        const pwdDiscountCalc = isPwd ? serviceBase * 0.20 : 0;
 
-          {/* VAT logic */}
-          {activeReceipt.customerType === "Regular" && (
-            <p>VAT (12%): ₱{(activeReceipt.vat || 0).toFixed(2)}</p>
-          )}
+        return (
+          <div className="pos-receipt-modal">
+            <div ref={receiptRef} className="pos-receipt-box">
+              <h3>Joven Tire Enterprise</h3>
+              <p><strong>Receipt #:</strong> {activeReceipt.salesId}</p>
+              <p><strong>Customer:</strong> {activeReceipt.customer?.name || "Walk-in"}</p>
+              <p><strong>Plate:</strong> {activeReceipt.customer?.plateNo || "—"}</p>
+              <hr />
 
-          {(activeReceipt.customerType === "PWD" || activeReceipt.customerType === "Senior") && (
-            <>
-              <p>VAT Included in Price: ₱{(activeReceipt.vat || 0).toFixed(2)}</p>
-              <p>VAT Exempted: -₱{(activeReceipt.vat || 0).toFixed(2)}</p>
-              {activeReceipt.pwdDiscount > 0 && (
-                <p>PWD/Senior Discount (20%): -₱{activeReceipt.pwdDiscount.toFixed(2)}</p>
+              {activeReceipt.items?.map((i, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>{i.name} x{i.qty}</span>
+                  <span>₱{(i.price * i.qty).toFixed(2)}</span>
+                </div>
+              ))}
+
+              <hr />
+
+              <p><strong>Products Total:</strong> ₱{productTotal.toFixed(2)}</p>
+              <p><strong>Services Total:</strong> ₱{serviceTotal.toFixed(2)}</p>
+
+              <p>VAT (Products): ₱{productVat.toFixed(2)}</p>
+              <p>VAT (Services): ₱{serviceVat.toFixed(2)}</p>
+
+              {isPwd && (
+                <>
+                  <p>Less VAT Removed (Service Only): -₱{removedVat.toFixed(2)}</p>
+                  <p>PWD/Senior Discount (20% on service): -₱{pwdDiscountCalc.toFixed(2)}</p>
+                </>
               )}
-            </>
-          )}
 
-          {/* Negotiated Discount */}
-          {activeReceipt.negotiatedDiscount > 0 && (
-            <p>Negotiated Discount: -₱{activeReceipt.negotiatedDiscount.toFixed(2)}</p>
-          )}
+              {activeReceipt.negotiatedDiscount > 0 && (
+                <p>Negotiated Discount: -₱{activeReceipt.negotiatedDiscount.toFixed(2)}</p>
+              )}
 
-          <h3>Total: ₱{activeReceipt.totalAmount?.toFixed(2)}</h3>
-          <p>Paid via: {activeReceipt.paymentMode}</p>
+              <h3>Total: ₱{activeReceipt.totalAmount?.toFixed(2)}</h3>
 
-          {activeReceipt.paymentMode !== "Cash" && (
-            <p>Reference No: {activeReceipt.paymentRef || "N/A"}</p>
-          )}
+              <p>Paid via: {activeReceipt.paymentMode}</p>
 
-          {activeReceipt.paymentMode === "Cash" && (
-            <p>Change: ₱{Math.max((activeReceipt.cashReceived || 0) - activeReceipt.totalAmount, 0).toFixed(2)}</p>
-          )}
+              {activeReceipt.paymentMode !== "Cash" && (
+                <p>Reference No: {activeReceipt.paymentRef || "N/A"}</p>
+              )}
 
-          <div className="pos-receipt-actions no-print">
-            <button className="btn-submit" onClick={handlePrint}>Print</button>
-            <button className="btn-cancel" onClick={closeReceipt}>Close</button>
+              {activeReceipt.paymentMode === "Cash" && (
+                <p>Change: ₱{Math.max((activeReceipt.cashReceived || 0) - activeReceipt.totalAmount, 0).toFixed(2)}</p>
+              )}
+
+              <div className="pos-receipt-actions no-print">
+                <button className="btn-submit" onClick={handlePrint}>Print</button>
+                <button className="btn-cancel" onClick={closeReceipt}>Close</button>
+              </div>
+            </div>
           </div>
-        </div>
-
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

@@ -5,6 +5,7 @@ import "../../styles/shared/POSPayment.css";
 export default function POSPayment({
   subtotal,
   vat,
+  cart,
   total,
   pwdDiscount,
   paymentMode,
@@ -27,8 +28,30 @@ export default function POSPayment({
     ? Math.max(Number(cashReceived || 0) - total, 0)
     : 0;
 
-  const computedVatIncluded = subtotal - subtotal / 1.12;
-  const computedPwdDiscount = pwdDiscount !== undefined ? pwdDiscount : (subtotal / 1.12) * 0.20;
+  // Breakdown logic (must match POS.jsx compute totals)
+  const isPwdOrSenior = customerType === "PWD" || customerType === "Senior";
+
+  let productTotal = 0;
+  let serviceTotal = 0;
+
+  cart.forEach(item => {
+    if (item.type === "service") serviceTotal += item.price * item.qty;
+    else productTotal += item.price * item.qty;
+  });
+
+  // VAT breakdown
+  const productVat = productTotal - (productTotal / 1.12);
+  const serviceVat = serviceTotal - (serviceTotal / 1.12);
+
+  let serviceBase = serviceTotal;
+  let displayServiceDiscount = 0;
+  let removedVatAmount = 0;
+
+  if (isPwdOrSenior) {
+    removedVatAmount = serviceVat;
+    serviceBase = serviceTotal / 1.12;
+    displayServiceDiscount = serviceBase * 0.20;
+  }
 
   return (
     <div className="payment-box">
@@ -125,13 +148,22 @@ export default function POSPayment({
       <div className="payment-summary">
         <p>Subtotal: ₱{subtotal.toFixed(2)}</p>
 
-        {customerType === "Regular" && <p>VAT (12%): ₱{vat.toFixed(2)}</p>}
-
-        {(customerType === "PWD" || customerType === "Senior") && (
+        {customerType === "Regular" && (
           <>
-            <p>VAT Included in Price: ₱{computedVatIncluded.toFixed(2)}</p>
-            <p>VAT Exempted: -₱{computedVatIncluded.toFixed(2)}</p>
-            <p>PWD/Senior Discount (20%): -₱{computedPwdDiscount.toFixed(2)}</p>
+            <p>VAT (Products): ₱{productVat.toFixed(2)}</p>
+            <p>VAT (Services): ₱{serviceVat.toFixed(2)}</p>
+          </>
+        )}
+
+        {isPwdOrSenior && (
+          <>
+            <p>Product VAT Included: ₱{productVat.toFixed(2)}</p>
+            <p>Service VAT Included: ₱{serviceVat.toFixed(2)}</p>
+            <p>Less VAT Removed (Service Only): -₱{removedVatAmount.toFixed(2)}</p>
+
+            {displayServiceDiscount > 0 && (
+              <p>PWD/Senior Discount (20% on service): -₱{displayServiceDiscount.toFixed(2)}</p>
+            )}
           </>
         )}
 
@@ -144,7 +176,7 @@ export default function POSPayment({
         {paymentMode === "Cash" && <p><strong>Change:</strong> ₱{change.toFixed(2)}</p>}
       </div>
 
-      {/* FINAL BUTTON (FIXED DISABLE LOGIC) */}
+      {/* FINAL BUTTON */}
       <button
         className="btn-submit full-width"
         onClick={handleCheckout}

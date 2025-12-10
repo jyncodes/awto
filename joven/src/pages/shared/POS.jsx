@@ -161,27 +161,50 @@ const [customerName, setCustomerName] = useState("");
 const subtotal = cart.reduce((t, i) => t + i.price * i.qty, 0);
 
 const computeTotals = () => {
-  let baseSubtotal = subtotal;
-  let baseVAT = baseSubtotal - (baseSubtotal / 1.12);
-  let computedTotal = baseSubtotal;
+  let productTotal = 0;
+  let serviceTotal = 0;
+
+  // Separate product vs service totals
+  cart.forEach(item => {
+    if (item.type === "service") {
+      serviceTotal += item.price * item.qty;
+    } else {
+      productTotal += item.price * item.qty;
+    }
+  });
+
+  // VAT calculations
+  const productVat = productTotal - (productTotal / 1.12);
+  const serviceVat = serviceTotal - (serviceTotal / 1.12);
+
+  let serviceBase = serviceTotal;
   let pwdDiscount = 0;
 
-  // PWD & Senior Logic — Remove VAT + apply 20% discount
+  // If PWD/Senior — VAT is removed and 20% applies ONLY to services
   if (customerType === "PWD" || customerType === "Senior") {
-    const vatExempt = baseSubtotal / 1.12;
-    pwdDiscount = vatExempt * 0.20;
-    computedTotal = vatExempt - pwdDiscount;
-    baseVAT = 0;
+    serviceBase = serviceTotal / 1.12; // Remove VAT from service
+    pwdDiscount = serviceBase * 0.20; // 20% discount only for service
   }
 
-    if (isNegotiated && negotiatedDiscount > 0) {
-      computedTotal -= negotiatedDiscount;
-      if (computedTotal < 0) computedTotal = 0;
-    }
+  const discountedServiceTotal = serviceBase - pwdDiscount;
 
+  // Final total calculation
+  let computedTotal = productTotal + discountedServiceTotal;
 
-  return { baseSubtotal, baseVAT, computedTotal, pwdDiscount };
+  // Negotiated discount still applies last
+  if (isNegotiated && negotiatedDiscount > 0) {
+    computedTotal -= negotiatedDiscount;
+    if (computedTotal < 0) computedTotal = 0;
+  }
+
+  return {
+    baseSubtotal: productTotal + serviceTotal,
+    baseVAT: productVat + (customerType === "Regular" ? serviceVat : 0),
+    computedTotal,
+    pwdDiscount
+  };
 };
+
 
 const { baseSubtotal, baseVAT, computedTotal, pwdDiscount } = computeTotals();
 
@@ -288,6 +311,11 @@ await setDoc(doc(db, "sales", formattedSaleId), saleData, { merge: false });
     const receiptNegotiated = Number(lastReceipt?.negotiatedDiscount || 0);
     const receiptTotal = Number(lastReceipt?.totalAmount || 0);
     const receiptCash = Number(lastReceipt?.cashReceived || 0);
+
+    const receiptBasePrice = receiptSubtotal / 1.12; // Actual price without VAT
+    const receiptVatAmount = receiptSubtotal - receiptBasePrice; // VAT included in subtotal
+    const isPwdOrSenior =
+      lastReceipt?.customerType === "PWD" || lastReceipt?.customerType === "Senior";
 
   // ================== ⛔ FIXED — CONDITIONAL RETURN MOVED HERE ==================
   if (!role)
@@ -420,6 +448,7 @@ await setDoc(doc(db, "sales", formattedSaleId), saleData, { merge: false });
     </div>
  
       <POSPayment
+        cart={cart}
         subtotal={baseSubtotal}
         vat={baseVAT}
         total={computedTotal}
@@ -457,30 +486,54 @@ await setDoc(doc(db, "sales", formattedSaleId), saleData, { merge: false });
               ))}
 
               <hr />
-      <p>Subtotal: ₱{receiptSubtotal.toFixed(2)}</p>
-      <p>Product Price: ₱{(receiptSubtotal - receiptVAT).toFixed(2)}</p>
+              
+              {/* -------- VAT + Discount Breakdown -------- */}
+        {(() => {
+          let productTotal = 0;
+          let serviceTotal = 0;
 
-            {/* VAT logic */}
-            {lastReceipt?.customerType === "Regular" && (
-              <p>VAT (12%): ₱{lastReceipt?.vat?.toFixed(2)}</p>
-            )}
+          // separate product vs services
+          lastReceipt?.items?.forEach(item => {
+            if (item.type === "service") {
+              serviceTotal += item.price * item.qty;
+            } else {
+              productTotal += item.price * item.qty;
+            }
+          });
 
-            {(lastReceipt?.customerType === "PWD" || lastReceipt?.customerType === "Senior") && (
-              <>
-                <p>VAT Included in Price: ₱{lastReceipt?.vat?.toFixed(2)}</p>
-                <p>VAT Exempted: -₱{lastReceipt?.vat?.toFixed(2)}</p>
-                {lastReceipt?.pwdDiscount > 0 && (
-                  <p>PWD/Senior Discount (20%): -₱{lastReceipt?.pwdDiscount.toFixed(2)}</p>
-                )}
-              </>
-            )}
+          const productVat = productTotal - (productTotal / 1.12);
+          const serviceVat = serviceTotal - (serviceTotal / 1.12);
 
-            {/* Negotiated Discount */}
-            {lastReceipt?.negotiatedDiscount > 0 && (
-              <p>Negotiated Discount: -₱{lastReceipt?.negotiatedDiscount.toFixed(2)}</p>
-            )}
+          const isPwdOrSenior = lastReceipt?.customerType === "PWD" || lastReceipt?.customerType === "Senior";
 
-            <h3>Total: ₱{lastReceipt?.totalAmount?.toFixed(2)}</h3>
+          const removedVat = isPwdOrSenior ? serviceVat : 0;
+          const serviceBase = isPwdOrSenior ? serviceTotal / 1.12 : serviceTotal;
+          const pwdDiscountCalc = isPwdOrSenior ? serviceBase * 0.20 : 0;
+
+          return (
+            <>
+              <p><strong>Products Total:</strong> ₱{productTotal.toFixed(2)}</p>
+              <p><strong>Services Total:</strong> ₱{serviceTotal.toFixed(2)}</p>
+
+              <p>VAT (Products): ₱{productVat.toFixed(2)}</p>
+              <p>VAT (Services): ₱{serviceVat.toFixed(2)}</p>
+
+              {isPwdOrSenior && (
+                <>
+                  <p>Less VAT Removed (Service Only): -₱{removedVat.toFixed(2)}</p>
+                  <p>PWD/Senior Discount (20% on service): -₱{pwdDiscountCalc.toFixed(2)}</p>
+                </>
+              )}
+
+              {lastReceipt?.negotiatedDiscount > 0 && (
+                <p>Negotiated Discount: -₱{lastReceipt.negotiatedDiscount.toFixed(2)}</p>
+              )}
+            </>
+          );
+        })()}
+
+              <h3>Total: ₱{lastReceipt?.totalAmount?.toFixed(2)}</h3>
+
 
             <p>Paid via: {lastReceipt?.paymentMode}</p>
 
