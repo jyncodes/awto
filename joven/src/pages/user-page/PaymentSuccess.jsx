@@ -1,7 +1,7 @@
 // src/pages/user-page/PaymentSuccess.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, increment } from "firebase/firestore";
 import { jsPDF } from "jspdf";
 import { db } from "../../firebase";
 import "../../styles/user-styles/PaymentSuccess.css";
@@ -12,9 +12,9 @@ const PaymentSuccess = () => {
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   const [status, setStatus] = useState("Processing payment...");
-  const [reservation, setReservation] = useState(null);
-  const [reservationId, setReservationId] = useState(null);
   const [transactionId, setTransactionId] = useState(null);
+  const [paymentInfo, setPaymentInfo] = useState(null);
+  const [reservationId, setReservationId] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
@@ -30,70 +30,40 @@ const PaymentSuccess = () => {
     setTransactionId(txId);
 
     const verifyPayment = async () => {
-      let fetchedReservationId = null;
+      if (!txId) return;
 
-      // ---- Localhost Mode Always Shows Receipt ----
-      if (window.location.hostname === "localhost") {
-        setStatus("🧪 Local Test Mode — No PayPal Connected");
-        fetchedReservationId = "TEST-RESERVATION";
-      } else {
-        // ---- LIVE MODE: Call backend and get the fresh reservation ID ----
-        setStatus("✔ Payment Received — Processing Reservation...");
+      setStatus("✔ Retrieving payment details...");
 
-        try {
-          const response = await fetch(`${BACKEND_URL}/paypal-complete`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId: txId }),
-          });
+      try {
+        const response = await fetch(`${BACKEND_URL}/paypal-complete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: txId }),
+        });
 
-          const result = await response.json();
+        const result = await response.json();
 
-          // 🔥 FIX: use returned reservation id
-          if (result?.reservationId) {
-            fetchedReservationId = result.reservationId;
-          }
-        } catch {
-          setStatus("⚠ Error validating payment, loading anyway...");
+        if (!result.success) {
+          setStatus("⚠ Payment detected but not verified — manual confirmation required");
+        } else {
+          setStatus("✔ Payment Verified — Ready to finalize reservation");
         }
-      }
 
-      setReservationId(fetchedReservationId);
-
-      // ---- Fetch reservation with retry ----
-      if (fetchedReservationId && fetchedReservationId !== "TEST-RESERVATION") {
-        let attempts = 0;
-        const maxAttempts = 6;
-
-        const fetchWithRetry = async () => {
-          const snap = await getDoc(doc(db, "reservations", fetchedReservationId));
-
-          if (snap.exists()) {
-            setReservation(snap.data());
-            setStatus("✔ Payment Verified — Reservation Loaded");
-            return;
-          }
-
-          attempts++;
-
-          if (attempts < maxAttempts) {
-            setStatus(`⏳ Finalizing payment... (${attempts}/${maxAttempts})`);
-            setTimeout(fetchWithRetry, 2000);
-          } else {
-            setStatus("⚠ Reservation not found — please refresh.");
-          }
-        };
-
-        fetchWithRetry();
+        setPaymentInfo(result);
+      } catch {
+        setStatus("⚠ Unable to contact server — showing fallback details.");
       }
     };
 
     verifyPayment();
   }, [location, BACKEND_URL]);
 
-  /* ---- PDF ---- */
+  /* -------------- PDF RECEIPT -------------- */
   const downloadReceipt = () => {
-    if (!reservation) return;
+    if (!paymentInfo) return;
+
+    // FIX: use generated reservation ID OR fallback format
+    const fallbackId = reservationId || `TEMP-${transactionId?.slice(-6)}`;
 
     const docPDF = new jsPDF();
     docPDF.setFontSize(18);
@@ -103,48 +73,66 @@ const PaymentSuccess = () => {
     docPDF.text("Official Downpayment Receipt", 15, 25);
     docPDF.line(15, 30, 195, 30);
 
-    docPDF.text(`Reservation ID: ${reservationId}`, 15, 40);
-    docPDF.text(`Customer Name: ${reservation.userName || ""}`, 15, 50);
-    docPDF.text(`Product: ${reservation.productName || ""}`, 15, 60);
-    docPDF.text(`Price: ₱${reservation.totalPrice?.toLocaleString() || ""}`, 15, 70);
-    docPDF.text(`Downpayment: ₱${reservation.downpayment?.toLocaleString() || ""}`, 15, 80);
-    docPDF.text(`Payment Method: PayPal`, 15, 90);
-    docPDF.text(`Transaction ID: ${transactionId || "Not detected"}`, 15, 100);
-    docPDF.text(`Printed On: ${new Date().toLocaleString()}`, 15, 110);
+    docPDF.text(`Reservation ID: ${fallbackId}`, 15, 40);
+    docPDF.text(`Customer Name: ${paymentInfo.name || ""}`, 15, 50);
+    docPDF.text(`Amount Paid: ₱${paymentInfo.amount || ""}`, 15, 60);
+    docPDF.text(`Payment Method: PayPal`, 15, 70);
+    docPDF.text(`Transaction ID: ${transactionId || "Not detected"}`, 15, 80);
+    docPDF.text(`Printed On: ${new Date().toLocaleString()}`, 15, 90);
 
-    docPDF.save(`Receipt-${reservationId}.pdf`);
+    docPDF.save(`Receipt-${fallbackId}.pdf`);
   };
 
-  /* ---- FINALIZE BUTTON ALWAYS CLICKABLE ---- */
+  /* -------------- CREATE RESERVATION ONLY WHEN USER CLICKS FINISH -------------- */
   const finalizeReservation = async () => {
-    if (!reservation || isSaved) return;
+    if (isSaved || !paymentInfo) return;
+
+    setStatus("📦 Saving reservation...");
 
     try {
-      await updateDoc(doc(db, "reservations", reservationId), {
+      // Auto-increment counter
+      const counterRef = doc(db, "counters", "reservations");
+      await setDoc(counterRef, { lastId: increment(1) }, { merge: true });
+
+      const counterSnap = await getDoc(counterRef);
+      const nextId = counterSnap.data().lastId;
+      const newResId = `RES${String(nextId).padStart(5, "0")}`;
+      setReservationId(newResId);
+
+      // Save reservation
+      await setDoc(doc(db, "reservations", newResId), {
+        id: newResId,
+        userEmail: paymentInfo.email,
+        userName: paymentInfo.name,
+        downpayment: paymentInfo.amount,
+        totalPrice: paymentInfo.amount,
+        transactionId,
+        productName: "(Customer product is stored separately)",
         status: "Awaiting Approval",
-        transactionId: transactionId || null,
-        finalizedAt: serverTimestamp(),
+        paymentMethod: "PayPal",
+        createdAt: serverTimestamp(),
       });
 
+      // Send confirmation email
       await fetch(`${BACKEND_URL}/send-reservation-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: reservation.userEmail,
-          name: reservation.userName,
-          reservationId,
-          product: reservation.productName,
-          date: reservation.preferredDate
-            ? new Date(reservation.preferredDate.seconds * 1000).toLocaleDateString()
-            : "Scheduled",
+          email: paymentInfo.email,
+          name: paymentInfo.name,
+          reservationId: newResId,
+          product: "(Order submitted)",
+          date: new Date().toLocaleDateString(),
         }),
       });
 
       setIsSaved(true);
-      alert("🎉 Reservation Completed! Awaiting approval.");
-      navigate("/profile?tab=reservations");
-    } catch {
-      alert("❌ Something went wrong. Try again.");
+      setStatus("✔ Reservation successfully created!");
+
+      alert("🎉 Reservation Completed!");
+    } catch (err) {
+      console.log(err);
+      alert("❌ Could not save reservation. Try again.");
     }
   };
 
@@ -155,18 +143,14 @@ const PaymentSuccess = () => {
       <div className="payment-success-card">
         <p className="payment-success-status">{status}</p>
 
-        {reservation && (
+        {paymentInfo && (
           <>
             <div className="receipt-box">
-              <h4>Reservation Receipt</h4>
-              <p><strong>Reservation ID:</strong> {reservationId}</p>
-              <p><strong>Product:</strong> {reservation.productName || "(none)"}</p>
-              <p><strong>Total Price:</strong> ₱{reservation.totalPrice?.toLocaleString() || "0"}</p>
-              <p><strong>Downpayment:</strong> ₱{reservation.downpayment?.toLocaleString() || "0"}</p>
-              <p><strong>Customer:</strong> {reservation.userName || ""}</p>
-              <p><strong>Vehicle:</strong> {reservation.vehicleBrand} {reservation.vehicleModel} {reservation.vehicleYear}</p>
-              <p><strong>Plate:</strong> {reservation.plateNumber}</p>
-              <p><strong>Transaction ID:</strong> {transactionId || "Not detected"}</p>
+              <h4>Payment Summary</h4>
+              <p><strong>Customer:</strong> {paymentInfo.name}</p>
+              <p><strong>Email:</strong> {paymentInfo.email}</p>
+              <p><strong>Amount Paid:</strong> ₱{paymentInfo.amount}</p>
+              <p><strong>Transaction ID:</strong> {transactionId}</p>
             </div>
 
             <button className="success-button" onClick={downloadReceipt}>
@@ -178,7 +162,7 @@ const PaymentSuccess = () => {
               disabled={isSaved}
               onClick={finalizeReservation}
             >
-              {isSaved ? "✔ Saved" : "✅ Finish Reservation"}
+              {isSaved ? "✔ Reservation Saved" : "✅ Finish Reservation"}
             </button>
           </>
         )}

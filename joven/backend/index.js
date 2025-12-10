@@ -22,21 +22,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* ======================================================
-   🔥 FIREBASE ADMIN SETUP
-====================================================== */
-const admin = require("firebase-admin");
-
-if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
-
-const db = admin.firestore();
-
-/* ======================================================
    📩 SEND EMAIL FUNCTION (Brevo)
 ====================================================== */
 const sendPaymentEmail = async (customerEmail, name, reservationId, amount) => {
@@ -94,7 +79,7 @@ const getPayPalToken = async () => {
 };
 
 /* ======================================================
-   🎯 SIMPLIFIED PAYPAL PAYMENT COMPLETION
+   🎯 SIMPLIFIED PAYPAL CHECK ROUTE
 ====================================================== */
 app.post("/paypal-complete", async (req, res) => {
   console.log("📩 Request received:", req.body);
@@ -130,48 +115,21 @@ app.post("/paypal-complete", async (req, res) => {
     const allowed = ["COMPLETED", "SUCCESS", "S", "OK", "CAPTURED"];
     const isPaid = allowed.some((s) => status.includes(s));
 
-    if (!isPaid) {
-      return res.json({
-        success: false,
-        message: `Payment not completed. Status: ${status}`,
-      });
-    }
-
-    /* ---------- AUTO INCREMENT RESERVATION ID ---------- */
-    const counterRef = db.collection("counters").doc("reservations");
-    const snap = await counterRef.get();
-    const nextId = (snap.exists ? snap.data().lastId : 0) + 1;
-
-    await counterRef.set({ lastId: nextId }, { merge: true });
-
-    const reservationId = `RES${String(nextId).padStart(5, "0")}`;
-
-    /* ---------- STORE BASIC RESERVATION (NO tempLockId NEEDED) ---------- */
     const payerEmail = order.payer_info?.email_id || "unknown@customer.com";
-    const buyer = order.payer_info?.payer_name?.alternate_full_name || "Customer";
+    const payerName =
+      order.payer_info?.payer_name?.alternative_full_name ||
+      order.payer_info?.payer_name?.given_name ||
+      "Customer";
 
-    const amount =
-      order.transaction_info?.transaction_amount?.value || "0";
+    const amount = order.transaction_info?.transaction_amount?.value || "0";
 
-    await db.collection("reservations").doc(reservationId).set({
-      id: reservationId,
-      userEmail: payerEmail,
-      userName: buyer,
-      totalPrice: amount,
-      downpayment: amount,
-      productName: "No linked product (Manual Assignment Required)",
-      status: "Paid",
-      paymentMethod: "PayPal",
-      paypalTransactionId: orderId,
-      paypalStatus: status,
-      createdAt: new Date(),
-      paidAt: new Date(),
-      isCancelled: false,
+    return res.json({
+      success: isPaid,
+      status,
+      email: payerEmail,
+      name: payerName,
+      amount,
     });
-
-    await sendPaymentEmail(payerEmail, buyer, reservationId, amount);
-
-    return res.json({ success: true, reservationId });
 
   } catch (err) {
     console.error("❌ ERROR:", err.response?.data || err);
