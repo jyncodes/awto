@@ -180,17 +180,7 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/payment-success"
-          element={
-            <RequireVerifiedEmail>
-              <ProtectedRoute allowedRole="User">
-                <PaymentSuccess />
-              </ProtectedRoute>
-            </RequireVerifiedEmail>
-          }
-        />
-
+        <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route
           path="/payment-failed"
           element={

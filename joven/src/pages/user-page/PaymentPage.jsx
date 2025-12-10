@@ -110,7 +110,7 @@ const PaymentPage = () => {
               <form
                 action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?return=https://awto.vercel.app/payment-success&cancel_return=https://awto.vercel.app/payment-failed&custom=${tempLockId}`}
                 method="post"
-                target="_self"
+                target="_blank"
                 onSubmit={handlePayClick}
                 style={{
                   display: "inline-grid",
