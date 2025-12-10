@@ -1,0 +1,159 @@
+/* ----------------------------------------------
+   PAYMENT SUCCESS PAGE
+---------------------------------------------- */
+.payment-success-page {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f4f6f8;
+  padding: 1.2rem 1rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.25s ease;
+}
+
+.payment-success-page h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  color: #27ae60;
+  text-align: center;
+}
+
+/* ----------------------------------------------
+   SUCCESS CARD
+---------------------------------------------- */
+.payment-success-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem 1.6rem;
+  width: 100%;
+  max-width: 650px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+  animation: slideIn 0.3s ease;
+  text-align: center;
+}
+
+.payment-success-status {
+  font-weight: bold;
+  color: #2e8b57;
+  font-size: 18px;
+  margin-bottom: 14px;
+}
+
+/* ----------------------------------------------
+   RECEIPT BOX
+---------------------------------------------- */
+.receipt-box {
+  background: #fdfdfd;
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  padding: 1.2rem;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.receipt-box h4 {
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.receipt-box p {
+  margin: 6px 0;
+  font-size: 0.95rem;
+  color: #34495e;
+}
+
+/* ----------------------------------------------
+   NEXT STEPS
+---------------------------------------------- */
+.next-steps {
+  background: #f9fcff;
+  border-left: 4px solid #4A90E2;
+  border-radius: 10px;
+  padding: 1.2rem;
+  margin-top: 1.4rem;
+  text-align: left;
+}
+
+.next-steps h4 {
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.next-steps ol {
+  padding-left: 18px;
+}
+
+.next-steps li {
+  margin: 6px 0;
+  font-size: 0.95rem;
+  color: #34495e;
+}
+
+/* ----------------------------------------------
+   BUTTONS
+---------------------------------------------- */
+.success-button {
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  width: 100%;
+  max-width: 280px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  margin-top: 18px;
+  background: #4A90E2;
+  color: white;
+  transition: 0.2s ease;
+}
+
+.success-button:hover {
+  background: #3b79bb;
+}
+
+.finish-btn {
+  background: #27ae60;
+}
+
+.finish-btn:hover {
+  background: #1e8d4e;
+}
+
+/* Disabled State */
+.success-button:disabled {
+  background: #bfc7cd !important;
+  cursor: not-allowed;
+}
+
+/* ----------------------------------------------
+   RESPONSIVE
+---------------------------------------------- */
+@media (max-width: 650px) {
+  .payment-success-card {
+    width: 92%;
+    padding: 1.2rem;
+  }
+
+  .receipt-box, .next-steps {
+    padding: 1rem;
+  }
+}
+
+/* ----------------------------------------------
+   ANIMATIONS
+---------------------------------------------- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
