@@ -1,24 +1,38 @@
+// src/components/user-components/Filter.jsx
 import React, { useState, useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import "../../styles/user-styles/Filter.css";
 
-const Filter = ({ onChange }) => {
+const Filter = ({ onChange, mobileControl }) => {
   const [filtersData, setFiltersData] = useState([]);
   const [selectedFilters, setSelectedFilters] = useState({});
   const [expanded, setExpanded] = useState([]);
   const [searchTerms, setSearchTerms] = useState({});
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // ✅ Fetch filter values from both Tires and Mags collections
+  // Sync mobile state with parent
+  useEffect(() => {
+    if (mobileControl?.open !== undefined) {
+      setIsMobileOpen(mobileControl.open);
+    }
+  }, [mobileControl?.open]);
+
+  useEffect(() => {
+    if (mobileControl?.setOpen) {
+      mobileControl.setOpen(isMobileOpen);
+    }
+  }, [isMobileOpen]);
+
+  // Fetch filter data
   useEffect(() => {
     const fetchFilters = async () => {
       const tireSnap = await getDocs(collection(db, "products_tires"));
       const magsSnap = await getDocs(collection(db, "products_mags"));
 
       const products = [
-        ...tireSnap.docs.map((doc) => doc.data()),
-        ...magsSnap.docs.map((doc) => doc.data()),
+        ...tireSnap.docs.map((d) => d.data()),
+        ...magsSnap.docs.map((d) => d.data()),
       ];
 
       const uniqueValues = {
@@ -33,166 +47,141 @@ const Filter = ({ onChange }) => {
         if (product.brand) uniqueValues.brand.add(product.brand.trim());
         if (product.model) uniqueValues.model.add(product.model.trim());
 
-        // 🔹 Tire size formatting
-        if (product.tireWidth && product.aspectRatio && product.rimDiameter) {
+        if (product.tireWidth && product.aspectRatio && product.rimDiameter)
           uniqueValues.size.add(
             `${product.tireWidth}/${product.aspectRatio}R${product.rimDiameter}`
           );
-        }
 
-        // 🔹 Wheel / Mags size formatting
-        if (product.wheelDiameter && product.wheelWidth && product.boltPattern) {
+        if (product.wheelDiameter && product.wheelWidth && product.boltPattern)
           uniqueValues.size.add(
             `${product.wheelDiameter}x${product.wheelWidth} ${product.boltPattern}`
           );
-        }
 
-        // 🔹 Type (now includes Mags)
-        if (product.type) uniqueValues.type.add(product.type.trim());
+        if (product.type) uniqueValues.type.add(product.type);
 
-        // 🔹 Price
-        const priceValue = product.retail ?? product.price;
-        if (priceValue) {
-          const price = parseInt(priceValue);
-          if (!isNaN(price)) {
-            if (price <= 1000) uniqueValues.price.add("₱0 - ₱1,000");
-            else if (price <= 2000) uniqueValues.price.add("₱1,001 - ₱2,000");
-            else if (price <= 3000) uniqueValues.price.add("₱2,001 - ₱3,000");
-            else if (price <= 5000) uniqueValues.price.add("₱3,001 - ₱5,000");
-            else uniqueValues.price.add("₱5,000+");
-          }
+        const price = parseInt(product.retail ?? product.price);
+        if (!isNaN(price)) {
+          if (price <= 1000) uniqueValues.price.add("₱0 - ₱1,000");
+          else if (price <= 2000) uniqueValues.price.add("₱1,001 - ₱2,000");
+          else if (price <= 3000) uniqueValues.price.add("₱2,001 - ₱3,000");
+          else if (price <= 5000) uniqueValues.price.add("₱3,001 - ₱5,000");
+          else uniqueValues.price.add("₱5,000+");
         }
       });
 
       setFiltersData([
-        { name: "brand", label: "Brand", options: Array.from(uniqueValues.brand), multiSelect: true },
-        { name: "model", label: "Model", options: Array.from(uniqueValues.model), multiSelect: true },
-        { name: "size", label: "Size", options: Array.from(uniqueValues.size), multiSelect: true },
-        { name: "type", label: "Type", options: Array.from(uniqueValues.type), multiSelect: true },
-        { name: "price", label: "Price", options: Array.from(uniqueValues.price), multiSelect: false },
+        { name: "brand", label: "Brand", options: [...uniqueValues.brand], multiSelect: true },
+        { name: "model", label: "Model", options: [...uniqueValues.model], multiSelect: true },
+        { name: "size", label: "Size", options: [...uniqueValues.size], multiSelect: true },
+        { name: "type", label: "Type", options: [...uniqueValues.type], multiSelect: true },
+        { name: "price", label: "Price", options: [...uniqueValues.price], multiSelect: false },
       ]);
     };
 
     fetchFilters();
   }, []);
 
-  // Send to parent
+  // Push filters to parent
   useEffect(() => {
-    const filtersToSend = Object.fromEntries(
-      Object.entries(selectedFilters).map(([key, valueSet]) => [key, Array.from(valueSet)])
+    const formatted = Object.fromEntries(
+      Object.entries(selectedFilters).map(([key, set]) => [key, [...set]])
     );
-    onChange && onChange(filtersToSend);
-  }, [selectedFilters, onChange]);
+    onChange && onChange(formatted);
+  }, [selectedFilters]);
 
-  const toggleExpand = (filterName) => {
+  const toggleExpand = (name) =>
     setExpanded((prev) =>
-      prev.includes(filterName)
-        ? prev.filter((name) => name !== filterName)
-        : [...prev, filterName]
+      prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
     );
-  };
 
-  const toggleOption = (filterName, option, multiSelect) => {
+  const toggleOption = (filter, option, multi) => {
     setSelectedFilters((prev) => {
-      const currentSet = new Set(prev[filterName] || []);
-      if (currentSet.has(option)) {
-        currentSet.delete(option);
-      } else {
-        if (!multiSelect) {
-          return { ...prev, [filterName]: new Set([option]) };
-        }
-        currentSet.add(option);
+      const set = new Set(prev[filter] || []);
+      if (set.has(option)) set.delete(option);
+      else {
+        if (!multi) return { ...prev, [filter]: new Set([option]) };
+        set.add(option);
       }
-      return { ...prev, [filterName]: currentSet };
+      return { ...prev, [filter]: set };
     });
   };
 
-  const clearAll = () => {
-    setSelectedFilters({});
-  };
-
-  const handleSearchChange = (filterName, value) => {
-    setSearchTerms((prev) => ({ ...prev, [filterName]: value }));
-  };
+  const clearAll = () => setSelectedFilters({});
 
   return (
     <>
-      {/* Mobile toggle */}
+      {/* MOBILE FILTER BUTTON */}
       <button className="filter-toggle-btn" onClick={() => setIsMobileOpen(true)}>
-        Filters
+        Filter
       </button>
 
+      {/* OVERLAY */}
       <div
         className={`filter-overlay ${isMobileOpen ? "visible" : ""}`}
         onClick={() => setIsMobileOpen(false)}
       />
 
-      <div className={`filters ${isMobileOpen ? "open" : ""}`}>
+      {/* FILTER PANEL */}
+      <aside className={`filters ${isMobileOpen ? "open" : ""}`}>
         <div className="filters-header">
           <h3>Filters</h3>
           {Object.keys(selectedFilters).length > 0 && (
-            <button onClick={clearAll} className="clear-btn">
+            <button className="clear-btn" onClick={clearAll}>
               Clear All
             </button>
           )}
         </div>
 
         {filtersData.map(({ name, label, options, multiSelect }) => {
-          const isExpanded = expanded.includes(name);
-          const selectedSet = selectedFilters[name] || new Set();
+          const expandedNow = expanded.includes(name);
+          const selected = selectedFilters[name] || new Set();
           const search = searchTerms[name] || "";
 
           const filteredOptions =
             options.length > 5
-              ? options.filter((opt) => opt.toLowerCase().includes(search.toLowerCase()))
+              ? options.filter((item) =>
+                  item.toLowerCase().includes(search.toLowerCase())
+                )
               : options;
 
           return (
-            <div key={name}>
-              <div
-                className="filter-header"
-                onClick={() => toggleExpand(name)}
-                tabIndex={0}
-                role="button"
-                aria-expanded={isExpanded}
-              >
+            <div key={name} className="filter-block">
+              <div className="filter-header" onClick={() => toggleExpand(name)}>
                 <span>{label}</span>
-                <span>{isExpanded ? "−" : "+"}</span>
+                <span className="chev">{expandedNow ? "−" : "+"}</span>
               </div>
 
-              {isExpanded && (
+              {expandedNow && (
                 <div className="filter-content">
                   {options.length > 5 && (
                     <input
                       type="text"
-                      placeholder={`Search ${label}...`}
                       className="filter-search"
+                      placeholder={`Search ${label}...`}
                       value={search}
-                      onChange={(e) => handleSearchChange(name, e.target.value)}
+                      onChange={(e) =>
+                        setSearchTerms({ ...searchTerms, [name]: e.target.value })
+                      }
                     />
                   )}
-                  {filteredOptions.map((option) => {
-                    const selected = selectedSet.has(option);
-                    return (
-                      <div
-                        key={option}
-                        className={`filter-option ${selected ? "selected" : ""}`}
-                        onClick={() => toggleOption(name, option, multiSelect)}
-                        tabIndex={0}
-                        role="checkbox"
-                        aria-checked={selected}
-                      >
-                        {option}
-                      </div>
-                    );
-                  })}
-                  {filteredOptions.length === 0 && <p>No options found.</p>}
+
+                  {filteredOptions.map((option) => (
+                    <div
+                      key={option}
+                      className={`filter-option ${
+                        selected.has(option) ? "selected" : ""
+                      }`}
+                      onClick={() => toggleOption(name, option, multiSelect)}
+                    >
+                      {option}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           );
         })}
-      </div>
+      </aside>
     </>
   );
 };
