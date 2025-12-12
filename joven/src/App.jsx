@@ -14,6 +14,7 @@ import Register from "./pages/Register";
 import ViewProduct from "./pages/user-page/ViewProduct";
 import Verify from "./pages/Verify";
 import ServicesPage from "./pages/user-page/ServicesPage";
+import Terms from "./pages/user-page/Terms";
 
 // Admin Pages
 import AdminDashboard from './pages/admin-page/AdminDashboard';
@@ -91,6 +92,7 @@ export default function App() {
         {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/terms" element={<Terms />} />
 
         <Route
           path="/login"

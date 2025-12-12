@@ -1,0 +1,74 @@
+/* ===========================
+   TERMS & CONDITIONS PAGE
+   Clean White + #f39c12 Theme
+=========================== */
+
+.terms-page-container {
+  padding-top: 120px; /* space for navbar */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.terms-box {
+  width: 92%;
+  max-width: 900px;
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0px 4px 18px rgba(0, 0, 0, 0.12);
+  margin-bottom: 40px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.terms-box h2 {
+  font-size: 2rem;
+  color: #f39c12;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+  text-align: left;
+}
+
+.terms-box h3 {
+  margin-top: 1.8rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.terms-box p {
+  margin-top: 0.5rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.terms-box ul {
+  margin-left: 20px;
+  margin-top: 10px;
+}
+
+.terms-box li {
+  color: #444;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+/* Link Styling */
+.terms-box a {
+  color: #f39c12;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+/* Fade-in Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

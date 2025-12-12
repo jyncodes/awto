@@ -444,7 +444,7 @@ const Register = () => {
           />
 
           {/* TERMS */}
-          <div>
+          <div className="terms-row">
             <input
               type="checkbox"
               name="terms"
@@ -452,9 +452,22 @@ const Register = () => {
               onChange={handleChange}
               id="terms"
             />
-            <label htmlFor="terms"> I accept the Terms & Conditions</label>
+
+            <label htmlFor="terms">
+              I accept the{" "}
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#f39c12", fontWeight: "600" }}
+              >
+                Terms & Conditions
+              </a>
+            </label>
+
             {errors.terms && <p className="error-text">{errors.terms}</p>}
           </div>
+
 
           {/* SUBMIT */}
           <button
