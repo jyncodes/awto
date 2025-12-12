@@ -27,6 +27,9 @@ const PaymentSuccess = () => {
   const [reservationId, setReservationId] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
 
+  const isServiceReservation = doneData?.type === "service";
+
+
   /* ---------------- Fetch Draft from Local Storage ---------------- */
   useEffect(() => {
     const loadData = async () => {
@@ -157,29 +160,68 @@ const PaymentSuccess = () => {
       const newResId = `RES${String(nextId).padStart(5, "0")}`;
       setReservationId(newResId);
 
-      await setDoc(doc(db, "reservations", newResId), {
-        id: newResId,
-        userId: doneData.userId,
-        userEmail: doneData.userEmail,
-        userName: doneData.userName,
-        productId: doneData.selectedDocId,
-        productName: `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
-        quantity: doneData.quantity,
-        price: doneData.pricePerItem,
-        totalPrice: doneData.pricePerItem * doneData.quantity,
-        downpayment: doneData.downpayment,
-        vehicleBrand: doneData.vehicleBrand,
-        vehicleModel: doneData.vehicleModel,
-        vehicleYear: doneData.vehicleYear,
-        plateNumber: doneData.plateNumber,
-        note: doneData.note || "",
-        preferredDate: new Date(doneData.preferredDate),
-        paymentMethod: "PayPal",
-        transactionId: transactionId || null,
-        status: "Awaiting Approval",
-        createdAt: serverTimestamp(),
-        isCancelled: false,
-      });
+let reservationData;
+
+if (isServiceReservation) {
+  // ⭐ SERVICE RESERVATION FORMAT
+  reservationData = {
+    id: newResId,
+    type: "service",
+    userId: doneData.userId,
+    userEmail: doneData.userEmail,
+    userName: doneData.userName,
+
+    selectedServices: doneData.selectedServices,
+    totalServicePrice: doneData.totalServicePrice,
+
+    vehicleBrand: doneData.vehicleBrand,
+    vehicleModel: doneData.vehicleModel,
+    vehicleYear: doneData.vehicleYear,
+    plateNumber: doneData.plateNumber,
+    note: doneData.note || "",
+
+    preferredDate: new Date(doneData.preferredDate),
+    downpayment: doneData.downpayment,
+    paymentMethod: "PayPal",
+    transactionId: transactionId || null,
+    status: "Awaiting Approval",
+    createdAt: serverTimestamp(),
+    isCancelled: false,
+  };
+
+} else {
+  reservationData = {
+    id: newResId,
+    type: "product",
+    userId: doneData.userId,
+    userEmail: doneData.userEmail,
+    userName: doneData.userName,
+
+    productId: doneData.selectedDocId,
+    productName: `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
+    quantity: doneData.quantity,
+    price: doneData.pricePerItem,
+    totalPrice: doneData.pricePerItem * doneData.quantity,
+
+    vehicleBrand: doneData.vehicleBrand,
+    vehicleModel: doneData.vehicleModel,
+    vehicleYear: doneData.vehicleYear,
+    plateNumber: doneData.plateNumber,
+    note: doneData.note || "",
+
+    preferredDate: new Date(doneData.preferredDate),
+    downpayment: doneData.downpayment,
+    paymentMethod: "PayPal",
+    transactionId: transactionId || null,
+    status: "Awaiting Approval",
+    createdAt: serverTimestamp(),
+    isCancelled: false,
+  };
+}
+
+// SAVE FINAL DATA TO FIRESTORE
+await setDoc(doc(db, "reservations", newResId), reservationData);
+
 
       // ---------------- SAVE ONLY LAST PLATE NUMBER ----------------
       try {
@@ -217,7 +259,9 @@ const PaymentSuccess = () => {
             email: doneData.userEmail,
             name: doneData.userName,
             reservationId: newResId,
-            productName: `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
+            productName: isServiceReservation
+              ? doneData.selectedServices.map(s => s.name).join(", ")
+              : `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
             plateNumber: doneData.plateNumber,
             date: new Date(doneData.preferredDate).toLocaleDateString(),
           }),

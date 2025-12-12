@@ -134,9 +134,24 @@ const ServicesPage = () => {
         return;
       }
 
-      navigate("/reserve-service", {
-        state: { selectedServices },
+      navigate("/reservation/services", {
+        state: {
+          type: "service",
+          selectedServices: selectedServices.map(name => {
+            const svc = servicesData.find(s => s.name === name);
+            return {
+              name: svc.name,
+              price: svc.price,
+              description: svc.description
+            };
+          }),
+          totalServicePrice: selectedServices.reduce((sum, name) => {
+            const svc = servicesData.find((s) => s.name === name);
+            return sum + (svc?.price || 0);
+          }, 0)
+        }
       });
+
     }}
   >
     Reserve Now

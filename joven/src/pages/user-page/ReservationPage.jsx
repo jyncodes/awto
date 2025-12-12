@@ -21,10 +21,19 @@ import Navbar from "../../components/Navbar";
 const ReservationPage = () => {
   const { productId } = useParams();
   const location = useLocation();
+
+  // ===== SERVICE MODE DETECTION =====
+  const serviceType = location.state?.type || null;
+  const selectedServices = location.state?.selectedServices || [];
+  const totalServicePrice = location.state?.totalServicePrice || 0;
+
+  const isServiceReservation = serviceType === "service";
+
   const passedVehicle = location.state?.vehicleLabel || null;
 
   const navigate = useNavigate();
 
+  // ===== PRODUCT RESERVATION DATA =====
   const passedProduct = location.state?.product || null;
   const selectedSize = location.state?.selectedSize || null;
   const selectedDocId = location.state?.selectedDocId || null;
@@ -36,6 +45,7 @@ const ReservationPage = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(!passedProduct);
 
+  // ===== VEHICLE FIELDS =====
   const [vehicleBrand, setVehicleBrand] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
   const [vehicleYear, setVehicleYear] = useState("");
@@ -87,8 +97,13 @@ const ReservationPage = () => {
     return () => unsub();
   }, []);
 
-  // ================= LOAD PRODUCT =================
+  // ================= LOAD PRODUCT ONLY IF NOT SERVICE =================
   useEffect(() => {
+    if (isServiceReservation) {
+      setLoading(false);
+      return;
+    }
+
     const fetchProduct = async () => {
       if (passedProduct) {
         setLoading(false);
@@ -108,17 +123,24 @@ const ReservationPage = () => {
     };
 
     fetchProduct();
-  }, [productId, passedProduct]);
+  }, [productId, passedProduct, isServiceReservation]);
 
   // ================= FULLY BOOKED DATES =================
   useEffect(() => {
     const fetchFullyBooked = async () => {
       try {
-        const q = query(
-          collection(db, "reservations"),
-          where("productId", "==", productId),
-          where("isCancelled", "==", false)
-        );
+        const q = isServiceReservation
+          ? query(
+              collection(db, "reservations"),
+              where("type", "==", "service"),
+              where("isCancelled", "==", false)
+            )
+          : query(
+              collection(db, "reservations"),
+              where("productId", "==", productId),
+              where("isCancelled", "==", false)
+            );
+
         const snapshot = await getDocs(q);
 
         const dateCounts = {};
@@ -140,7 +162,7 @@ const ReservationPage = () => {
     };
 
     fetchFullyBooked();
-  }, [productId]);
+  }, [productId, isServiceReservation]);
 
   // ================= CONTINUE TO PAYMENT =================
   const handleProceedToPayment = () => {
@@ -165,23 +187,40 @@ const ReservationPage = () => {
     if (fullyBookedDates.includes(chosenKey))
       return alert("Date is fully booked.");
 
-    const draftData = {
-      product,
-      selectedSize,
-      selectedDocId,
-      pricePerItem,
-      quantity,
-      vehicleBrand,
-      vehicleModel,
-      vehicleYear,
-      plateNumber,
-      preferredDate: chosenDate.toISOString(),
-      note,
-      downpayment,
-    };
+    let draftData;
+
+    if (isServiceReservation) {
+      draftData = {
+        type: "service",
+        selectedServices,
+        totalServicePrice,
+        vehicleBrand,
+        vehicleModel,
+        vehicleYear,
+        plateNumber,
+        preferredDate: chosenDate.toISOString(),
+        note,
+        downpayment,
+      };
+    } else {
+      draftData = {
+        type: "product",
+        product,
+        selectedSize,
+        selectedDocId,
+        pricePerItem,
+        quantity,
+        vehicleBrand,
+        vehicleModel,
+        vehicleYear,
+        plateNumber,
+        preferredDate: chosenDate.toISOString(),
+        note,
+        downpayment,
+      };
+    }
 
     localStorage.setItem("reservationDraft", JSON.stringify(draftData));
-
     navigate("/payment");
   };
 
@@ -195,7 +234,7 @@ const ReservationPage = () => {
   if (loading || loadingDownpayment)
     return <div className="reservation-page">Loading...</div>;
 
-  if (!product)
+  if (!product && !isServiceReservation)
     return <div className="reservation-page">Product not found.</div>;
 
   return (
@@ -207,11 +246,14 @@ const ReservationPage = () => {
           ← Back
         </button>
 
-        <h2>Reserve: {product?.brand} {product?.model}</h2>
+        <h2>
+          {isServiceReservation
+            ? "Reserve Selected Services"
+            : `Reserve: ${product?.brand} ${product?.model}`}
+        </h2>
 
         <div className="reservation-form">
-          {/* --- FORM FIELDS REMAIN SAME --- */}
-
+          {/* VEHICLE INFO */}
           <label>Vehicle Info</label>
           <div className="vehicle-row">
             <input
@@ -250,6 +292,7 @@ const ReservationPage = () => {
             <span className="plate-error">{vehicleYearError}</span>
           )}
 
+          {/* PLATE NUMBER */}
           <div className="plate-number-container">
             <label className="plate-label">Plate Number</label>
 
@@ -276,6 +319,7 @@ const ReservationPage = () => {
             {plateError && <span className="plate-error">{plateError}</span>}
           </div>
 
+          {/* DATE PICKER */}
           <label>Preferred Date</label>
           <Calendar
             onChange={setPreferredDate}
@@ -284,6 +328,7 @@ const ReservationPage = () => {
             tileDisabled={tileDisabled}
           />
 
+          {/* NOTES */}
           <label>Additional Notes</label>
           <textarea
             value={note}
@@ -291,11 +336,28 @@ const ReservationPage = () => {
             placeholder="Request or instruction..."
           />
 
+          {/* PRICE SUMMARY */}
           <div className="price-summary">
-            <p><strong>Price per Item:</strong> ₱{pricePerItem.toLocaleString()}</p>
-            <p><strong>Quantity:</strong> {quantity}</p>
-            <p><strong>Total Price:</strong> ₱{(pricePerItem * quantity).toLocaleString()}</p>
-            <p><strong>Downpayment:</strong> ₱{downpayment}</p>
+            {isServiceReservation ? (
+              <>
+                <p><strong>Selected Services:</strong></p>
+                <ul>
+                  {selectedServices.map((svc, index) => (
+                    <li key={index}>{svc.name} — ₱{svc.price}</li>
+                  ))}
+                </ul>
+
+                <p><strong>Total Service Price:</strong> ₱{totalServicePrice.toLocaleString()}</p>
+                <p><strong>Downpayment:</strong> ₱{downpayment}</p>
+              </>
+            ) : (
+              <>
+                <p><strong>Price per Item:</strong> ₱{pricePerItem.toLocaleString()}</p>
+                <p><strong>Quantity:</strong> {quantity}</p>
+                <p><strong>Total Price:</strong> ₱{(pricePerItem * quantity).toLocaleString()}</p>
+                <p><strong>Downpayment:</strong> ₱{downpayment}</p>
+              </>
+            )}
           </div>
 
           <button className="submit-btn" onClick={handleProceedToPayment}>

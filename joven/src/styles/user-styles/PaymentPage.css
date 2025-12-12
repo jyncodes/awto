@@ -6,7 +6,7 @@
 .payment-page {
   font-family: 'Segoe UI', sans-serif;
   background: #f4f6f8;
-  padding: 1.2rem 1rem;
+  padding: 2rem 1.5rem;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -15,10 +15,11 @@
 }
 
 .payment-page h2 {
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
+  font-size: 2rem;
+  margin-bottom: 1.4rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: #1f2d3d;
+  letter-spacing: 0.4px;
   text-align: center;
 }
 
@@ -28,66 +29,85 @@
 .payment-layout {
   display: flex;
   width: 100%;
-  max-width: 1100px;
-  gap: 1.2rem;
+  max-width: 1150px;
+  gap: 1.5rem;
   align-items: flex-start;
 }
 
-/* LEFT COL = 60%, RIGHT COL = 40% */
+/* LEFT = ORDER SUMMARY | RIGHT = PAYMENT OPTIONS */
 .payment-left {
   width: 60%;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.4rem;
 }
 
 .payment-right {
   width: 40%;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.4rem;
 }
 
 /* ----------------------------------------------
    CARD COMPONENT
 ---------------------------------------------- */
 .payment-card {
-  background: white;
-  border-radius: 10px;
-  padding: 1.2rem 1.4rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  animation: slideIn 0.2s ease;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1.6rem 1.8rem;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+  animation: slideIn 0.25s ease;
+  transition: box-shadow 0.2s ease;
+}
+
+.payment-card:hover {
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
 }
 
 .payment-card h3 {
-  margin-bottom: 0.5rem;
-  font-size: 1.2rem;
-  color: #2c3e50;
+  margin-bottom: 0.6rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2d3d;
 }
 
 .payment-card p {
-  font-size: 0.94rem;
-  color: #34495e;
-  margin: 0.3rem 0;
+  font-size: 0.96rem;
+  color: #3a4750;
+  margin: 0.35rem 0;
+  line-height: 1.4;
+}
+
+/* List for services */
+.payment-card ul {
+  padding-left: 1rem;
+  margin: 0.4rem 0 1rem 0;
+  color: #3a4750;
+}
+
+.payment-card li {
+  margin-bottom: 0.25rem;
 }
 
 /* Divider */
 hr {
   border: none;
-  border-top: 1px solid #e2e2e2;
-  margin: 0.8rem 0;
+  border-top: 1px solid #dcdfe3;
+  margin: 1rem 0;
 }
 
 /* ----------------------------------------------
-   WARNING BOX (RIGHT SIDE)
+   WARNING BOX (RIGHT SIDE) — optional
 ---------------------------------------------- */
 .payment-warning {
   background: #fff4f4;
   border-left: 4px solid #e74c3c;
   padding: 1rem 1.2rem;
   border-radius: 8px;
-  font-size: 0.92rem;
-  box-shadow: 0 2px 10px rgba(231, 76, 60, 0.12);
+  font-size: 0.95rem;
+  color: #a94442;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.1);
   line-height: 1.35;
 }
 
@@ -98,76 +118,95 @@ hr {
 .pay-later-button,
 .cancel-btn,
 .back-btn {
-  padding: 0.75rem 1rem;
-  font-size: 0.95rem;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
   font-weight: 600;
   width: 100%;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   border: none;
-  transition: 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-/* Pay Now */
+/* Pay Now Button */
 .pay-button {
-  background: #27ae60;
+  background: linear-gradient(135deg, #27ae60, #1e8d4e);
   color: white;
+  box-shadow: 0 4px 12px rgba(39,174,96,0.25);
 }
-.pay-button:hover:not(:disabled) { background: #1e8d4e; }
 
-/* Pay later */
+.pay-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #219150, #197a43);
+  box-shadow: 0 6px 16px rgba(39,174,96,0.35);
+}
+
+/* Pay Later Button */
 .pay-later-button {
   background: #3498db;
   color: white;
+  box-shadow: 0 4px 12px rgba(52,152,219,0.25);
 }
-.pay-later-button:hover:not(:disabled) { background: #2a7fbe; }
+
+.pay-later-button:hover:not(:disabled) {
+  background: #2b89c7;
+  box-shadow: 0 6px 16px rgba(52,152,219,0.35);
+}
 
 /* Cancel */
 .cancel-btn {
   background: white;
-  border: 1px solid #ccc;
+  border: 1px solid #ccd1d6;
   color: #7f8c8d;
 }
-.cancel-btn:hover:not(:disabled) { background: #f1f1f1; }
+.cancel-btn:hover:not(:disabled) {
+  background: #f7f7f7;
+}
 
-/* Back */
+/* Back Button */
 .back-btn {
   background: #ecf0f1;
   color: #2c3e50;
 }
-.back-btn:hover { background: #d6dbdf; }
+
+.back-btn:hover {
+  background: #d7dee2;
+}
 
 /* Disabled Buttons */
 .pay-button:disabled,
 .pay-later-button:disabled {
-  background: #bfc7cd !important;
+  background: #c3cbd3 !important;
   cursor: not-allowed;
+  box-shadow: none;
 }
+
 .cancel-btn:disabled {
-  background: #dddddd;
+  background: #e2e2e2;
   color: #888;
   cursor: not-allowed;
 }
 
 /* ----------------------------------------------
-   INPUT FIELD
+   INPUT FIELD (if needed in future)
 ---------------------------------------------- */
 .tx-input {
   width: 100%;
-  padding: 0.65rem;
+  padding: 0.7rem;
   border-radius: 8px;
   border: 1px solid #c8cdd2;
   margin-top: 0.4rem;
   margin-bottom: 0.8rem;
   font-size: 0.95rem;
+  transition: 0.2s;
 }
+
 .tx-input:focus {
   border-color: #3498db;
-  box-shadow: 0 0 4px rgba(52,152,219,0.25);
+  box-shadow: 0 0 5px rgba(52,152,219,0.3);
 }
 
 /* ----------------------------------------------
-   RESPONSIVE — STACK COLUMNS ON MOBILE
+   RESPONSIVE (MOBILE)
 ---------------------------------------------- */
 @media (max-width: 850px) {
   .payment-layout {
@@ -177,6 +216,10 @@ hr {
   .payment-left,
   .payment-right {
     width: 100%;
+  }
+
+  .payment-page {
+    padding: 1.5rem 1rem;
   }
 }
 

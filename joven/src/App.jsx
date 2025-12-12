@@ -148,6 +148,18 @@ export default function App() {
         />
 
         <Route
+          path="/reservation/services"
+          element={
+            <RequireVerifiedEmail>
+              <ProtectedRoute allowedRole="User">
+                <ReservationPage />
+              </ProtectedRoute>
+            </RequireVerifiedEmail>
+          }
+        />
+
+
+        <Route
           path="/invoice/:reservationId"
           element={
             <RequireVerifiedEmail>
