@@ -60,30 +60,38 @@ const PaymentPage = () => {
     }
   };
 
+  /* ---------------- CALL CREATE TEMP LOCK WHEN READY ---------------- */
+  useEffect(() => {
+    if (currentUser && draft && !tempLockId) {
+      createTemporaryReservationLock();
+    }
+  }, [currentUser, draft]);
+
   /* ---------------- HANDLE PAY CLICK ---------------- */
- const handlePayClick = (e) => {
-  if (!draft || !currentUser) {
-    e.preventDefault();
-    return alert("Missing reservation details.");
-  }
+  const handlePayClick = (e) => {
+    if (!draft || !currentUser) {
+      e.preventDefault();
+      return alert("Missing reservation details.");
+    }
 
-  // Save final copy before opening PayPal
-  const finalReservationData = {
-    ...draft,
-    userId: currentUser.uid,
-    userEmail: currentUser.email,
-    userName: currentUser.displayName || "Customer",
-    timestamp: Date.now()
+    const finalReservationData = {
+      ...draft,
+      userId: currentUser.uid,
+      userEmail: currentUser.email,
+      userName: currentUser.displayName || "Customer",
+      timestamp: Date.now()
+    };
+
+    localStorage.setItem("finalReservationData", JSON.stringify(finalReservationData));
+
+    alert("Redirecting to PayPal...");
   };
-
-  localStorage.setItem("finalReservationData", JSON.stringify(finalReservationData));
-
-  alert("Redirecting to PayPal...");
-};
 
   if (loading || !draft) return <div className="payment-page">Loading...</div>;
 
-  const totalPrice = draft.pricePerItem * draft.quantity;
+  const totalPrice = draft.type === "service"
+    ? draft.totalServicePrice
+    : draft.pricePerItem * draft.quantity;
 
   return (
     <div className="payment-page-wrapper">
@@ -99,7 +107,18 @@ const PaymentPage = () => {
               <h3>Order Summary</h3>
               <hr />
 
-              <p><strong>Product:</strong> {draft.product?.brand} {draft.product?.model}</p>
+              {draft.type === "service" ? (
+                <>
+                  <p><strong>Service Reservation</strong></p>
+                  <ul>
+                    {draft.selectedServices?.map((svc, index) => (
+                      <li key={index}>{svc.name} — ₱{svc.price}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p><strong>Product:</strong> {draft.product?.brand} {draft.product?.model}</p>
+              )}
 
               <h3>Vehicle Info</h3>
               <p><strong>Brand:</strong> {draft.vehicleBrand}</p>
@@ -109,16 +128,25 @@ const PaymentPage = () => {
 
               <hr />
               <h3>Pricing</h3>
-              <p><strong>Price per item:</strong> ₱{draft.pricePerItem.toLocaleString()}</p>
-              <p><strong>Quantity:</strong> {draft.quantity}</p>
-              <p><strong>Total Price:</strong> ₱{totalPrice.toLocaleString()}</p>
-              <p><strong>Downpayment Required:</strong> ₱{draft.downpayment.toLocaleString()}</p>
+
+              {draft.type === "service" ? (
+                <>
+                  <p><strong>Total Service Price:</strong> ₱{draft.totalServicePrice.toLocaleString()}</p>
+                  <p><strong>Downpayment Required:</strong> ₱{draft.downpayment.toLocaleString()}</p>
+                </>
+              ) : (
+                <>
+                  <p><strong>Price per item:</strong> ₱{draft.pricePerItem.toLocaleString()}</p>
+                  <p><strong>Quantity:</strong> {draft.quantity}</p>
+                  <p><strong>Total Price:</strong> ₱{(draft.pricePerItem * draft.quantity).toLocaleString()}</p>
+                  <p><strong>Downpayment Required:</strong> ₱{draft.downpayment.toLocaleString()}</p>
+                </>
+              )}
             </div>
           </div>
 
           {/* RIGHT */}
           <div className="payment-right">
-
             <div className="paypal-section">
               <h4>Pay with PayPal / Card</h4>
 

@@ -453,7 +453,12 @@ const [sortOption, setSortOption] = useState("newest");
                           <p><strong>Transaction ID:</strong> {res.transactionId}</p>
                         )}
 
-                        <p><strong>Total:</strong> ₱{res.totalPrice?.toLocaleString()}</p>
+                        <p><strong>Total:</strong> ₱{
+                            (res.type === "service"
+                              ? res.totalServicePrice
+                              : res.totalPrice
+                            )?.toLocaleString()
+                          }</p>
 
                         <div className="reservation-actions">
                           <button
@@ -497,11 +502,28 @@ const [sortOption, setSortOption] = useState("newest");
                   </div>
 
                   <div className="receipt-section">
-                    <h4>Product</h4>
-                    <p><strong>Name:</strong> {selectedReservation.productName}</p>
-                    <p><strong>Brand:</strong> {selectedReservation.brand}</p>
-                    <p><strong>Model:</strong> {selectedReservation.model}</p>
-                    <p><strong>Size:</strong> {selectedReservation.size}</p>
+                    <h4>{selectedReservation.type === "service" ? "Selected Services" : "Product"}</h4>
+
+                    {selectedReservation.type === "service" ? (
+                      <>
+                        {selectedReservation.selectedServices?.map((svc, i) => (
+                          <p key={i}>{svc.name} — ₱{svc.price}</p>
+                        ))}
+                        <p><strong>Total Service Price:</strong> ₱{selectedReservation.totalServicePrice?.toLocaleString()}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p><strong>Name:</strong> {selectedReservation.productName}</p>
+                        <p><strong>Quantity:</strong> {selectedReservation.quantity}</p>
+                        <p><strong>Total Price:</strong> ₱{
+                            (selectedReservation.type === "service"
+                              ? selectedReservation.totalServicePrice
+                              : selectedReservation.totalPrice
+                            )?.toLocaleString()
+                          }</p>
+
+                      </>
+                    )}
                   </div>
 
                   <div className="receipt-section">
@@ -513,10 +535,17 @@ const [sortOption, setSortOption] = useState("newest");
                   <div className="receipt-section">
                     <h4>Payment</h4>
                     <p><strong>Downpayment:</strong> ₱{selectedReservation.downpayment}</p>
-                    <p><strong>Total Price:</strong> ₱{selectedReservation.totalPrice?.toLocaleString()}</p>
+                    <p><strong>Total Price:</strong> ₱{
+                      (selectedReservation.type === "service"
+                        ? selectedReservation.totalServicePrice
+                        : selectedReservation.totalPrice
+                      )?.toLocaleString()
+                    }</p>
+
                     <p><strong>Payment Method:</strong> {selectedReservation.paymentMethod}</p>
                     <p><strong>Transaction ID:</strong> {selectedReservation.transactionId}</p>
                   </div>
+
 
                   {selectedReservation.note && (
                     <div className="receipt-section">
