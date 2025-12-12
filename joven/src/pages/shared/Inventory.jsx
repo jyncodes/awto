@@ -31,17 +31,6 @@ const Inventory = ({ role }) => {
 
   const [bulkFilter, setBulkFilter] = useState("all");
 
-  const getSearchableSize = (p) => {
-  if (p.category === "tires") {
-    return `${p.tireWidth}/${p.aspectRatio}R${p.rimDiameter}`;
-  }
-  if (p.category === "mags") {
-    return `${p.wheelDiameter}x${p.wheelWidth} ${p.boltPattern}`;
-  }
-  return "";
-};
-
-
   useEffect(() => {
     const unsubTires = onSnapshot(collection(db, "products_tires"), async (snap) => {
       const list = await Promise.all(
@@ -140,6 +129,7 @@ const Inventory = ({ role }) => {
     }
 
     setFilteredProducts(filtered);
+    setPage(1);
   }, [products, searchTerm, sortOption, stockFilter, categoryView]);
 
   // ------------------------ RESTOCK MODALS ------------------------
@@ -207,6 +197,16 @@ const Inventory = ({ role }) => {
     return true;
   });
 
+  const paginatedProducts = filteredProducts.slice(
+  (page - 1) * ITEMS_PER_PAGE,
+  page * ITEMS_PER_PAGE
+);
+const startIndex = (page - 1) * ITEMS_PER_PAGE + 1;
+const endIndex = Math.min(page * ITEMS_PER_PAGE, filteredProducts.length);
+const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+
+
   return (
     <div className="inventory-page-container">
       <h1 className="inventory-page-title">Inventory</h1>
@@ -255,7 +255,6 @@ const Inventory = ({ role }) => {
         )}
       </div>
 
-
       {/* PRODUCT TABLE */}
       <div className="inventory-card">
         <table className="inventory-table">
@@ -269,7 +268,8 @@ const Inventory = ({ role }) => {
           </thead>
 
           <tbody>
-            {filteredProducts.map((p) => {
+            {paginatedProducts.map((p) => {
+
               const stockValue = getStockValue(p.stock); // <-- updated
 
               return (
@@ -284,6 +284,68 @@ const Inventory = ({ role }) => {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+  <div
+    style={{
+      marginTop: "20px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      width: "100%",
+    }}
+  >
+
+    {/* LEFT SIDE — Showing text */}
+    <span style={{ fontSize: "14px" }}>
+      Showing {startIndex} to {endIndex} of {filteredProducts.length} results
+    </span>
+
+    {/* RIGHT SIDE — PAGE BUTTONS */}
+    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+
+      {/* PREVIOUS */}
+      <button
+        disabled={page === 1}
+        className="cancel-btn"
+        onClick={() => setPage(page - 1)}
+      >
+        Previous
+      </button>
+
+      {/* PAGE NUMBERS */}
+      {[...Array(totalPages)].map((_, i) => (
+        <button
+          key={i}
+          onClick={() => setPage(i + 1)}
+          className="btn-page"
+          style={{
+            padding: "5px 10px",
+            borderRadius: "6px",
+            background: page === i + 1 ? "#333" : "#fff",
+            color: page === i + 1 ? "#fff" : "#333",
+            border: "1px solid #ccc",
+            cursor: "pointer",
+          }}
+        >
+          {i + 1}
+        </button>
+      ))}
+
+      {/* NEXT */}
+      <button
+        disabled={page === totalPages}
+        className="submit-btn"
+        onClick={() => setPage(page + 1)}
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
+
+
+
 
       {/* SINGLE RESTOCK MODAL */}
       {isRestockOpen && (

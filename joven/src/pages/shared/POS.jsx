@@ -54,10 +54,12 @@ const [negotiatedDiscount, setNegotiatedDiscount] = useState(0);
 const [isNegotiated, setIsNegotiated] = useState(false);
 
 
-
-
-  const { fromReservation, reservedItems, customerName: reservedCustomer, reservationId } =
-    location.state || {};
+const {
+  fromReservation,
+  reservedItems,
+  customer: reservedCustomer,
+  reservationId
+} = location.state || {};
 
 const [customerName, setCustomerName] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -108,6 +110,20 @@ const [customerName, setCustomerName] = useState("");
     });
     return () => unsub();
   }, []);
+
+// When POS is opened from a reservation, normalize customer data
+useEffect(() => {
+  if (fromReservation && reservedCustomer) {
+    const normalizedCustomer = {
+      ...reservedCustomer,
+      lastPlateNumber: reservedCustomer.plateNo || reservedCustomer.lastPlateNumber || "",
+      customerCode: reservedCustomer.customerCode || "",
+    };
+
+    setSelectedCustomer(normalizedCustomer);
+    setCustomerName(normalizedCustomer.name);
+  }
+}, [fromReservation, reservedCustomer]);
 
   // ================== LOAD RESERVED ITEMS ==================
   useEffect(() => {
