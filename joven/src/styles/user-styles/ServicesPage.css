@@ -7,13 +7,78 @@
 
 /* Main Area */
 .services-main {
-  padding-top: 130px;
+  padding-top: 30px;
   padding-bottom: 60px;
   display: flex;
-  justify-content: center;
+  flex-direction: column; /* allows top bar */
+  align-items: center;
   width: 100%;
 }
 
+/* --------------------------------
+   SELECTED SERVICES BAR ABOVE LIST
+-------------------------------- */
+.selected-services-top {
+  width: 90%;
+  max-width: 1400px;
+  margin-bottom: 25px;
+}
+
+.selected-services-horizontal {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 12px;
+  background: #fff8e0;
+  border-left: 6px solid #f39c12;
+  border-radius: 10px;
+  box-shadow: 0px 3px 10px rgba(0,0,0,0.08);
+}
+
+/* Reserve button inside selected bar */
+.reserve-button {
+  margin-left: auto;
+  padding: 12px 22px;
+  background: #f39c12;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  white-space: nowrap;
+}
+
+.reserve-button:hover {
+  background: #d88a0f;
+}
+
+.selected-service-box {
+  min-width: 170px;
+  background: #ffffff;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #f5c781;
+  box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.svc-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #444;
+}
+
+.svc-price {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f39c12;
+}
+
+/* --------------------------------
+   LAYOUT SECTION
+-------------------------------- */
 .services-container {
   display: flex;
   width: 90%;
@@ -27,7 +92,7 @@
 .services-sidebar {
   width: 28%;
   background: #ffffff;
-  padding: 22px;
+  padding: 15px;
   border-radius: 14px;
   box-shadow: 0px 4px 20px rgba(0,0,0,0.08);
   border-left: 6px solid #f39c12;
@@ -40,6 +105,14 @@
   color: #f39c12;
 }
 
+.service-helper-text {
+  font-size: 14px;
+  font-style: italic;
+  color: #777;
+  margin-bottom: 12px;
+  margin-top: -8px;
+}
+
 .services-table {
   width: 100%;
   border-collapse: collapse;
@@ -50,23 +123,44 @@
   transition: 0.2s;
 }
 
+.services-table tr:hover td {
+  background: #fff3e0;
+}
+
 .services-table td {
   padding: 14px 12px;
   border-bottom: 1px solid #e5e5e5;
   font-size: 16px;
   color: #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.services-table tr:hover td {
-  background: #fff3e0;
+/* Price inside service list */
+.service-price-right {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f39c12;
 }
 
+.service-name {
+  font-weight: 600;
+}
+
+/* Active row highlight */
 .active-row td {
   background: #f39c12 !important;
   color: white !important;
   font-weight: 600;
   border-radius: 6px;
 }
+
+/* Price turns white when selected */
+.active-row td .service-price-right {
+  color: white !important;
+}
+
 
 /* --------------------------------
    SERVICE DETAILS
@@ -104,38 +198,6 @@
 }
 
 /* --------------------------------
-   FACEBOOK INQUIRY BOX
--------------------------------- */
-.inquiry-box {
-  background: #fff7e6;
-  padding: 20px;
-  border-radius: 10px;
-  border-left: 6px solid #f39c12;
-  text-align: center;
-}
-
-.inquiry-box p {
-  font-size: 17px;
-  margin-bottom: 12px;
-  color: #444;
-}
-
-.fb-button {
-  display: inline-block;
-  padding: 10px 18px;
-  background: #f39c12;
-  color: white;
-  font-weight: 600;
-  border-radius: 8px;
-  text-decoration: none;
-  transition: 0.2s;
-}
-
-.fb-button:hover {
-  background: #d88a0f;
-}
-
-/* --------------------------------
    RESPONSIVE
 -------------------------------- */
 @media (max-width: 992px) {
@@ -157,4 +219,40 @@
   .service-description {
     font-size: 15px;
   }
+
+  .selected-service-box {
+    min-width: 140px;
+  }
+}
+
+.service-summary-box {
+  margin-top: 18px;
+  padding: 14px;
+  background: #fff8e0;
+  border-left: 5px solid #f39c12;
+  border-radius: 10px;
+}
+
+.summary-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f39c12;
+  margin-bottom: 10px;
+}
+
+.reserve-small-btn {
+  width: 100%;
+  padding: 10px 0;
+  background: #f39c12;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.reserve-small-btn:hover {
+  background: #d88a0f;
 }

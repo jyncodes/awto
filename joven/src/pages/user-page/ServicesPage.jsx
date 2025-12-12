@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
 import { collection, getDocs } from "firebase/firestore";
 
@@ -7,7 +7,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/user-components/Footer";
 import "../../styles/user-styles/ServicesPage.css";
 
-// Local images mapped by name
+// Local images
 import oilChangeImg from "../../images/services/oil_change.png";
 import camberAlignmentImg from "../../images/services/camber_alignment.png";
 import wheelAlignmentImg from "../../images/services/wheel_alignment.png";
@@ -35,7 +35,7 @@ const ServicesPage = () => {
   const [selectedServices, setSelectedServices] = useState([]);
   const [currentService, setCurrentService] = useState(null);
 
-  // Fetch services from Firestore
+  // Fetch services
   useEffect(() => {
     const fetchServices = async () => {
       const querySnapshot = await getDocs(collection(db, "services"));
@@ -82,11 +82,15 @@ const ServicesPage = () => {
 
       <div className="services-wrapper">
         <main className="services-main">
+
           <section className="services-container">
-            
+
             {/* LEFT SERVICE LIST */}
             <aside className="services-sidebar">
               <h2>Service List</h2>
+              <p className="service-helper-text">
+                Please select the services you want to reserve.
+              </p>
 
               <table className="services-table">
                 <tbody>
@@ -100,33 +104,49 @@ const ServicesPage = () => {
                       }
                       onClick={() => handleServiceClick(service.name)}
                     >
-                      <td>{service.name}</td>
+                      <td className="service-row">
+                        <span className="service-name">{service.name}</span>
+                        <span className="service-price-right">
+                          ₱{service.price}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
+              {/* TOTAL + RESERVE BUTTON */}
+{/* TOTAL + RESERVE BUTTON — ALWAYS VISIBLE */}
+<div className="service-summary-box">
+  <p className="summary-total">
+    Total: ₱
+    {selectedServices.reduce((sum, name) => {
+      const svc = servicesData.find((s) => s.name === name);
+      return sum + (svc?.price || 0);
+    }, 0)}
+  </p>
+
+  <button
+    className="reserve-small-btn"
+    onClick={() => {
+      if (selectedServices.length === 0) {
+        alert("Please select at least one service before proceeding.");
+        return;
+      }
+
+      navigate("/reserve-service", {
+        state: { selectedServices },
+      });
+    }}
+  >
+    Reserve Now
+  </button>
+</div>
+
             </aside>
 
-            {/* RIGHT DETAILS SECTION */}
+            {/* RIGHT DETAILS */}
             <div className="service-details">
-
-              {/* HORIZONTAL SELECTED LIST */}
-              {selectedServices.length > 0 && (
-                <div className="selected-services-horizontal">
-                  {selectedServices.map((name) => {
-                    const svc = servicesData.find((s) => s.name === name);
-                    if (!svc) return null;
-                    return (
-                      <div key={name} className="selected-service-box">
-                        <p className="svc-name">{svc.name}</p>
-                        <p className="svc-price">₱{svc.price}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* CURRENT SERVICE DETAILS */}
               {currentService && (
                 <>
                   <h1 className="service-title">{currentService.name}</h1>
@@ -142,36 +162,8 @@ const ServicesPage = () => {
                   <p className="service-description">
                     {currentService.description}
                   </p>
-
-                  {/* Reserve Now Button */}
-                  {selectedServices.length > 0 && (
-                    <button
-                      className="reserve-button"
-                      onClick={() =>
-                        navigate("/reserve-service", {
-                          state: { selectedServices },
-                        })
-                      }
-                    >
-                      Reserve Now
-                    </button>
-                  )}
-
-                  {/* FB Message Box */}
-                  <div className="inquiry-box">
-                    <p>For more inquiries, message us on our Facebook page.</p>
-                    <a
-                      href="https://www.facebook.com/joventireenterprise"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="fb-button"
-                    >
-                      Message Us on Facebook
-                    </a>
-                  </div>
                 </>
               )}
-
             </div>
           </section>
         </main>
