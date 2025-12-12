@@ -9,8 +9,8 @@
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  font-family: 'Poppins', sans-serif;
-  font-weight: 400; /* 🔥 remove hard-bold look */
+  font-family: "Poppins", sans-serif;
+  font-weight: 400;
   transition: all 0.28s ease-in-out;
   box-sizing: border-box;
   position: relative;
@@ -24,39 +24,102 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
   margin-bottom: 12px;
 }
 
 .filters-header h3 {
   font-size: 1.05rem;
-  font-weight: 500; /* 🔥 softer look */
+  font-weight: 500;
   color: #111;
   margin: 0;
 }
 
 /* =========================================
-   MOBILE FILTER BUTTON (Align with Sort)
+   CLEAR BUTTON — SOLID, MINIMAL, NO SHADOW
+========================================= */
+.clear-btn {
+  background: #f2f4f7;        /* ✅ solid, not white */
+  color: #344054;             /* soft dark text */
+  border: 1px solid #e4e7ec;  /* subtle outline */
+  border-radius: 8px;
+
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 400;
+  font-family: "Poppins", sans-serif;
+
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.clear-btn:hover {
+  background: #e4e7ec;        /* slightly darker */
+  color: #1d2939;
+}
+
+.clear-btn:active {
+  background: #d0d5dd;
+}
+
+/* =========================================
+   FILTER BUTTON — EXACT SORT BY LOOK
 ========================================= */
 .filter-toggle-btn {
   display: none;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  border: 1.6px solid #1f1f1f;
-  border-radius: 10px;
-  padding: 12px 18px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  color: #111;
+
   height: 44px;
-  box-shadow: none;
-  transition: transform 0.12s ease;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #111;
+
+  font-family: "Poppins", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-.filter-toggle-btn:active {
-  transform: translateY(1px);
+.filter-toggle-btn:hover {
+  border-color: #cfcfcf;
+}
+
+/* icon + label */
+.filter-toggle-btn .filter-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* =========================================
+   MOBILE TOP CONTROLS (FILTER + SORT)
+========================================= */
+@media (max-width: 1024px) {
+  .filter-toggle-btn {
+    display: flex;
+  }
+
+  .top-controls {
+    display: flex !important;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin: 14px 0 20px 0;
+  }
+
+  .filter-toggle-btn,
+  .sort-select {
+    height: 44px;
+    font-size: 0.95rem;
+  }
 }
 
 /* =========================================
@@ -64,31 +127,20 @@
 ========================================= */
 .filter-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
   background: rgba(0, 0, 0, 0.35);
   z-index: 998;
   display: none;
-  transition: opacity 0.25s ease;
 }
 
 .filter-overlay.visible {
   display: block;
-  opacity: 1;
 }
 
 /* =========================================
    MOBILE DRAWER PANEL
 ========================================= */
 @media (max-width: 1024px) {
-  /* 🔥 NOW VISIBLE in mobile/tablet */
-  .filter-toggle-btn {
-    display: flex;
-  }
-
-  /* Drawer style */
   .filters {
     position: fixed;
     top: 0;
@@ -96,8 +148,8 @@
     height: 100vh;
     width: 86%;
     max-width: 420px;
-    z-index: 999;
     background: #fff;
+    z-index: 999;
     overflow-y: auto;
     padding: 28px 22px 120px;
     box-shadow: 2px 0 16px rgba(0, 0, 0, 0.18);
@@ -109,48 +161,30 @@
   .filters.open {
     left: 0;
   }
-
-  /* 🔥 ALIGNMENT FIX: Filter + Sort on one row */
-  .top-controls {
-    display: flex !important;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    margin: 14px 0 20px 0;
-    gap: 12px;
-  }
-
-  /* Make Filter & Sort same height */
-  .filter-toggle-btn,
-  .sort-select {
-    height: 44px !important;
-    font-size: 0.95rem;
-  }
 }
 
 /* =========================================
-   FILTER CONTENT (desktop + mobile)
+   FILTER CONTENT
 ========================================= */
 .filter-block {
   margin-bottom: 14px;
 }
 
 .filter-header {
-  font-weight: 500; /* softer */
+  font-weight: 500;
+  font-size: 0.95rem;
   color: #222;
   padding: 10px 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  font-size: 0.95rem;
   border-bottom: 1px solid #eee;
 }
 
 .filter-header .chev {
   font-size: 1.2rem;
   color: #666;
-  user-select: none;
 }
 
 .filter-content {
@@ -158,7 +192,6 @@
   margin-top: 10px;
   max-height: 260px;
   overflow-y: auto;
-  border-radius: 6px;
 }
 
 .filter-option {
@@ -169,14 +202,12 @@
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.94rem;
+  font-weight: 400;
   color: #222;
-  font-weight: 400; /* softer font */
-  transition: all 0.15s ease-in-out;
+  transition: all 0.15s ease;
 }
 
 .filter-option:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.06);
   border-color: #d6b86a;
 }
 
@@ -186,7 +217,7 @@
   color: #111;
 }
 
-/* Search field */
+/* Search */
 .filter-search {
   width: 100%;
   padding: 10px 12px;
@@ -196,7 +227,9 @@
   font-size: 0.95rem;
 }
 
-/* Desktop aligned panel */
+/* =========================================
+   DESKTOP
+========================================= */
 @media (min-width: 1025px) {
   .filter-toggle-btn,
   .filter-overlay {
@@ -205,7 +238,6 @@
 
   .filters {
     position: relative;
-    left: 0;
     max-width: 320px;
     padding: 22px;
     box-shadow: none;

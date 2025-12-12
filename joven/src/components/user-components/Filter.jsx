@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
+import { SlidersHorizontal, ChevronDown } from "lucide-react";
 import "../../styles/user-styles/Filter.css";
 
 const Filter = ({ onChange, mobileControl }) => {
@@ -11,7 +12,7 @@ const Filter = ({ onChange, mobileControl }) => {
   const [searchTerms, setSearchTerms] = useState({});
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Sync mobile state with parent
+  /* ================= SYNC MOBILE STATE ================= */
   useEffect(() => {
     if (mobileControl?.open !== undefined) {
       setIsMobileOpen(mobileControl.open);
@@ -24,7 +25,7 @@ const Filter = ({ onChange, mobileControl }) => {
     }
   }, [isMobileOpen]);
 
-  // Fetch filter data
+  /* ================= FETCH FILTER DATA ================= */
   useEffect(() => {
     const fetchFilters = async () => {
       const tireSnap = await getDocs(collection(db, "products_tires"));
@@ -81,13 +82,13 @@ const Filter = ({ onChange, mobileControl }) => {
     fetchFilters();
   }, []);
 
-  // Push filters to parent
+  /* ================= PUSH FILTERS ================= */
   useEffect(() => {
     const formatted = Object.fromEntries(
       Object.entries(selectedFilters).map(([key, set]) => [key, [...set]])
     );
     onChange && onChange(formatted);
-  }, [selectedFilters]);
+  }, [selectedFilters, onChange]);
 
   const toggleExpand = (name) =>
     setExpanded((prev) =>
@@ -110,9 +111,16 @@ const Filter = ({ onChange, mobileControl }) => {
 
   return (
     <>
-      {/* MOBILE FILTER BUTTON */}
-      <button className="filter-toggle-btn" onClick={() => setIsMobileOpen(true)}>
-        Filter
+      {/* ===== MOBILE FILTER BUTTON (LOOKS LIKE SORT BY) ===== */}
+      <button
+        className="filter-toggle-btn sort-like"
+        onClick={() => setIsMobileOpen(true)}
+      >
+        <span className="filter-label">
+          <SlidersHorizontal size={16} />
+          Filter
+        </span>
+        <ChevronDown size={18} />
       </button>
 
       {/* OVERLAY */}
@@ -121,7 +129,7 @@ const Filter = ({ onChange, mobileControl }) => {
         onClick={() => setIsMobileOpen(false)}
       />
 
-      {/* FILTER PANEL */}
+      {/* FILTER DRAWER */}
       <aside className={`filters ${isMobileOpen ? "open" : ""}`}>
         <div className="filters-header">
           <h3>Filters</h3>
