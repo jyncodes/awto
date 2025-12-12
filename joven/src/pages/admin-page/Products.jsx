@@ -65,6 +65,9 @@ const Products = () => {
   const [editingService, setEditingService] = useState(null);
   const [isServiceSaving, setIsServiceSaving] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
+
   const fetchTires = async () => {
     const snapshot = await getDocs(collection(db, "products_tires"));
     setTires(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -83,6 +86,22 @@ const Products = () => {
       setServices(list.sort((a, b) => (a.name || "").localeCompare(b.name || "")));
     });
   };
+
+  const paginated = (data) => {
+  const total = data.length;
+  const start = (page - 1) * itemsPerPage;
+  const end = Math.min(start + itemsPerPage, total);
+  const totalPages = Math.ceil(total / itemsPerPage);
+
+  return {
+    data: data.slice(start, end),
+    start: start + 1,
+    end,
+    total,
+    totalPages,
+  };
+};
+
 
   useEffect(() => {
     fetchTires();
@@ -247,6 +266,45 @@ const Products = () => {
       )
     );
 
+    // PAGINATION COMPONENT
+const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }) => (
+  <div className="pagination">
+    <p className="pagination-info">
+      Showing {start} to {end} of {total} results
+    </p>
+
+    <div className="pagination-buttons">
+      <button
+        disabled={currentPage === 1}
+        onClick={() => onPageChange(currentPage - 1)}
+      >
+        Previous
+      </button>
+
+      {[...Array(totalPages)].map((_, index) => {
+        const page = index + 1;
+        return (
+          <button
+            key={page}
+            className={page === currentPage ? "active-page" : ""}
+            onClick={() => onPageChange(page)}
+          >
+            {page}
+          </button>
+        );
+      })}
+
+      <button
+        disabled={currentPage === totalPages}
+        onClick={() => onPageChange(currentPage + 1)}
+      >
+        Next
+      </button>
+    </div>
+  </div>
+);
+
+
   return (
     <div className="products-page-container">
       <h1 className="products-page-title">Products</h1>
@@ -259,208 +317,258 @@ const Products = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
         />
-        <button className="btn-tires" onClick={() => setCurrentView("tires")}>
-          Tires
-        </button>
-        <button className="btn-mags" onClick={() => setCurrentView("mags")}>
-          Mags
-        </button>
-        <button className="btn-add-tire" onClick={() => openAddModal("Tire")}>
-          Add Tire
-        </button>
-        <button className="btn-add-mag" onClick={() => openAddModal("Mags")}>
-          Add Mag
-        </button>
 
-        <button className="btn-services" onClick={() => setCurrentView("services")}>
-          Services
-        </button>
+    <select
+      className="products-select"
+      value={currentView}
+      onChange={(e) => setCurrentView(e.target.value)}
+    >
+      <option value="tires">View: Tires</option>
+      <option value="mags">View: Mags</option>
+      <option value="services">View: Services</option>
+    </select>
+
+
+<select
+  className="products-select"
+  onChange={(e) => {
+    const val = e.target.value;
+    if (val === "Tire") openAddModal("Tire");
+    if (val === "Mags") openAddModal("Mags");
+    if (val === "Service") {
+      setEditingService(null);
+      setServiceForm(INITIAL_SERVICE_FORM);
+      setServiceModalOpen(true);
+    }
+  }}
+>
+  <option value="">Add New...</option>
+  <option value="Tire">Add Tire</option>
+  <option value="Mags">Add Mag</option>
+  <option value="Service">Add Service</option>
+</select>
+
+
       </div>
 
       {/* ------------------ TIRES TABLE ------------------ */}
       {currentView === "tires" && (
-        <div className="product-table-wrapper">
-          <h2>Tires</h2>
-          {filterProducts(tires).length === 0 ? (
-            <p>No tires found.</p>
-          ) : (
-            <table className="product-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Brand</th>
-                  <th>Model</th>
-                  <th>Width</th>
-                  <th>Aspect</th>
-                  <th>Rim</th>
-                  <th>Cost</th>
-                  <th>Price</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filterProducts(tires).map((p) => {
-                  return (
-                    <tr key={p.id}>
-                      <td>{p.productId}</td>
-                      <td>{p.brand}</td>
-                      <td>{p.model}</td>
-                      <td>{p.tireWidth}</td>
-                      <td>{p.aspectRatio}</td>
-                      <td>{p.rimDiameter}</td>
-                      <td>{p.cost}</td>
-                      <td>{p.price}</td>
-                      <td>
-                        <button onClick={() => handleEdit(p, "Tire")}>Edit</button>
-                        <button onClick={() => handleDelete(p, "Tire")}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+  <div className="product-table-wrapper">
+    <h2>Tires</h2>
+
+    {filterProducts(tires).length === 0 ? (
+      <p>No tires found.</p>
+    ) : (
+      <>
+        <table className="product-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Brand</th>
+              <th>Model</th>
+              <th>Width</th>
+              <th>Aspect</th>
+              <th>Rim</th>
+              <th>Cost</th>
+              <th>Price</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {paginated(filterProducts(tires)).data.map((p) => (
+              <tr key={p.id}>
+                <td>{p.productId}</td>
+                <td>{p.brand}</td>
+                <td>{p.model}</td>
+                <td>{p.tireWidth}</td>
+                <td>{p.aspectRatio}</td>
+                <td>{p.rimDiameter}</td>
+                <td>{p.cost}</td>
+                <td>{p.price}</td>
+                <td>
+                  <button onClick={() => handleEdit(p, "Tire")}>Edit</button>
+                  <button onClick={() => handleDelete(p, "Tire")}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* ✔ pagination wrapped inside same fragment */}
+        <Pagination
+          currentPage={page}
+          totalPages={paginated(filterProducts(tires)).totalPages}
+          onPageChange={setPage}
+          start={paginated(filterProducts(tires)).start}
+          end={paginated(filterProducts(tires)).end}
+          total={paginated(filterProducts(tires)).total}
+        />
+      </>
+    )}
+  </div>
+)}
+
+
 
       {/* ------------------ MAGS TABLE ------------------ */}
       {currentView === "mags" && (
-        <div className="product-table-wrapper">
-          <h2>Mags (Per Set)</h2>
-          {filterProducts(mags).length === 0 ? (
-            <p>No mags found.</p>
-          ) : (
-            <table className="product-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Brand</th>
-                  <th>Model</th>
-                  <th>Wheel Diameter</th>
-                  <th>Wheel Width</th>
-                  <th>Offset</th>
-                  <th>Bolt Pattern</th>
-                  <th>Center Bore</th>
-                  <th>Cost</th>
-                  <th>Price</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filterProducts(mags).map((p) => {
-                  return (
-                    <tr key={p.id}>
-                      <td>{p.productId}</td>
-                      <td>{p.brand}</td>
-                      <td>{p.model}</td>
-                      <td>{p.wheelDiameter}</td>
-                      <td>{p.wheelWidth}</td>
-                      <td>{p.offset}</td>
-                      <td>{p.boltPattern}</td>
-                      <td>{p.centerBore}</td>
-                      <td>{p.cost}</td>
-                      <td>{p.price}</td>
-                      <td>
-                        <button onClick={() => handleEdit(p, "Mags")}>Edit</button>
-                        <button onClick={() => handleDelete(p, "Mags")}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+  <div className="product-table-wrapper">
+    <h2>Mags (Per Set)</h2>
+
+    {filterProducts(mags).length === 0 ? (
+      <p>No mags found.</p>
+    ) : (
+      <>
+        <table className="product-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Brand</th>
+              <th>Model</th>
+              <th>Wheel Diameter</th>
+              <th>Wheel Width</th>
+              <th>Offset</th>
+              <th>Bolt Pattern</th>
+              <th>Center Bore</th>
+              <th>Cost</th>
+              <th>Price</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {paginated(filterProducts(mags)).data.map((p) => (
+              <tr key={p.id}>
+                <td>{p.productId}</td>
+                <td>{p.brand}</td>
+                <td>{p.model}</td>
+                <td>{p.wheelDiameter}</td>
+                <td>{p.wheelWidth}</td>
+                <td>{p.offset}</td>
+                <td>{p.boltPattern}</td>
+                <td>{p.centerBore}</td>
+                <td>{p.cost}</td>
+                <td>{p.price}</td>
+                <td>
+                  <button onClick={() => handleEdit(p, "Mags")}>Edit</button>
+                  <button onClick={() => handleDelete(p, "Mags")}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* ✔ pagination included INSIDE */}
+        <Pagination
+          currentPage={page}
+          totalPages={paginated(filterProducts(mags)).totalPages}
+          onPageChange={setPage}
+          start={paginated(filterProducts(mags)).start}
+          end={paginated(filterProducts(mags)).end}
+          total={paginated(filterProducts(mags)).total}
+        />
+      </>
+    )}
+  </div>
+)}
+
+
 
       {/* ------------------ SERVICES TABLE ------------------ */}
       {currentView === "services" && (
-        <div className="product-table-wrapper">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "1rem",
-            }}
-          >
-            <h2>Services</h2>
-            <div>
-              <button className="btn-submit" onClick={() => {
-                setEditingService(null);
-                setServiceForm(INITIAL_SERVICE_FORM);
-                setServiceModalOpen(true);
-              }}>
-                Add Service
-              </button>
-            </div>
-          </div>
+  <div className="product-table-wrapper">
 
-          {services.length === 0 ? (
-            <p style={{ padding: "1rem" }}>No services found.</p>
-          ) : (
-            <table className="product-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Price</th>
-                  <th>Taxable</th>
-                  <th>Duration</th>
-                  <th>Active</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "1rem",
+      }}
+    >
+      <h2>Services</h2>
+    </div>
 
-              <tbody>
-                {services.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.name}</td>
-                    <td>₱{Number(s.price || 0).toFixed(2)}</td>
-                    <td>{s.taxable ? "Yes" : "No"}</td>
-                    <td>{s.durationMinutes ?? "—"}</td>
-                    <td>{s.active ? "Yes" : "No"}</td>
+    {services.length === 0 ? (
+      <p>No services found.</p>
+    ) : (
+      <>
+        {/* ✔ TABLE */}
+        <table className="product-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Price</th>
+              <th>Taxable</th>
+              <th>Duration</th>
+              <th>Active</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
 
-                    <td>
-                      <button
-                        onClick={() => {
-                          setEditingService(s);
-                          setServiceForm({
-                            name: s.name,
-                            price: s.price,
-                            taxable: s.taxable,
-                            durationMinutes: s.durationMinutes,
-                            active: s.active,
-                          });
-                          setServiceModalOpen(true);
-                        }}
-                      >
-                        Edit
-                      </button>
+          <tbody>
+            {paginated(services).data.map((s) => (
+              <tr key={s.id}>
+                <td>{s.name}</td>
+                <td>₱{Number(s.price || 0).toFixed(2)}</td>
+                <td>{s.taxable ? "Yes" : "No"}</td>
+                <td>{s.durationMinutes ?? "—"}</td>
+                <td>{s.active ? "Yes" : "No"}</td>
 
-                      <button onClick={() => {
-                        updateDoc(doc(db, "services", s.id), {
-                          active: !s.active,
-                          updatedAt: serverTimestamp(),
-                        });
-                      }}>
-                        {s.active ? "Disable" : "Enable"}
-                      </button>
+                <td>
+                  <button
+                    onClick={() => {
+                      setEditingService(s);
+                      setServiceForm({
+                        name: s.name,
+                        price: s.price,
+                        taxable: s.taxable,
+                        durationMinutes: s.durationMinutes,
+                        active: s.active,
+                      });
+                      setServiceModalOpen(true);
+                    }}
+                  >
+                    Edit
+                  </button>
 
-                      <button onClick={() => deleteDoc(doc(db, "services", s.id))}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+                  <button
+                    onClick={() =>
+                      updateDoc(doc(db, "services", s.id), {
+                        active: !s.active,
+                        updatedAt: serverTimestamp(),
+                      })
+                    }
+                  >
+                    {s.active ? "Disable" : "Enable"}
+                  </button>
+
+                  <button onClick={() => deleteDoc(doc(db, "services", s.id))}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* ✔ PAGINATION — inside the same fragment */}
+        <Pagination
+          currentPage={page}
+          totalPages={paginated(services).totalPages}
+          onPageChange={setPage}
+          start={paginated(services).start}
+          end={paginated(services).end}
+          total={paginated(services).total}
+        />
+      </>
+    )}
+  </div>
+)}
+
+
+      
 
       {/* ------------------ PRODUCT MODAL ------------------ */}
       {isModalOpen && (
