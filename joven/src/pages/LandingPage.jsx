@@ -95,7 +95,8 @@ const LandingPage = () => {
 
   const scrollToBrands = () => {
     guardNavigation(() => {
-      document.getElementById("brand")?.scrollIntoView({ behavior: "smooth" });
+        navigate("/user-dashboard");
+
     });
   };
 
@@ -145,11 +146,11 @@ const LandingPage = () => {
 
               <div className="hero-cta">
                 <button className="btn btn-primary" onClick={goToServices}>
-                  Services
+                  Book Service
                 </button>
 
                 <button className="btn btn-outline" onClick={scrollToBrands}>
-                  Shop Brands
+                  Reserve Product
                 </button>
               </div>
             </div>

@@ -183,3 +183,21 @@ footer.footer {
 .page-number {
   white-space: nowrap !important; /* prevents text breaking */
 }
+
+/* ================= MOBILE FILTER + SORT ROW ================= */
+.top-controls {
+  display: none;
+  width: 100%;
+  margin: 16px 0 20px 0;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 1024px) {
+  .top-controls {
+    display: flex;
+    justify-content: flex-end; /* 🔥 move to right */
+    align-items: center;
+    gap: 12px;
+  }
+}
+
