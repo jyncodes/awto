@@ -1,24 +1,28 @@
 // src/pages/user-page/UserDashboard.jsx
-
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebase";
+
 import Navbar from "../../components/Navbar";
-import Filter from "../../components/user-components/Filter";
+import Filter from "../../components/user-components/Filter.jsx";
 import CatalogBox from "../../components/user-components/CatalogBox";
-import Manual from "../../components/user-components/Manual"; // ✅ Replaced Fitment with Manual
+import Manual from "../../components/user-components/Manual";
+import Footer from "../../components/user-components/Footer"; // ➜ ADDED
+
 import "../../styles/user-styles/UserDashboard.css";
 
 const UserDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ Pull filters & label from Manual or previous state
   const { size, vehicleLabel } = location.state || {};
-  const [filters, setFilters] = useState(size ? { size } : {}); // Prefill filter if size was passed
+  const [filters, setFilters] = useState(size ? { size } : {});
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
-  // ✅ Logout handler
+  // pagination data that CatalogBox sends up
+  const [pageData, setPageData] = useState(null);
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -37,11 +41,13 @@ const UserDashboard = () => {
       />
 
       <div className="user-dashboard-container">
-        {/* ✅ Manual fitment selector at the top */}
+
+        {/* Fitment */}
         <div className="fitment-section">
           <Manual />
         </div>
 
+        {/* Vehicle label */}
         {vehicleLabel && size && (
           <div className="vehicle-banner">
             <h2>
@@ -52,21 +58,83 @@ const UserDashboard = () => {
         )}
 
         {!vehicleLabel && (
-          <p className="dashboard-intro">
+          <p className="dashboard-intro centered-intro">
             Select your vehicle below and browse fitment-matching products.
           </p>
         )}
 
+        {/* MOBILE FILTER BUTTON */}
+        <div className="top-controls">
+          <Filter
+            onChange={setFilters}
+            mobileControl={{
+              open: mobileFilterOpen,
+              setOpen: setMobileFilterOpen,
+            }}
+          />
+        </div>
+
+        {/* MAIN CONTENT */}
         <div className="dashboard-content">
+
+          {/* Left Filter (desktop only) */}
           <div className="filter-panel">
-            <Filter onChange={setFilters} />
+            <div className="filter-desktop-wrapper">
+              <Filter onChange={setFilters} />
+            </div>
           </div>
 
+          {/* Right Catalog */}
           <div className="catalog-panel">
-            <CatalogBox filters={filters} />
+            <CatalogBox filters={filters} onPageData={setPageData} />
+
+            {/* PAGINATION HERE */}
+            {pageData && pageData.totalPages > 1 && (
+              <div className="pagination-wrapper">
+                <span className="pagination-label">
+                  Showing {pageData.showing} of {pageData.totalItems} items
+                </span>
+
+                <div className="pagination">
+                  {/* PREV */}
+                  <button
+                    className="page-btn"
+                    onClick={() => pageData.setPage(pageData.currentPage - 1)}
+                    disabled={pageData.currentPage === 1}
+                  >
+                    Previous
+                  </button>
+
+                  {/* PAGE NUMBERS */}
+                  {Array.from({ length: pageData.totalPages }, (_, i) => (
+                    <button
+                      key={i}
+                      className={`page-number ${
+                        pageData.currentPage === i + 1 ? "active" : ""
+                      }`}
+                      onClick={() => pageData.setPage(i + 1)}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+
+                  {/* NEXT */}
+                  <button
+                    className="page-btn"
+                    onClick={() => pageData.setPage(pageData.currentPage + 1)}
+                    disabled={pageData.currentPage === pageData.totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* ➜ FOOTER EXACTLY LIKE LANDING PAGE */}
+      <Footer />
     </>
   );
 };

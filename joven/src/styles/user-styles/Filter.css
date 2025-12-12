@@ -1,204 +1,214 @@
-/* =========================
-   FILTER CONTAINER
-========================= */
+/* =========================================
+   GLOBAL FILTER PANEL
+========================================= */
 .filters {
   width: 100%;
   max-width: 300px;
   background: #ffffff;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e9e6e2;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  font-family: 'Segoe UI', Tahoma, sans-serif;
-  transition: all 0.3s ease-in-out;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 400; /* 🔥 remove hard-bold look */
+  transition: all 0.28s ease-in-out;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 2;
 }
 
-/* =========================
-   TOGGLE BUTTON (MOBILE ONLY)
-========================= */
+/* =========================================
+   FILTER HEADER (DESKTOP)
+========================================= */
+.filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filters-header h3 {
+  font-size: 1.05rem;
+  font-weight: 500; /* 🔥 softer look */
+  color: #111;
+  margin: 0;
+}
+
+/* =========================================
+   MOBILE FILTER BUTTON (Align with Sort)
+========================================= */
 .filter-toggle-btn {
-  display: none; /* Hidden by default (shown only on mobile) */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1.6px solid #1f1f1f;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #111;
+  height: 44px;
+  box-shadow: none;
+  transition: transform 0.12s ease;
 }
 
-@media (max-width: 768px) {
+.filter-toggle-btn:active {
+  transform: translateY(1px);
+}
+
+/* =========================================
+   MOBILE DRAWER OVERLAY
+========================================= */
+.filter-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 998;
+  display: none;
+  transition: opacity 0.25s ease;
+}
+
+.filter-overlay.visible {
+  display: block;
+  opacity: 1;
+}
+
+/* =========================================
+   MOBILE DRAWER PANEL
+========================================= */
+@media (max-width: 1024px) {
+  /* 🔥 NOW VISIBLE in mobile/tablet */
   .filter-toggle-btn {
-    display: block;
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    background: #1e88e5;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 16px;
-    font-size: 1rem;
-    z-index: 1000;
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    display: flex;
   }
-}
 
-/* =========================
-   MOBILE DRAWER BEHAVIOR
-========================= */
-@media (max-width: 768px) {
+  /* Drawer style */
   .filters {
     position: fixed;
     top: 0;
     left: -100%;
     height: 100vh;
-    width: 85%;
-    max-width: 320px;
+    width: 86%;
+    max-width: 420px;
     z-index: 999;
     background: #fff;
     overflow-y: auto;
-    padding: 24px 20px;
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
-    transition: left 0.3s ease;
+    padding: 28px 22px 120px;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.18);
+    transition: left 0.32s cubic-bezier(.2,.9,.2,1);
+    border-radius: 0;
+    border-left: 0;
   }
 
   .filters.open {
     left: 0;
   }
 
-  .filter-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 998;
-    display: none;
+  /* 🔥 ALIGNMENT FIX: Filter + Sort on one row */
+  .top-controls {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin: 14px 0 20px 0;
+    gap: 12px;
   }
 
-  .filter-overlay.visible {
-    display: block;
+  /* Make Filter & Sort same height */
+  .filter-toggle-btn,
+  .sort-select {
+    height: 44px !important;
+    font-size: 0.95rem;
   }
 }
 
-/* =========================
-   FILTER HEADER
-========================= */
-.filters-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+/* =========================================
+   FILTER CONTENT (desktop + mobile)
+========================================= */
+.filter-block {
+  margin-bottom: 14px;
 }
 
-.filters-header h3 {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.clear-btn {
-  background: none;
-  border: none;
-  color: #1976d2;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: 0.2s;
-}
-
-.clear-btn:hover:not(:disabled),
-.clear-btn:focus {
-  color: #0d47a1;
-  background-color: #e3f2fd;
-}
-
-.clear-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* =========================
-   FILTER DROPDOWN HEADERS
-========================= */
 .filter-header {
-  font-weight: 600;
-  color: #444;
-  padding: 12px 0;
-  border-bottom: 1px solid #eee;
+  font-weight: 500; /* softer */
+  color: #222;
+  padding: 10px 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #eee;
 }
 
-.filter-header span:last-child {
+.filter-header .chev {
   font-size: 1.2rem;
-  font-weight: bold;
+  color: #666;
   user-select: none;
 }
 
-/* =========================
-   FILTER CONTENT AREA
-========================= */
 .filter-content {
-  padding: 12px 0;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  padding: 12px 6px;
+  margin-top: 10px;
   max-height: 260px;
   overflow-y: auto;
+  border-radius: 6px;
 }
 
-/* =========================
-   INDIVIDUAL FILTER OPTIONS
-========================= */
 .filter-option {
   margin-bottom: 8px;
-  padding: 10px 14px;
-  background: #ffffff;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e3e3e3;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 0.95rem;
-  transition: all 0.2s ease-in-out;
+  font-size: 0.94rem;
+  color: #222;
+  font-weight: 400; /* softer font */
+  transition: all 0.15s ease-in-out;
 }
 
 .filter-option:hover {
-  background-color: #e3f2fd;
-  border-color: #1976d2;
-  color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.06);
+  border-color: #d6b86a;
 }
 
 .filter-option.selected {
-  background-color: #1976d2;
-  color: #fff;
-  border-color: #0d47a1;
+  background-color: #d6b86a;
+  border-color: #c89e46;
+  color: #111;
 }
 
-/* =========================
-   SEARCH INPUT INSIDE FILTER
-========================= */
+/* Search field */
 .filter-search {
   width: 100%;
   padding: 10px 12px;
   margin-bottom: 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
   font-size: 0.95rem;
 }
 
-/* =========================
-   MOBILE TEXT / TOUCH AREA
-========================= */
-@media (max-width: 480px) {
-  .filter-option {
-    padding: 14px 16px;
-    font-size: 1rem;
+/* Desktop aligned panel */
+@media (min-width: 1025px) {
+  .filter-toggle-btn,
+  .filter-overlay {
+    display: none !important;
   }
 
-  .filter-header {
-    padding: 16px 0;
-    font-size: 1.05rem;
+  .filters {
+    position: relative;
+    left: 0;
+    max-width: 320px;
+    padding: 22px;
+    box-shadow: none;
+    border: 1px solid #eee;
   }
 }
