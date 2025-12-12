@@ -16,15 +16,23 @@ import scanningResetImg from "../../images/services/scanning_reset.png";
 import dialysisImg from "../../images/services/dialysis.png";
 import resurfacingImg from "../../images/services/resurfacing.png";
 
-const imageMap = {
-  "PMS / Change Oil": oilChangeImg,
-  "Computerized Camber Alignment": camberAlignmentImg,
-  "Computerized Wheel Alignment": wheelAlignmentImg,
-  "Underchassis Diagnostics": underchassisImg,
-  "Scanning / Reset": scanningResetImg,
-  "Engine Cleaning (Dialysis)": dialysisImg,
-  "Resurfacing": resurfacingImg,
-  "Brake Rotor Resurfacing": resurfacingImg,
+// ⭐ FIXED — VERY FLEXIBLE NAME MATCHING
+const imageMap = [
+  { keywords: ["change oil", "pms"], img: oilChangeImg },
+  { keywords: ["camber"], img: camberAlignmentImg },
+  { keywords: ["wheel alignment"], img: wheelAlignmentImg },
+  { keywords: ["underchassis"], img: underchassisImg },
+  { keywords: ["scanning", "reset"], img: scanningResetImg },
+  { keywords: ["dialysis", "engine cleaning"], img: dialysisImg },
+  { keywords: ["resurfacing", "brake rotor"], img: resurfacingImg },
+];
+
+const findImage = (name) => {
+  const lower = name.toLowerCase();
+  const match = imageMap.find((entry) =>
+    entry.keywords.some((k) => lower.includes(k))
+  );
+  return match ? match.img : null;
 };
 
 const ServicesPage = () => {
@@ -35,36 +43,32 @@ const ServicesPage = () => {
   const [selectedServices, setSelectedServices] = useState([]);
   const [currentService, setCurrentService] = useState(null);
 
-  // Fetch services
   useEffect(() => {
     const fetchServices = async () => {
       const querySnapshot = await getDocs(collection(db, "services"));
-      const servicesList = [];
+      const list = [];
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+
         if (data.active) {
-          servicesList.push({
+          list.push({
             id: doc.id,
             name: data.name,
             price: data.price || 0,
             description: data.description || "",
-            image: imageMap[data.name] || null,
+            image: findImage(data.name),  // ⭐ FIXED AREA
           });
         }
       });
 
-      setServicesData(servicesList);
-
-      if (servicesList.length > 0) {
-        setCurrentService(servicesList[0]);
-      }
+      setServicesData(list);
+      if (list.length > 0) setCurrentService(list[0]);
     };
 
     fetchServices();
   }, []);
 
-  // Toggle multi-selection
   const handleServiceClick = (serviceName) => {
     setSelectedServices((prev) =>
       prev.includes(serviceName)
@@ -82,10 +86,9 @@ const ServicesPage = () => {
 
       <div className="services-wrapper">
         <main className="services-main">
-
           <section className="services-container">
 
-            {/* LEFT SERVICE LIST */}
+            {/* LEFT LIST */}
             <aside className="services-sidebar">
               <h2>Service List</h2>
               <p className="service-helper-text">
@@ -115,49 +118,46 @@ const ServicesPage = () => {
                 </tbody>
               </table>
 
-              {/* TOTAL + RESERVE BUTTON */}
-{/* TOTAL + RESERVE BUTTON — ALWAYS VISIBLE */}
-<div className="service-summary-box">
-  <p className="summary-total">
-    Total: ₱
-    {selectedServices.reduce((sum, name) => {
-      const svc = servicesData.find((s) => s.name === name);
-      return sum + (svc?.price || 0);
-    }, 0)}
-  </p>
+              {/* TOTAL */}
+              <div className="service-summary-box">
+                <p className="summary-total">
+                  Total: ₱
+                  {selectedServices.reduce((sum, name) => {
+                    const svc = servicesData.find((s) => s.name === name);
+                    return sum + (svc?.price || 0);
+                  }, 0)}
+                </p>
 
-  <button
-    className="reserve-small-btn"
-    onClick={() => {
-      if (selectedServices.length === 0) {
-        alert("Please select at least one service before proceeding.");
-        return;
-      }
+                <button
+                  className="reserve-small-btn"
+                  onClick={() => {
+                    if (selectedServices.length === 0) {
+                      alert("Please select at least one service before proceeding.");
+                      return;
+                    }
 
-      navigate("/reservation/services", {
-        state: {
-          type: "service",
-          selectedServices: selectedServices.map(name => {
-            const svc = servicesData.find(s => s.name === name);
-            return {
-              name: svc.name,
-              price: svc.price,
-              description: svc.description
-            };
-          }),
-          totalServicePrice: selectedServices.reduce((sum, name) => {
-            const svc = servicesData.find((s) => s.name === name);
-            return sum + (svc?.price || 0);
-          }, 0)
-        }
-      });
-
-    }}
-  >
-    Reserve Now
-  </button>
-</div>
-
+                    navigate("/reservation/services", {
+                      state: {
+                        type: "service",
+                        selectedServices: selectedServices.map((name) => {
+                          const svc = servicesData.find((s) => s.name === name);
+                          return {
+                            name: svc.name,
+                            price: svc.price,
+                            description: svc.description,
+                          };
+                        }),
+                        totalServicePrice: selectedServices.reduce((sum, name) => {
+                          const svc = servicesData.find((s) => s.name === name);
+                          return sum + (svc?.price || 0);
+                        }, 0),
+                      },
+                    });
+                  }}
+                >
+                  Reserve Now
+                </button>
+              </div>
             </aside>
 
             {/* RIGHT DETAILS */}
@@ -166,6 +166,7 @@ const ServicesPage = () => {
                 <>
                   <h1 className="service-title">{currentService.name}</h1>
 
+                  {/* ⭐ FIXED — IMAGE ALWAYS SHOWS IF MATCHES ANY KEYWORD */}
                   {currentService.image && (
                     <img
                       src={currentService.image}
@@ -180,6 +181,7 @@ const ServicesPage = () => {
                 </>
               )}
             </div>
+
           </section>
         </main>
       </div>
