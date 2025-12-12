@@ -258,12 +258,25 @@ const Products = () => {
     setIsModalOpen(true);
   };
 
-  const filterProducts = (arr) =>
-    arr.filter((p) =>
-      ["brand", "productId", "model"].some((key) =>
-        (p[key] || "").toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
+const filterProducts = (arr) =>
+  arr.filter((p) => {
+    const searchable = `
+      ${p.brand || ""}
+      ${p.model || ""}
+      ${p.productId || ""}
+      ${p.tireWidth || ""}
+      ${p.aspectRatio || ""}
+      ${p.rimDiameter || ""}
+      ${p.wheelDiameter || ""}
+      ${p.wheelWidth || ""}
+      ${p.offset || ""}
+      ${p.boltPattern || ""}
+      ${p.centerBore || ""}
+    `.toLowerCase();
+
+    return searchable.includes(searchTerm.toLowerCase());
+  });
+
 
     // PAGINATION COMPONENT
 const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }) => (
@@ -500,7 +513,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
               <th>Name</th>
               <th>Price</th>
               <th>Description</th>
-              <th>Active</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -511,7 +523,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
                 <td>{s.name}</td>
                 <td>₱{Number(s.price || 0).toFixed(2)}</td>
                 <td>{s.description || "—"}</td>
-                <td>{s.active ? "Yes" : "No"}</td>
 
                 <td>
                   <button
@@ -527,17 +538,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
                     }}
                   >
                     Edit
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      updateDoc(doc(db, "services", s.id), {
-                        active: !s.active,
-                        updatedAt: serverTimestamp(),
-                      })
-                    }
-                  >
-                    {s.active ? "Disable" : "Enable"}
                   </button>
 
                   <button onClick={() => deleteDoc(doc(db, "services", s.id))}>

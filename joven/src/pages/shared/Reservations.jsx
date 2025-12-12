@@ -28,6 +28,10 @@ const Reservations = ({ role }) => {
   const navigate = useNavigate();
   const normalizedRole = (role || "").toLowerCase();
 
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
+
+
   // ================================
   // LOAD RESERVATIONS + AUTO NO-SHOW
   // ================================
@@ -225,6 +229,24 @@ const Reservations = ({ role }) => {
     }
   });
 
+  const paginated = (data) => {
+  const total = data.length;
+  const start = (page - 1) * itemsPerPage;
+  const end = Math.min(start + itemsPerPage, total);
+  const totalPages = Math.ceil(total / itemsPerPage);
+
+  return {
+    data: data.slice(start, end),
+    start: start + 1,
+    end,
+    total,
+    totalPages,
+  };
+};
+
+const pageData = paginated(filtered);
+
+
   return (
     <div className="reservations-container">
       <div className="reservations-header">
@@ -274,7 +296,8 @@ const Reservations = ({ role }) => {
 
           <tbody>
             {filtered.length ? (
-              filtered.map((res) => {
+              pageData.data.map((res) => {
+
                 const date = new Date(
                   res.preferredDate?.seconds * 1000 || res.preferredDate
                 );
@@ -321,6 +344,40 @@ const Reservations = ({ role }) => {
               </tr>
             )}
           </tbody>
+
+          {/* PAGINATION */}
+{pageData.total > 0 && (
+  <div className="pagination">
+    <p className="pagination-info">
+      Showing {pageData.start} to {pageData.end} of {pageData.total} results
+    </p>
+
+    <div className="pagination-buttons">
+      <button disabled={page === 1} onClick={() => setPage(page - 1)}>
+        Previous
+      </button>
+
+      {[...Array(pageData.totalPages)].map((_, i) => (
+        <button
+          key={i + 1}
+          className={page === i + 1 ? "active-page" : ""}
+          onClick={() => setPage(i + 1)}
+        >
+          {i + 1}
+        </button>
+      ))}
+
+      <button
+        disabled={page === pageData.totalPages}
+        onClick={() => setPage(page + 1)}
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
+
+
         </table>
       </div>
 

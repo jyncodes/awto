@@ -14,6 +14,10 @@ const AdminCustomers = () => {
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
+  // ✅ PAGINATION STATES
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'customers'), async (snapshot) => {
       const list = await Promise.all(
@@ -47,6 +51,24 @@ const AdminCustomers = () => {
     return searchable.includes(searchTerm.toLowerCase());
   });
 
+  // ✅ PAGINATION LOGIC
+  const paginated = (data) => {
+    const total = data.length;
+    const start = (page - 1) * itemsPerPage;
+    const end = Math.min(start + itemsPerPage, total);
+    const totalPages = Math.ceil(total / itemsPerPage);
+
+    return {
+      data: data.slice(start, end),
+      start: start + 1,
+      end,
+      total,
+      totalPages,
+    };
+  };
+
+  const pageData = paginated(filtered);
+
   return (
     <div className="customers-container">
       <div className="customers-header">
@@ -55,7 +77,10 @@ const AdminCustomers = () => {
           type="text"
           placeholder="Search customers..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setPage(1); // reset page when searching
+          }}
           className="customers-search"
         />
       </div>
@@ -66,29 +91,30 @@ const AdminCustomers = () => {
             <tr>
               <th>Customer ID</th>
               <th>Name</th>
+              <th>Plate Number</th>
               <th>Date Joined</th>
-              <th>Total Reservations</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {pageData.total === 0 ? (
               <tr>
                 <td colSpan="6" className="text-center">
                   No customers found.
                 </td>
               </tr>
             ) : (
-              filtered.map((customer) => (
+              pageData.data.map((customer) => (
                 <tr key={customer.id}>
                   <td>{customer.customerCode || '—'}</td>
                   <td>{customer.name || '—'}</td>
+
+                  <td>{customer.plateNo || customer.lastPlateNumber || "—"}</td>  
                   <td>
                     {customer.registeredAt
                       ? new Date(customer.registeredAt.seconds * 1000).toLocaleString()
                       : '—'}
                   </td>
-                  <td>{customer.totalReservations || 0}</td>
                   <td>
                     <button
                       className="view-btn"
@@ -102,6 +128,41 @@ const AdminCustomers = () => {
             )}
           </tbody>
         </table>
+
+        {/* ✅ PAGINATION UI */}
+        {pageData.total > 0 && (
+          <div className="pagination">
+            <p className="pagination-info">
+              Showing {pageData.start} to {pageData.end} of {pageData.total} results
+            </p>
+
+            <div className="pagination-buttons">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+              >
+                Previous
+              </button>
+
+              {[...Array(pageData.totalPages)].map((_, i) => (
+                <button
+                  key={i + 1}
+                  className={page === i + 1 ? "active-page" : ""}
+                  onClick={() => setPage(i + 1)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+
+              <button
+                disabled={page === pageData.totalPages}
+                onClick={() => setPage(page + 1)}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* VIEW MODAL */}
