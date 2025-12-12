@@ -42,8 +42,7 @@ const INITIAL_FORM = {
 const INITIAL_SERVICE_FORM = {
   name: "",
   price: "",
-  taxable: true,
-  durationMinutes: "",
+  description: "",
   active: true,
 };
 
@@ -500,8 +499,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
             <tr>
               <th>Name</th>
               <th>Price</th>
-              <th>Taxable</th>
-              <th>Duration</th>
+              <th>Description</th>
               <th>Active</th>
               <th>Actions</th>
             </tr>
@@ -512,8 +510,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
               <tr key={s.id}>
                 <td>{s.name}</td>
                 <td>₱{Number(s.price || 0).toFixed(2)}</td>
-                <td>{s.taxable ? "Yes" : "No"}</td>
-                <td>{s.durationMinutes ?? "—"}</td>
+                <td>{s.description || "—"}</td>
                 <td>{s.active ? "Yes" : "No"}</td>
 
                 <td>
@@ -523,8 +520,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
                       setServiceForm({
                         name: s.name,
                         price: s.price,
-                        taxable: s.taxable,
-                        durationMinutes: s.durationMinutes,
+                        description: s.description || "",
                         active: s.active,
                       });
                       setServiceModalOpen(true);
@@ -773,33 +769,15 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
                 />
               </div>
 
-              <div className="form-group checkbox-group">
-                <label>Taxable</label>
-                <input
-                  type="checkbox"
-                  name="taxable"
-                  checked={serviceForm.taxable}
+              <div className="form-group full-span">
+                <label>Description</label>
+                <textarea
+                  name="description"
+                  value={serviceForm.description}
                   onChange={(e) =>
-                    setServiceForm((prev) => ({
-                      ...prev,
-                      taxable: e.target.checked,
-                    }))
+                    setServiceForm((prev) => ({ ...prev, description: e.target.value }))
                   }
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Duration (minutes)</label>
-                <input
-                  type="number"
-                  name="durationMinutes"
-                  value={serviceForm.durationMinutes}
-                  onChange={(e) =>
-                    setServiceForm((prev) => ({
-                      ...prev,
-                      durationMinutes: e.target.value,
-                    }))
-                  }
+                  placeholder="Enter short description about the service..."
                 />
               </div>
 
@@ -817,6 +795,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
                   }
                 />
               </div>
+              
 
               <div className="form-buttons">
                 <button
@@ -835,10 +814,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
                         await updateDoc(doc(db, "services", editingService.id), {
                           name: serviceForm.name,
                           price: Number(serviceForm.price),
-                          taxable: serviceForm.taxable,
-                          durationMinutes: serviceForm.durationMinutes
-                            ? Number(serviceForm.durationMinutes)
-                            : null,
+                          description: serviceForm.description,
                           active: serviceForm.active,
                           updatedAt: serverTimestamp(),
                         });
@@ -847,10 +823,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, start, end, total }
                         await addDoc(collection(db, "services"), {
                           name: serviceForm.name,
                           price: Number(serviceForm.price),
-                          taxable: serviceForm.taxable,
-                          durationMinutes: serviceForm.durationMinutes
-                            ? Number(serviceForm.durationMinutes)
-                            : null,
+                          description: serviceForm.description,
                           active: serviceForm.active,
                           createdAt: serverTimestamp(),
                           updatedAt: serverTimestamp(),
