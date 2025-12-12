@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 /* ======================================================
    📩 SEND EMAIL FUNCTION (Brevo)
 ====================================================== */
-const sendPaymentEmail = async (customerEmail, name, reservationId, productName, appointmentDate) => {
+const sendPaymentEmail = async (customerEmail, name, reservationId, productName, appointmentDate, plateNumber) => {
   try {
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
@@ -156,7 +156,7 @@ app.post("/send-confirmation", async (req, res) => {
   }
 
   try {
-    await sendPaymentEmail(email, name, reservationId, productName, date);
+    await sendPaymentEmail(email, name, reservationId, productName, date, plateNumber);
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
