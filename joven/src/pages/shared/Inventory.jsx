@@ -31,9 +31,6 @@ const Inventory = ({ role }) => {
 
   const [bulkFilter, setBulkFilter] = useState("all");
 
-  const ITEMS_PER_PAGE = 10;
-const [page, setPage] = useState(1);
-
   useEffect(() => {
     const unsubTires = onSnapshot(collection(db, "products_tires"), async (snap) => {
       const list = await Promise.all(
@@ -99,10 +96,14 @@ const [page, setPage] = useState(1);
 
     if (searchTerm.trim()) {
       const t = searchTerm.toLowerCase();
-      filtered = filtered.filter((p) =>
-        `${p.productId} ${p.brand} ${p.model}`.toLowerCase().includes(t)
-      );
+
+      filtered = filtered.filter((p) => {
+        const brandModel = `${p.brand} ${p.model}`.toLowerCase();
+        const sizeString = getSearchableSize(p).toLowerCase();
+        return brandModel.includes(t) || sizeString.includes(t);
+      });
     }
+
 
     if (stockFilter === "out") filtered = filtered.filter((p) => getStockValue(p.stock) === 0);
     if (stockFilter === "low") filtered = filtered.filter((p) => getStockValue(p.stock) > 0 && getStockValue(p.stock) <= 3);
@@ -114,11 +115,17 @@ const [page, setPage] = useState(1);
       case "stock-desc":
         filtered.sort((a, b) => getStockValue(b.stock) - getStockValue(a.stock)); // <-- updated
         break;
+        case "brand-asc":
+      filtered.sort((a, b) =>
+        `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`)
+      );
+      break;
       case "modified-latest":
         filtered.sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
         break;
       default:
         filtered.sort((a, b) => (a.productId || "").localeCompare(b.productId || ""));
+        
     }
 
     setFilteredProducts(filtered);
@@ -206,42 +213,54 @@ const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
       {/* FILTER BAR */}
       <div className="inventory-controls">
-        <input className="search-bar" placeholder="Search..." value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)} />
 
-        <select className="sort-select" value={sortOption} onChange={(e) => setSortOption(e.target.value)}>
-          <option value="id-asc">Product ID ↑</option>
+        {/* SEARCH */}
+      <input
+        className="search-bar"
+        placeholder="Search brand, model, or size..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+
+
+        {/* SORT DROPDOWN */}
+        <select
+          className="sort-select"
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value)}
+        >
+          <option value="brand-asc">Brand: A → Z</option>
           <option value="stock-asc">Stock: Low → High</option>
           <option value="stock-desc">Stock: High → Low</option>
           <option value="modified-latest">Recently Updated</option>
         </select>
 
-        <div className="inventory-filter-tabs">
-          <button className={categoryView === "All" ? "active-tab" : ""} onClick={() => setCategoryView("All")}>All</button>
-          <button className={categoryView === "Tires" ? "active-tab" : ""} onClick={() => setCategoryView("Tires")}>Tires</button>
-          <button className={categoryView === "Mags" ? "active-tab" : ""} onClick={() => setCategoryView("Mags")}>Mags</button>
-        </div>
 
-        <div className="status-filter">
-          <button className={stockFilter === "all" ? "active-tab" : ""} onClick={() => setStockFilter("all")}>All</button>
-          <button className={stockFilter === "out" ? "active-tab" : ""} onClick={() => setStockFilter("out")}>Out</button>
-          <button className={stockFilter === "low" ? "active-tab" : ""} onClick={() => setStockFilter("low")}>Low</button>
-        </div>
+        {/* CATEGORY DROPDOWN */}
+        <select
+          className="sort-select"
+          value={categoryView}
+          onChange={(e) => setCategoryView(e.target.value)}
+        >
+          <option value="All">Category: All</option>
+          <option value="Tires">Tires</option>
+          <option value="Mags">Mags</option>
+        </select>
 
+        {/* RESTOCK BUTTON */}
         {(role === "admin" || role === "staff") && (
-          <button className="btn-bulk" onClick={openBulkRestockModal}> Restock</button>
+          <button className="btn-bulk" onClick={openBulkRestockModal}>
+            Restock
+          </button>
         )}
       </div>
-
-
-
 
       {/* PRODUCT TABLE */}
       <div className="inventory-card">
         <table className="inventory-table">
           <thead>
             <tr>
-              <th>Product</th>
+              <th>Sizes</th>
               <th>Brand/Model</th>
               <th>Stock</th>
               <th>Status</th>
@@ -350,7 +369,7 @@ const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
           <div className="modal-content bulk-restock">
             <h2> Restock</h2>
 
-            <select
+         <select
               className="sort-select"
               style={{ width: "100%", marginBottom: "1rem" }}
               value={bulkFilter}
@@ -360,7 +379,7 @@ const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
               <option value="out">Out of Stock</option>
               <option value="low">Low Stock</option>
               <option value="ok">In Stock</option>
-            </select>
+            </select>   
 
             {filteredBulkItems.length === 0 ? (
               <p>No products matching filter.</p>

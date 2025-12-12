@@ -1,133 +1,162 @@
-/* ================================
-   FOOTER SECTION 
-   Theme: #f39c12 (Orange) + White
-================================= */
+/* ================================================================
+   PREMIUM FOOTER (Matches Automotive Landing Page Theme)
+   Accent: var(--accent) | Dark: var(--dark) | Clean White
+   ================================================================ */
+
 .footer {
-  background-color: #0c0c0c;
-  color: #f7f7f7;
-  padding: 3rem 2rem;
+  background: var(--dark);
+  color: #fff;
+  padding: 60px 24px 30px;
+  width: 100%;
+  border-top: 5px solid var(--accent); /* 🔥 ORANGE TOP LINE */
   font-family: "Poppins", sans-serif;
-  border-top: 6px solid #f39c12;
+  box-shadow: var(--shadow-soft);
 }
 
-/* TOP AREA */
+/* ================================
+   TOP GRID
+================================ */
 .footer-top {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #2f2f2f;
-  gap: 2.5rem;
+  max-width: 1300px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 40px;
 }
 
-.footer-section {
-  flex: 1;
-  min-width: 260px;
-}
-
-/* TITLES */
+/* ================================
+   SECTION TITLES
+================================ */
 .footer-section h4 {
-  font-size: 1.35rem;
-  color: #f39c12;
-  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.6px;
+}
+
+/* ================================
+   BRANCH DETAILS
+================================ */
+.branch {
+  margin-bottom: 20px;
+}
+
+.branch p {
+  margin: 4px 0;
+  font-size: 0.95rem;
+  color: #e0e0e0;
+}
+
+.map-link {
+  color: var(--accent);
   font-weight: 600;
-}
-
-.footer-section h5 {
-  font-size: 1.1rem;
-  margin-bottom: 0.6rem;
-  color: #ffffff;
-  border-left: 4px solid #f39c12;
-  padding-left: 0.5rem;
-}
-
-.footer-section h6 {
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-  color: #f39c12;
-  font-weight: 600;
-}
-
-/* PARAGRAPH & LINKS */
-.footer-section p {
-  font-size: 0.92rem;
-  line-height: 1.6;
-  color: #d9d9d9;
-  margin-bottom: 0.7rem;
-}
-
-.footer-section a {
-  color: #dddddd;
   text-decoration: none;
-  transition: 0.3s ease;
 }
 
-.footer-section a:hover {
-  color: #f39c12;
+.map-link:hover {
+  opacity: 0.8;
 }
 
-/* MAP & PHONE LINKS */
-.map-link,
 .phone-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #f7f7f7;
-  font-size: 0.9rem;
+  color: #fff;
+  font-weight: 600;
 }
 
-.map-link:hover,
-.phone-link:hover {
-  color: #f39c12;
+/* ================================
+   ICONS
+================================ */
+.icon-inline {
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
-/* SOCIAL LINKS */
+/* ================================
+   SOCIAL LINKS
+================================ */
 .social-links {
   list-style: none;
   padding: 0;
-  margin: 0;
 }
 
 .social-links li {
-  margin-bottom: 0.6rem;
+  margin-bottom: 12px;
 }
 
 .social-links a {
+  color: #f1f1f1;
+  text-decoration: none;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
+  transition: 0.25s ease;
 }
 
-.icon-inline {
-  color: #f39c12;
-  font-size: 1.1rem;
+.social-links a:hover {
+  color: var(--accent);
+  transform: translateX(4px);
 }
 
-/* BOTTOM AREA */
+/* ================================
+   SHOP HOURS
+================================ */
+.footer-section h6 {
+  margin-top: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f5f5f5;
+}
+
+.footer-section p {
+  color: #dcdcdc;
+  font-size: 0.95rem;
+}
+
+/* ================================
+   BOTTOM COPYRIGHT
+================================ */
 .footer-bottom {
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,0.12);
   text-align: center;
-  margin-top: 2.5rem;
-  padding-top: 1.4rem;
-  font-size: 0.85rem;
-  color: #bfbfbf;
-  border-top: 1px solid #2f2f2f;
 }
 
-/* MOBILE RESPONSIVE */
-@media (max-width: 768px) {
-  .footer-top {
-    flex-direction: column;
-    text-align: center;
-    gap: 2.2rem;
-  }
+.footer-bottom p {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
 
-  .footer-section h5 {
-    justify-content: center;
+/* ================================================================
+   RESPONSIVE BREAKPOINTS
+================================================================ */
+
+/* Tablet */
+@media (max-width: 900px) {
+  .footer {
+    padding: 50px 20px 25px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .footer {
+    text-align: center;
+    padding: 40px 18px 20px;
   }
 
   .social-links a {
     justify-content: center;
+  }
+
+  .branch p,
+  .map-link,
+  .phone-link {
+    text-align: center;
+  }
+
+  .footer-bottom {
+    margin-top: 30px;
   }
 }
