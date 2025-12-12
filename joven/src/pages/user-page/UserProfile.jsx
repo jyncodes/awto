@@ -231,39 +231,22 @@ const [sortOption, setSortOption] = useState("newest");
   return (
     <>
       <Navbar />
+      
 
-      {/* ⭐ TOP TABS */}
-      <div className="profile-top-tabs">
-        <button
-          className={activeTab === "myaccount" ? "active" : ""}
-          onClick={() => handleTabSwitch("myaccount")}
-        >
-          My Account
-        </button>
+    <div className="user-profile-page">
+      <main className="profile-content">
+        {activeTab === "myaccount" && (
+          <>
+            <h2>My Account</h2>
 
-        <button
-          className={activeTab === "reservations" ? "active" : ""}
-          onClick={() => handleTabSwitch("reservations")}
-        >
-          Reservations
-        </button>
-
-      </div>
-
-      <div className="user-profile-page">
-        <main className="profile-content">
-          {activeTab === "myaccount" && (
-            <>
-              <div className="profile-details-view">
-                <h3>My Account</h3>
-
-                <p><strong>Name:</strong> {userData.name}</p>
-                <p><strong>Email:</strong> {userData.email}</p>
-                <p><strong>Gender:</strong> {userData.gender}</p>
-                <p><strong>Birthday:</strong> {userData.birthday}</p>
-                <p><strong>Address:</strong> {userData.address}</p>
-                <p><strong>Contact:</strong> {userData.contact}</p>
-              </div>
+            <div className="profile-details-view">
+              <p><strong>Name:</strong> {userData.name}</p>
+              <p><strong>Email:</strong> {userData.email}</p>
+              <p><strong>Gender:</strong> {userData.gender}</p>
+              <p><strong>Birthday:</strong> {userData.birthday}</p>
+              <p><strong>Address:</strong> {userData.address}</p>
+              <p><strong>Contact:</strong> {userData.contact}</p>
+            </div>
 
               <div className="profile-form">
                 <h3>Edit Information</h3>

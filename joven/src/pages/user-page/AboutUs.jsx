@@ -4,20 +4,40 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/user-components/Footer";
 import "../../styles/user-styles/AboutUs.css";
 
+/* ============================
+   IMAGE IMPORTS (REAL PATHS)
+============================ */
+import storyImg from "../../images/services/about/story-sample.jpg";
+
+import maxxisLogo from "../../images/services/about/maxxis.png";
+import toyoLogo from "../../images/services/about/toyo.png";
+import cstLogo from "../../images/services/about/cst.png";
+import westlakeLogo from "../../images/services/about/westlake.png";
+import castrolLogo from "../../images/services/about/castrol.png";
+
+import waitingImg from "../../images/services/about/waiting-area.jpg";
+
 const AboutUs = () => {
   const location = useLocation();
-  const qualityRef = useRef(null);
-  const commitmentRef = useRef(null);
 
-  // Scroll to a specific section if 'state.section' exists
+  // ⭐ Needed refs for correct auto-scroll
+  const partnersRef = useRef(null);
+  const waitingRef = useRef(null);
+  const storyRef = useRef(null);
+
   useEffect(() => {
-    if (location.state && location.state.section) {
-      const target = location.state.section;
-      if (target === "quality" && qualityRef.current) {
-        qualityRef.current.scrollIntoView({ behavior: "smooth" });
-      } else if (target === "commitment" && commitmentRef.current) {
-        commitmentRef.current.scrollIntoView({ behavior: "smooth" });
-      }
+    if (!location.state || !location.state.section) return;
+
+    const section = location.state.section;
+
+    if (section === "partners" && partnersRef.current) {
+      partnersRef.current.scrollIntoView({ behavior: "smooth" });
+    } 
+    else if (section === "waiting" && waitingRef.current) {
+      waitingRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+    else if (section === "story" && storyRef.current) {
+      storyRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [location]);
 
@@ -26,100 +46,101 @@ const AboutUs = () => {
       <Navbar />
 
       <div className="aboutus-container">
-        {/* Our Mission */}
-        <section className="aboutus-section">
-          <div className="aboutus-content">
-            <div className="aboutus-text">
-              <h2>Our Mission</h2>
-              <p>
-                At Joven Tire Interprice, our mission is to provide top-quality tires and wheel solutions
-                while delivering exceptional customer care. We believe in growing responsibly, with
-                integrity, and putting our clients’ safety and satisfaction first.
+
+        {/* -------------------------------- */}
+        {/*            OUR STORY             */}
+        {/* -------------------------------- */}
+        <section className="story-section" ref={storyRef}>
+          <div className="story-content">
+
+            <div className="story-text">
+              <h1>
+                A journey of growth <span className="highlight">and trust.</span>
+              </h1>
+
+              <p className="story-desc">
+                JovenTire Enterprise began from humble roots — a small tire stall founded by
+                Jay Baldano in 2000. From a space that could barely hold fifty tires, it has
+                grown into a trusted and respected tire and wheel service center.
+                <br /><br />
+                With dedication, resilience, and a 17-year strong partnership with Maxxis Tires,
+                JovenTire has transformed into a modern shop built on trust, integrity, and service.
               </p>
+
+              <a
+                href="https://www.youtube.com/watch?v=jkDENEXLjVo&t=35s"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="story-btn"
+              >
+                🎥 Watch Documentary
+              </a>
             </div>
-            <div className="aboutus-image">
-              <div className="image-placeholder">
-                <p>Image Here</p>
-              </div>
+
+            <div className="story-image">
+              <img src={storyImg} alt="Our Story" />
+            </div>
+
+          </div>
+        </section>
+
+        {/* -------------------------------- */}
+        {/*           OUR PARTNERS           */}
+        {/* -------------------------------- */}
+        <section className="partners-section" ref={partnersRef}>
+          <h2>Our Partners</h2>
+
+          <div className="logo-slider">
+            <div className="logo-track">
+
+              <img src={maxxisLogo} alt="Maxxis" />
+              <img src={toyoLogo} alt="Toyo Tires" />
+              <img src={cstLogo} alt="CST Tires" />
+              <img src={westlakeLogo} alt="Westlake" />
+              <img src={castrolLogo} alt="Castrol Oil" />
+
+              {/* duplicate for infinite loop */}
+              <img src={maxxisLogo} alt="Maxxis" />
+              <img src={toyoLogo} alt="Toyo Tires" />
+              <img src={cstLogo} alt="CST Tires" />
+              <img src={westlakeLogo} alt="Westlake" />
+              <img src={castrolLogo} alt="Castrol Oil" />
+
             </div>
           </div>
         </section>
 
-        {/* Our Story */}
-        <section className="aboutus-section">
-          <div className="aboutus-content reverse">
-            <div className="aboutus-image">
-              <div className="image-placeholder">
-                <p>Story Image/Video</p>
-              </div>
+        {/* -------------------------------- */}
+        {/*           WAITING AREA           */}
+        {/* -------------------------------- */}
+        <section className="waiting-section" ref={waitingRef}>
+          <div className="waiting-content">
+
+            <div className="waiting-image">
+              <img src={waitingImg} alt="Waiting Area" />
             </div>
-            <div className="aboutus-text">
-              <h2>Our Story</h2>
+
+            <div className="waiting-text">
+              <h2>Waiting Area</h2>
               <p>
-                Joven Tire Interprice started with the vision of making vehicle maintenance
-                safer, smoother, and more reliable. With years of expertise in tires and wheels,
-                we’ve helped countless customers achieve optimal performance and safety.
+                Our waiting area is built to give customers a relaxing and enjoyable experience
+                while their vehicle is being serviced.
+                <br /><br />
+                ✔ Air-conditioned  
+                <br />
+                ✔ Free Wi-Fi  
+                <br />
+                ✔ Comfortable seats  
+                <br />
+                ✔ Clean Bathroom 
+                <br /><br />
+                We believe excellent service should feel excellent too.
               </p>
             </div>
+
           </div>
         </section>
 
-        {/* Our Partner */}
-        <section className="aboutus-section">
-          <div className="aboutus-content">
-            <div className="aboutus-text">
-              <h2>Our Partner</h2>
-              <p>
-                We collaborate with top brands like Maxxis to provide our clients with
-                reliable and high-quality products. Our partnerships ensure that every
-                tire and wheel meets strict performance and safety standards.
-              </p>
-            </div>
-            <div className="aboutus-image">
-              <div className="image-placeholder">
-                <p>Partner Logos Here</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Quality Assurance */}
-        <section className="aboutus-section" ref={qualityRef}>
-          <div className="aboutus-content reverse">
-            <div className="aboutus-image">
-              <div className="image-placeholder">
-                <p>Important Image 1</p>
-              </div>
-            </div>
-            <div className="aboutus-text">
-              <h2>Quality Assurance</h2>
-              <p>
-                Our dedicated team inspects every product and service to ensure
-                the highest level of quality. Customer safety and satisfaction
-                are our top priorities.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Customer Commitment */}
-        <section className="aboutus-section" ref={commitmentRef}>
-          <div className="aboutus-content">
-            <div className="aboutus-text">
-              <h2>Customer Commitment</h2>
-              <p>
-                We are committed to building long-term relationships with our
-                customers by delivering dependable service, expert advice,
-                and products you can trust.
-              </p>
-            </div>
-            <div className="aboutus-image">
-              <div className="image-placeholder">
-                <p>Important Image 2</p>
-              </div>
-            </div>
-          </div>
-        </section>
       </div>
 
       <Footer />

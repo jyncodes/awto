@@ -31,7 +31,6 @@ const LandingPage = () => {
   const brandScrollRef = useRef(null);
   const navigate = useNavigate();
 
-  // TRACK AUTH STATE
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -39,7 +38,6 @@ const LandingPage = () => {
     return () => unsub();
   }, []);
 
-  // ✅ LISTEN TO "open-login" EVENT from Manual.jsx
   useEffect(() => {
     const openLoginHandler = () => setShowLogin(true);
     window.addEventListener("open-login", openLoginHandler);
@@ -59,7 +57,6 @@ const LandingPage = () => {
     { name: "Bridgestone", image: bridgestoneImg },
   ];
 
-  // ⛔ IF NOT LOGGED IN → SHOW LOGIN POPUP
   const guardNavigation = (callback) => {
     if (!user) {
       setShowLogin(true);
@@ -92,25 +89,20 @@ const LandingPage = () => {
     });
   };
 
-  // HERO BUTTONS GUARD
   const goToServices = () => {
     guardNavigation(() => navigate("/services"));
   };
 
   const scrollToBrands = () => {
     guardNavigation(() => {
-      document
-        .getElementById("brand")
-        ?.scrollIntoView({ behavior: "smooth" });
+      document.getElementById("brand")?.scrollIntoView({ behavior: "smooth" });
     });
   };
 
-  // ABOUT SECTION GUARD
   const goToAbout = () => {
     guardNavigation(() => navigate("/about-us"));
   };
 
-  // AUTO FADE-IN
   useEffect(() => {
     const sections = document.querySelectorAll(".section");
     const observer = new IntersectionObserver(
@@ -137,7 +129,7 @@ const LandingPage = () => {
       )}
 
       <main className="landing-main">
-        {/* ⭐ FITMENT (Manual) — protected also by internal check */}
+        {/* FITMENT TOOL */}
         <Manual />
 
         {/* HERO */}
@@ -218,71 +210,94 @@ const LandingPage = () => {
           </div>
         </section>
 
-          {/* ABOUT US */}
-          <section
-            id="about"
-            className="section about-section"
-            onClick={() => navigate("/about-us")}
-            role="link"
-            tabIndex={0}
-            onKeyDown={(e) => (e.key === "Enter" ? navigate("/about-us") : null)}
-          >
-            <div className="about-inner">
-              <div className="about-left">
-                <h2 className="section-title">Our Story</h2>
-                <p className="about-text">
-                  Joven Tire Enterprise started with one belief: good service should be
-                  straightforward. We’ve partnered with trusted brands and invested in
-                  professional equipment so you get accurate fitment, dependable
-                  parts, and service that keeps you safe on the road.
-                </p>
-                <p className="about-learn-more">
-                  Click to read our full story & commitments →
-                </p>
-              </div>
+        {/* ⭐⭐⭐ ABOUT US (REVISED) ⭐⭐⭐ */}
+        <section
+          id="about"
+          className="section about-section"
+          onClick={goToAbout}
+          role="link"
+          tabIndex={0}
+          onKeyDown={(e) => (e.key === "Enter" ? goToAbout() : null)}
+        >
+          <div className="about-inner">
 
-              <div className="about-right">
-                <div
-                  className="about-card"
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation(); // prevent triggering section navigation
-                    navigate("/about-us", { state: { section: "quality" } });
-                  }}
-                  onKeyDown={(e) =>
-                    e.key === "Enter"
-                      ? (e.stopPropagation(),
-                        navigate("/about-us", { state: { section: "quality" } }))
-                      : null
-                  }
-                >
-                  <h3>Quality Parts</h3>
-                  <p>We stock trusted brands and perform precise installations.</p>
-                </div>
+            {/* LEFT — STORY */}
+            <div className="about-left">
+              <h2 className="section-title">Our Story</h2>
 
-                <div
-                  className="about-card"
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate("/about-us", { state: { section: "technicians" } });
-                  }}
-                  onKeyDown={(e) =>
-                    e.key === "Enter"
-                      ? (e.stopPropagation(),
-                        navigate("/about-us", { state: { section: "technicians" } }))
-                      : null
-                  }
-                >
-                  <h3>Skilled Technicians</h3>
-                  <p>Experienced, trained staff with modern diagnostic tools.</p>
-                </div>
-              </div>
+              <p className="about-text">
+                  From a humble 50-tire stall in 2000, JovenTire Enterprise has grown into one of
+                  Cavite’s most trusted tire and wheel service centers — built on resilience,
+                  dedication, and a strong 17-year partnership with Maxxis Tires. What began as a
+                  small operation has evolved into a modern facility committed to quality work and
+                  genuine customer care.
+              </p>
+
+              {/* ⭐ UPDATED PART */}
+              <p
+                className="about-learn-more"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/about-us", { state: { section: "story" } });
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) =>
+                  e.key === "Enter"
+                    ? (e.stopPropagation(),
+                      navigate("/about-us", { state: { section: "story" } }))
+                    : null
+                }
+              >
+                Click to read our full journey →
+              </p>
             </div>
-          </section>
-          </main>
+
+            {/* RIGHT — PARTNERS + WAITING AREA */}
+            <div className="about-right">
+
+              <div
+                className="about-card"
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/about-us", { state: { section: "partners" } });
+                }}
+                onKeyDown={(e) =>
+                  e.key === "Enter"
+                    ? (e.stopPropagation(),
+                      navigate("/about-us", { state: { section: "partners" } }))
+                    : null
+                }
+              >
+                <h3>Our Partners</h3>
+                <p>World-class brands that power our quality and service.</p>
+              </div>
+
+              <div
+                className="about-card"
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/about-us", { state: { section: "waiting" } });
+                }}
+                onKeyDown={(e) =>
+                  e. key === "Enter"
+                    ? (e.stopPropagation(),
+                      navigate("/about-us", { state: { section: "waiting" } }))
+                    : null
+                }
+              >
+                <h3>Waiting Area</h3>
+                <p>A comfortable space while your vehicle is being serviced.</p>
+              </div>
+
+            </div>
+          </div>
+        </section>
+      </main>
 
       <Footer />
     </>

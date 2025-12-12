@@ -5,7 +5,6 @@
   width: 100%;
   min-height: 100vh;
   background: #f8f9fa;
-  padding-top: 120px; /* space for navbar + top tabs */
 }
 
 /* Loader */
@@ -16,52 +15,6 @@
   color: #666;
 }
 
-/* ===========================
-   TOP TABS NAVIGATION
-=========================== */
-.profile-top-tabs {
-  position: fixed;
-  top: 70px; /* below your navbar */
-  left: 0;
-  width: 100%;
-  background: #ffffff;
-  padding: 12px 0;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  z-index: 900;
-}
-
-.profile-top-tabs button {
-  background: #e2e8f0;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: 0.25s ease;
-  color: #1e293b;
-}
-
-.profile-top-tabs button:hover {
-  background: #cbd5e1;
-}
-
-.profile-top-tabs button.active {
-  background: #f39c12;
-  color: white;
-}
-
-.logout-tab {
-  background: #ef4444;
-  color: white;
-}
-
-.logout-tab:hover {
-  background: #dc2626;
-}
 
 /* ===========================
    MAIN CONTENT
@@ -417,12 +370,22 @@
 .reservation-sort-box {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.reservation-sort-box label {
+  font-weight: 600;
+  color: #444;
 }
 
 .reservation-sort-select {
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
 }
+
