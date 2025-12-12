@@ -11,7 +11,7 @@ import "../../styles/shared/Sales.css";
 import { FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 10;
 
 const Sales = () => {
   const [role, setRole] = useState(null);
@@ -87,6 +87,12 @@ const Sales = () => {
     page * ITEMS_PER_PAGE
   );
 
+    const startIndex = (page - 1) * ITEMS_PER_PAGE + 1;
+  const endIndex = Math.min(page * ITEMS_PER_PAGE, filteredList.length);
+
+  const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE);
+
+
   const openReceipt = (sale) => {
     setActiveReceipt(sale);
     setReceiptOpen(true);
@@ -145,9 +151,7 @@ const Sales = () => {
         />
       </div>
 
-      <p style={{ marginBottom: "10px", fontWeight: 600 }}>
-        Showing {paginatedData.length} of {filteredList.length} results
-      </p>
+
 
       <div className="sales-table-container">
         <table className="sales-table">
@@ -190,13 +194,65 @@ const Sales = () => {
         </table>
       </div>
 
-      {/* SIMPLE PAGINATION */}
-      {filteredList.length > ITEMS_PER_PAGE && (
-        <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
-          <button disabled={page === 1} className="btn-cancel" onClick={() => setPage(page - 1)}>Prev</button>
-          <button disabled={page * ITEMS_PER_PAGE >= filteredList.length} className="btn-submit" onClick={() => setPage(page + 1)}>Next</button>
-        </div>
-      )}
+      {totalPages > 1 && (
+  <div
+    style={{
+      marginTop: "20px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      width: "100%",
+    }}
+  >
+
+    {/* LEFT SIDE — Showing X to X of X results */}
+    <span style={{ fontSize: "14px" }}>
+      Showing {startIndex} to {endIndex} of {filteredList.length} results
+    </span>
+
+    {/* RIGHT SIDE — PAGE BUTTONS */}
+    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+
+      {/* PREVIOUS */}
+      <button
+        disabled={page === 1}
+        className="btn-cancel"
+        onClick={() => setPage(page - 1)}
+      >
+        Previous
+      </button>
+
+      {/* PAGE NUMBERS */}
+      {[...Array(totalPages)].map((_, i) => (
+        <button
+          key={i}
+          onClick={() => setPage(i + 1)}
+          className="btn-page"
+          style={{
+            padding: "5px 10px",
+            borderRadius: "6px",
+            background: page === i + 1 ? "#333" : "#fff",
+            color: page === i + 1 ? "#fff" : "#333",
+            border: "1px solid #ccc",
+            cursor: "pointer",
+          }}
+        >
+          {i + 1}
+        </button>
+      ))}
+
+      {/* NEXT */}
+      <button
+        disabled={page === totalPages}
+        className="btn-submit"
+        onClick={() => setPage(page + 1)}
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
+
 
       {/* RECEIPT MODAL (UPDATED TO MATCH POS.jsx) */}
       {receiptOpen && activeReceipt && (() => {
