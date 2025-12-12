@@ -35,3 +35,4 @@ const secondaryAuth = getAuth(secondaryApp);
 
 // Export everything
 export { auth, provider, db, storage, secondaryAuth };
+

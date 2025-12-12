@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { db } from "../../firebase";
+import { collection, getDocs } from "firebase/firestore";
+
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/user-components/Footer";
 import "../../styles/user-styles/ServicesPage.css";
 
-// Import service images
+// Local images mapped by name
 import oilChangeImg from "../../images/services/oil_change.png";
 import camberAlignmentImg from "../../images/services/camber_alignment.png";
 import wheelAlignmentImg from "../../images/services/wheel_alignment.png";
@@ -13,91 +16,75 @@ import scanningResetImg from "../../images/services/scanning_reset.png";
 import dialysisImg from "../../images/services/dialysis.png";
 import resurfacingImg from "../../images/services/resurfacing.png";
 
+const imageMap = {
+  "PMS / Change Oil": oilChangeImg,
+  "Computerized Camber Alignment": camberAlignmentImg,
+  "Computerized Wheel Alignment": wheelAlignmentImg,
+  "Underchassis Diagnostics": underchassisImg,
+  "Scanning / Reset": scanningResetImg,
+  "Engine Cleaning (Dialysis)": dialysisImg,
+  "Resurfacing": resurfacingImg,
+  "Brake Rotor Resurfacing": resurfacingImg,
+};
+
 const ServicesPage = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [selectedService, setSelectedService] = useState("");
 
-  // Services Data
-  const servicesData = [
-    {
-      label: "PMS / Change Oil",
-      name: "PMS / Change Oil",
-      description:
-        "Complete preventive maintenance service including oil change, filter replacement, and general inspection.",
-      image: oilChangeImg,
-    },
-    {
-      label: "Computerized Camber Alignment",
-      name: "Computerized Camber Alignment",
-      description:
-        "Precise adjustment of camber angles using advanced computerized systems for better handling and tire life.",
-      image: camberAlignmentImg,
-    },
-    {
-      label: "Computerized Wheel Alignment",
-      name: "Computerized Wheel Alignment",
-      description:
-        "Ensures your wheels are aligned correctly for safety, reduced tire wear, and smooth driving.",
-      image: wheelAlignmentImg,
-    },
-    {
-      label: "Underchassis Diagnostics",
-      name: "Underchassis Diagnostics",
-      description:
-        "Full underchassis inspection with diagnostics and free cost estimation.",
-      image: underchassisImg,
-    },
-    {
-      label: "Scanning / Reset",
-      name: "Scanning / Reset",
-      description:
-        "Electronic system scanning and resetting for all compatible vehicles.",
-      image: scanningResetImg,
-    },
-    {
-      label: "Engine Cleaning / Dialysis",
-      name: "Engine Cleaning (Dialysis)",
-      description:
-        "Engine fluid and filtration cleaning service to maintain engine performance.",
-      image: dialysisImg,
-    },
-    {
-      label: "Brake Rotor Resurfacing",
-      name: "Brake Rotor Resurfacing",
-      description:
-        "Resurfacing service for brake rotors and drums to restore smooth braking.",
-      image: resurfacingImg,
-    },
-  ];
+  const [servicesData, setServicesData] = useState([]);
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [currentService, setCurrentService] = useState(null);
 
-  // Set default service
+  // Fetch services from Firestore
   useEffect(() => {
-    const serviceFromState =
-      location.state?.serviceName || servicesData[0].name;
-    setSelectedService(serviceFromState);
-  }, [location]);
+    const fetchServices = async () => {
+      const querySnapshot = await getDocs(collection(db, "services"));
+      const servicesList = [];
 
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.active) {
+          servicesList.push({
+            id: doc.id,
+            name: data.name,
+            price: data.price || 0,
+            description: data.description || "",
+            image: imageMap[data.name] || null,
+          });
+        }
+      });
+
+      setServicesData(servicesList);
+
+      if (servicesList.length > 0) {
+        setCurrentService(servicesList[0]);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
+  // Toggle multi-selection
   const handleServiceClick = (serviceName) => {
-    setSelectedService(serviceName);
-  };
+    setSelectedServices((prev) =>
+      prev.includes(serviceName)
+        ? prev.filter((s) => s !== serviceName)
+        : [...prev, serviceName]
+    );
 
-  const currentService = servicesData.find(
-    (service) => service.name === selectedService
-  );
+    const svc = servicesData.find((s) => s.name === serviceName);
+    if (svc) setCurrentService(svc);
+  };
 
   return (
     <>
       <Navbar user={user} onLoginClick={() => navigate("/login")} />
 
-      {/* FULL PAGE WRAPPER */}
       <div className="services-wrapper">
-
         <main className="services-main">
           <section className="services-container">
-
-            {/* LEFT TABLE SIDEBAR */}
+            
+            {/* LEFT SERVICE LIST */}
             <aside className="services-sidebar">
               <h2>Service List</h2>
 
@@ -105,13 +92,15 @@ const ServicesPage = () => {
                 <tbody>
                   {servicesData.map((service) => (
                     <tr
-                      key={service.name}
+                      key={service.id}
                       className={
-                        selectedService === service.name ? "active-row" : ""
+                        selectedServices.includes(service.name)
+                          ? "active-row"
+                          : ""
                       }
                       onClick={() => handleServiceClick(service.name)}
                     >
-                      <td>{service.label}</td>
+                      <td>{service.name}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -120,21 +109,55 @@ const ServicesPage = () => {
 
             {/* RIGHT DETAILS SECTION */}
             <div className="service-details">
+
+              {/* HORIZONTAL SELECTED LIST */}
+              {selectedServices.length > 0 && (
+                <div className="selected-services-horizontal">
+                  {selectedServices.map((name) => {
+                    const svc = servicesData.find((s) => s.name === name);
+                    if (!svc) return null;
+                    return (
+                      <div key={name} className="selected-service-box">
+                        <p className="svc-name">{svc.name}</p>
+                        <p className="svc-price">₱{svc.price}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* CURRENT SERVICE DETAILS */}
               {currentService && (
                 <>
                   <h1 className="service-title">{currentService.name}</h1>
 
-                  <img
-                    src={currentService.image}
-                    alt={currentService.name}
-                    className="service-large-image"
-                  />
+                  {currentService.image && (
+                    <img
+                      src={currentService.image}
+                      alt={currentService.name}
+                      className="service-large-image"
+                    />
+                  )}
 
                   <p className="service-description">
                     {currentService.description}
                   </p>
 
-                  {/* Facebook Inquiry Message */}
+                  {/* Reserve Now Button */}
+                  {selectedServices.length > 0 && (
+                    <button
+                      className="reserve-button"
+                      onClick={() =>
+                        navigate("/reserve-service", {
+                          state: { selectedServices },
+                        })
+                      }
+                    >
+                      Reserve Now
+                    </button>
+                  )}
+
+                  {/* FB Message Box */}
                   <div className="inquiry-box">
                     <p>For more inquiries, message us on our Facebook page.</p>
                     <a
@@ -148,11 +171,10 @@ const ServicesPage = () => {
                   </div>
                 </>
               )}
-            </div>
 
+            </div>
           </section>
         </main>
-
       </div>
 
       <Footer />

@@ -31,6 +31,9 @@ const Inventory = ({ role }) => {
 
   const [bulkFilter, setBulkFilter] = useState("all");
 
+  const ITEMS_PER_PAGE = 10;
+  const [page, setPage] = useState(1);
+
   useEffect(() => {
     const unsubTires = onSnapshot(collection(db, "products_tires"), async (snap) => {
       const list = await Promise.all(

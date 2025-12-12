@@ -50,7 +50,6 @@ const INITIAL_SERVICE_FORM = {
 const Products = () => {
   const [tires, setTires] = useState([]);
   const [mags, setMags] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,8 +65,6 @@ const Products = () => {
   const [editingService, setEditingService] = useState(null);
   const [isServiceSaving, setIsServiceSaving] = useState(false);
 
-  const [showSupplierList, setShowSupplierList] = useState(false);
-
   const fetchTires = async () => {
     const snapshot = await getDocs(collection(db, "products_tires"));
     setTires(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -78,10 +75,6 @@ const Products = () => {
     setMags(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
-  const fetchSuppliers = async () => {
-    const snapshot = await getDocs(collection(db, "suppliers"));
-    setSuppliers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-  };
 
   const subscribeServices = () => {
     const col = collection(db, "services");
@@ -94,10 +87,13 @@ const Products = () => {
   useEffect(() => {
     fetchTires();
     fetchMags();
-    fetchSuppliers();
     const unsubServices = subscribeServices();
     return () => unsubServices && unsubServices();
   }, []);
+
+  useEffect(() => {
+  console.log("CURRENT UID >>>", auth.currentUser?.uid);
+}, []);
 
   const fetchNextProductId = async (type = "Tire") => {
     try {
@@ -304,7 +300,6 @@ const Products = () => {
               </thead>
               <tbody>
                 {filterProducts(tires).map((p) => {
-                  const supplier = suppliers.find((s) => s.id === p.supplierId);
                   return (
                     <tr key={p.id}>
                       <td>{p.productId}</td>
@@ -355,7 +350,6 @@ const Products = () => {
               </thead>
               <tbody>
                 {filterProducts(mags).map((p) => {
-                  const supplier = suppliers.find((s) => s.id === p.supplierId);
                   return (
                     <tr key={p.id}>
                       <td>{p.productId}</td>
