@@ -1,0 +1,168 @@
+/* ================================
+   RESERVATION MODAL OVERLAY
+================================ */
+.reservation-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(2px);
+  z-index: 3000;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* ================================
+   RESERVATION MODAL CONTENT
+================================ */
+.reservation-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem 2.4rem;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  position: relative;
+  animation: slideUp 0.25s ease-out;
+}
+
+.reservation-modal h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* ================================
+   DETAILS
+================================ */
+.reservation-modal p {
+  margin: 0.4rem 0;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.reservation-modal strong {
+  color: #111827;
+}
+
+/* ================================
+   SERVICE LIST STYLE
+================================ */
+.reservation-modal ul {
+  list-style: none;
+  padding: 0.3rem 0 0.3rem 0;
+}
+
+.reservation-modal ul li {
+  background: #f3f4f6;
+  margin: 4px 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+/* ================================
+   CLOSE BUTTON
+================================ */
+.close-btn {
+  margin-top: 1.3rem;
+  width: 100%;
+  padding: 0.8rem;
+  background: #374151;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+.close-btn:hover {
+  background: #1f2937;
+}
+
+/* ================================
+   ANIMATIONS
+================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ============================= */
+/* STATUS BUTTONS INSIDE MODAL   */
+/* ============================= */
+
+.status-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.status-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: white;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* Hover effect */
+.status-btn:hover {
+  transform: scale(1.05);
+}
+
+/* INDIVIDUAL COLORS */
+.status-btn.approve {
+  background-color: #34A853; /* green */
+}
+.status-btn.approve:hover {
+  background-color: #2d8d46;
+}
+
+.status-btn.complete {
+  background-color: #4285F4; /* blue */
+}
+.status-btn.complete:hover {
+  background-color: #2f6ed4;
+}
+
+.status-btn.noshow {
+  background-color: #EA4335; /* red */
+}
+.status-btn.noshow:hover {
+  background-color: #c73528;
+}
+
+.status-btn.cancel {
+  background-color: #6b7280; /* gray */
+}
+.status-btn.cancel:hover {
+  background-color: #4b5563;
+}
+
+.status-btn.pending {
+  background-color: #FBBC04; /* yellow */
+  color: #333;
+}
+.status-btn.pending:hover {
+  background-color: #e0a903;
+}

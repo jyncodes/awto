@@ -1,8 +1,7 @@
-// 📁 src/pages/admin-page/Analytics.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, doc, updateDoc } from "firebase/firestore";
 import {
   LineChart,
   Line,
@@ -15,6 +14,9 @@ import {
 } from "recharts";
 import "../../styles/admin-styles/Analytics.css";
 
+// Calendar Component
+import ReservationCalendar from "../../components/shared-components/ReservationCalendar";
+
 const Analytics = () => {
   const navigate = useNavigate();
   const [salesData, setSalesData] = useState([]);
@@ -23,7 +25,10 @@ const Analytics = () => {
   const [weeklySales, setWeeklySales] = useState(0);
 
   const [lowStockProducts, setLowStockProducts] = useState([]);
-  const [upcomingReservations, setUpcomingReservations] = useState([]);
+  const [reservations, setReservations] = useState([]);
+
+  const [selectedChart, setSelectedChart] = useState("all");
+  const [selectedReservation, setSelectedReservation] = useState(null);
 
   const formatCurrency = (amount) =>
     `₱${Number(amount || 0).toLocaleString(undefined, {
@@ -37,7 +42,6 @@ const Analytics = () => {
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       setSalesData(data);
 
-      // GROUP SALES BY DATE
       const grouped = {};
       data.forEach((s) => {
         if (!s.createdAt?.seconds) return;
@@ -51,7 +55,6 @@ const Analytics = () => {
 
       setChartData(formatted);
 
-      // TODAY + WEEK COMPUTATION
       const now = new Date();
       const today = now.toDateString();
       const startOfWeek = new Date(now);
@@ -99,18 +102,8 @@ const Analytics = () => {
     // ================= RESERVATIONS =================
     const qRes = query(collection(db, "reservations"), orderBy("preferredDate", "asc"));
     const unsubRes = onSnapshot(qRes, (snapshot) => {
-      const now = new Date();
-      const reservations = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const upcoming = reservations
-        .filter((r) => {
-          const date = r.preferredDate?.seconds
-            ? new Date(r.preferredDate.seconds * 1000)
-            : null;
-          return date && date >= now;
-        })
-        .slice(0, 5);
-
-      setUpcomingReservations(upcoming);
+      const allReservations = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setReservations(allReservations);
     });
 
     return () => {
@@ -120,6 +113,32 @@ const Analytics = () => {
       unsubRes();
     };
   }, []);
+
+  // ================= CHART FILTERING =================
+  let filteredChartData = chartData;
+
+  if (selectedChart === "today") {
+    const today = new Date().toLocaleDateString();
+    filteredChartData = chartData.filter((d) => d.date === today);
+  }
+
+  if (selectedChart === "week") {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    filteredChartData = chartData.filter((d) => {
+      const dDate = new Date(d.date);
+      return dDate >= startOfWeek;
+    });
+  }
+
+  // ================= UPDATE RESERVATION STATUS =================
+  const updateStatus = async (status) => {
+    await updateDoc(doc(db, "reservations", selectedReservation.id), { status });
+    setSelectedReservation((prev) => ({ ...prev, status }));
+  };
 
   return (
     <div className="analytics-container">
@@ -131,43 +150,80 @@ const Analytics = () => {
       </div>
 
       {/* ===================================================== */}
-      {/* 🟦 SECTION 1 — RESERVATIONS (TOP) */}
+      {/* 📆 RESERVATION CALENDAR */}
       {/* ===================================================== */}
       <div className="table-card">
-        <h2>📅 Upcoming Reservations</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Reservation ID</th>
-              <th>Product</th>
-              <th>View</th>
-            </tr>
-          </thead>
-          <tbody>
-            {upcomingReservations.length ? (
-              upcomingReservations.map((res) => (
-                <tr key={res.id}>
-                  <td>{res.id}</td>
-                  <td>{res.productName || "N/A"}</td>
-                  <td>
-                    <button
-                      className="view-btn"
-                      onClick={() => navigate("/admin-dashboard/reservations")}
-                    >
-                      👁 View
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan="3">No upcoming reservations.</td></tr>
-            )}
-          </tbody>
-        </table>
+        <h2>📆 Reservation Calendar</h2>
+
+        <ReservationCalendar
+          reservations={reservations}
+          onSelectReservation={(res) => setSelectedReservation(res)}
+        />
+
+        {/* MODAL */}
+        {selectedReservation && (
+          <div className="reservation-modal-overlay" onClick={() => setSelectedReservation(null)}>
+            <div className="reservation-modal" onClick={(e) => e.stopPropagation()}>
+              <h2>Reservation Details</h2>
+
+              <p><strong>ID:</strong> {selectedReservation.id}</p>
+              <p><strong>Customer:</strong> {selectedReservation.userName}</p>
+              <p><strong>Status:</strong> {selectedReservation.status}</p>
+              <p>
+                <strong>Date:</strong>{" "}
+                {selectedReservation.preferredDate?.seconds
+                  ? new Date(selectedReservation.preferredDate.seconds * 1000).toLocaleDateString()
+                  : "—"}
+              </p>
+
+              {selectedReservation.selectedServices?.length > 0 && (
+                <>
+                  <p><strong>Services:</strong></p>
+                  <ul>
+                    {selectedReservation.selectedServices.map((s, index) => (
+                      <li key={index}>{s.name} – ₱{s.price}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {selectedReservation.productName && (
+                <p><strong>Product:</strong> {selectedReservation.productName}</p>
+              )}
+
+              {/* ================= STATUS BUTTONS ================= */}
+              <div className="status-buttons">
+                <button className="status-btn approve" onClick={() => updateStatus("Approved")}>
+                  Approve
+                </button>
+
+                <button className="status-btn complete" onClick={() => updateStatus("Completed")}>
+                  Mark Completed
+                </button>
+
+                <button className="status-btn noshow" onClick={() => updateStatus("No-Show")}>
+                  No-Show
+                </button>
+
+                <button className="status-btn cancel" onClick={() => updateStatus("Cancelled")}>
+                  Cancel
+                </button>
+
+                <button className="status-btn pending" onClick={() => updateStatus("Pending")}>
+                  Set to Pending
+                </button>
+              </div>
+
+              <button className="close-btn" onClick={() => setSelectedReservation(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===================================================== */}
-      {/* 🟧 SECTION 2 — INVENTORY (MIDDLE) */}
+      {/* LOW STOCK PRODUCTS */}
       {/* ===================================================== */}
       <div className="table-card">
         <h2>⚠️ Low Stock Products</h2>
@@ -205,26 +261,30 @@ const Analytics = () => {
       </div>
 
       {/* ===================================================== */}
-      {/* 🟩 SECTION 3 — ANALYTICS CHARTS (BOTTOM) */}
+      {/* SALES CARDS + CHART */}
       {/* ===================================================== */}
-
-      {/* SALES OVERVIEW */}
       <div className="summary-cards">
-        <div className="summary-card blue">
+        <div
+          className={`summary-card blue ${selectedChart === "today" ? "active" : ""}`}
+          onClick={() => setSelectedChart("today")}
+        >
           <h3>Today’s Sales</h3>
           <p>{formatCurrency(todaySales)}</p>
         </div>
-        <div className="summary-card green">
+
+        <div
+          className={`summary-card green ${selectedChart === "week" ? "active" : ""}`}
+          onClick={() => setSelectedChart("week")}
+        >
           <h3>This Week’s Sales</h3>
           <p>{formatCurrency(weeklySales)}</p>
         </div>
       </div>
 
-      {/* CHART */}
       <div className="chart-card">
         <h2>📊 Sales Trend</h2>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData}>
+          <LineChart data={filteredChartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />

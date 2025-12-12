@@ -120,7 +120,7 @@
 /* Modal */
 .reservation-modal {
   position: fixed;
-  inset: 0; /* replaces top/left/width/height and forces true centering */
+  inset: 0; /* TRUE FULLSCREEN OVERLAY */
   background-color: rgba(0,0,0,0.4);
 
   display: flex;
