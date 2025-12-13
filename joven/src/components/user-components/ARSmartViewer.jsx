@@ -204,7 +204,9 @@ const ARSmartViewer = ({ src }) => {
           m.position.sub(center.multiplyScalar(baseScale));
 
           // 🔧 FIX: orient wheel to face camera
-          m.rotation.set(0, Math.PI / 2, 0);
+          m.rotation.set(0, 0, 0);
+          m.rotateY(Math.PI / 2);
+
 
         } catch (err) {
           // fallback   
@@ -315,14 +317,17 @@ const applyWheelMask = (video, masks) => {
 
   // 1️⃣ Draw camera frame
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+  // remove original tire area, this is for replacement
+  
   masks.forEach(mask => {
-    // 2️⃣ Build clipping path
     ctx.save();
+    ctx.globalCompositeOperation = "destination-out";
     ctx.beginPath();
 
-    mask.forEach(([x, y], i) => {
+  mask.forEach(([x, y], i) => {
       const px = (x / 640) * canvas.width;
       const py = (y / 640) * canvas.height;
       if (i === 0) ctx.moveTo(px, py);
@@ -330,7 +335,8 @@ const applyWheelMask = (video, masks) => {
     });
 
     ctx.closePath();
-    ctx.clip();
+    ctx.fill();
+    ctx.restore();
 
     // 3️⃣ Draw rendered wheel INSIDE the tire
     ctx.drawImage(
@@ -340,8 +346,6 @@ const applyWheelMask = (video, masks) => {
       canvas.width,
       canvas.height
     );
-
-    ctx.restore();
   });
 };
 
@@ -413,11 +417,18 @@ const applyWheelMask = (video, masks) => {
   const rightNdcX = (rightCenter.x / 640) * 2 - 1;
   const rightNdcY = -((rightCenter.y / 640) * 2 - 1);
 
+  const distanceFactor = 1 / Math.sqrt(leftDiameter);
+  const rightDistanceFactor = 1 / Math.sqrt(rightDiameter);
+
   targetLeft.current = {
     x: leftNdcX * 1.5,
     y: leftNdcY * 1.2,
     z: -2.5,
-    scale: clamp(leftDiameter / 260, 0.05, 0.4),
+    scale: clamp(
+      (leftDiameter * distanceFactor) / 180,
+      0.08,
+      0.6
+    ),
     rot: 0,
   };
 
@@ -425,7 +436,11 @@ const applyWheelMask = (video, masks) => {
     x: rightNdcX * 1.5,
     y: rightNdcY * 1.2,
     z: -2.5,
-    scale: clamp(rightDiameter / 260, 0.05, 0.4),
+    scale: clamp(
+    (rightDiameter * rightDistanceFactor) / 180,
+    0.08,
+    0.6
+  ),
     rot: 0,
   };
 
@@ -602,7 +617,7 @@ const applyWheelMask = (video, masks) => {
 
     <canvas
       ref={threeCanvasRef}
-      style={{ display: "none" }} // 🔥 IMPORTANT
+      style={{ display: "block", opacity: 0.01 }}
     />
 
 
