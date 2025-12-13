@@ -280,6 +280,42 @@ const ARSmartViewer = ({ src }) => {
     }
   };
 
+const applyWheelMask = (video, masks) => {
+  const canvas = debugCanvasRef.current;
+  if (!canvas || !video) return;
+
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  // draw video frame
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // SOFT EDGE MASK (FEATHER)
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.filter = "blur(6px)";
+
+  masks.forEach(mask => {
+    ctx.beginPath();
+    mask.forEach(([x, y], i) => {
+      const px = (x / 640) * canvas.width;
+      const py = (y / 640) * canvas.height;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // reset
+  ctx.filter = "none";
+  ctx.globalCompositeOperation = "source-over";
+};
+
+
+
   /* ---------------- MAIN LOOP ---------------- */
   useEffect(() => {
     const loop = async () => {
@@ -298,21 +334,26 @@ const ARSmartViewer = ({ src }) => {
 
         const frame = buildFrame(video);
 
-        if (debugCanvasRef.current) {
-          debugCanvasRef.current
-            .getContext("2d")
-            .drawImage(frame, 0, 0, 200, 200);
-        }
 
         const json = await sendToYOLO(frame);
 
-        // convert Roboflow predictions into segmentation objects
-        const preds = (json?.predictions || [])
-          .filter(p => p.class === "rim" && p.mask)
-          .map(p => ({
-            mask: p.mask,
-            confidence: p.confidence ?? 0,
-          }));
+        // convert Roboflow predictions into segmentation object
+
+          const rims = (json?.predictions || [])
+          .filter(p => p.class === "rim" && p.mask);
+
+        const tires = (json?.predictions || [])
+          .filter(p => p.class === "tire" && p.mask);
+
+          const preds = rims;
+
+
+          if (tires.length > 0) {
+            applyWheelMask(video, tires.map(t => t.mask));
+          } else {
+            applyWheelMask(video, []);
+          }
+
 
 
         // sort by area (largest first)
@@ -392,7 +433,7 @@ const ARSmartViewer = ({ src }) => {
   
   console.log("Predictions:", json?.predictions?.length);
 
-  
+
 }
 
 
@@ -483,17 +524,22 @@ const ARSmartViewer = ({ src }) => {
 )}
 
 
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
+  <video
+    ref={videoRef}
+    autoPlay
+    playsInline
+    muted
+    style={{ display: "none" }} // 👈 hide it
+  />
+
+      <canvas
+        ref={debugCanvasRef}
         style={{
           position: "absolute",
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          zIndex: 1,
+          zIndex: 1, // 👈 behind THREE.js
         }}
       />
 
@@ -504,19 +550,6 @@ const ARSmartViewer = ({ src }) => {
           width: "100%",
           height: "100%",
           zIndex: 2,
-        }}
-      />
-
-      <canvas
-        ref={debugCanvasRef}
-        width={200}
-        height={200}
-        style={{
-          position: "absolute",
-          top: 10,
-          left: 10,
-          border: "2px solid lime",
-          zIndex: 99,
         }}
       />
 
