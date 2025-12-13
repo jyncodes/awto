@@ -42,9 +42,6 @@ const ARSmartViewer = ({ src }) => {
   const threeCanvasRef = useRef(null);
   const debugCanvasRef = useRef(null);
 
-  const wheelRenderTargetRef = useRef(null);
-  const wheelCanvasRef = useRef(null);
-
   const rendererRef = useRef(null);
   const cameraRef = useRef(null);
   const sceneRef = useRef(null);
@@ -129,16 +126,6 @@ const ARSmartViewer = ({ src }) => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     rendererRef.current = renderer;
 
-    // 🔹 Render target for wheel replacement
-    wheelRenderTargetRef.current = new THREE.WebGLRenderTarget(1024, 1024, {
-      format: THREE.RGBAFormat,
-      transparent: true,
-    });
-
-    // canvas to extract pixels from render target
-    wheelCanvasRef.current = document.createElement("canvas");
-    wheelCanvasRef.current.width = 1024;
-    wheelCanvasRef.current.height = 1024;
 
 
     const scene = new THREE.Scene();
@@ -175,10 +162,14 @@ const ARSmartViewer = ({ src }) => {
         const m = gltf.scene;
 
           m.traverse(child => {
-            if (child.isMesh) {
-              child.material.depthWrite = true;
-              child.material.depthTest = true;
-            }
+          if (child.isMesh && child.material) {
+            child.material.depthWrite = true;
+            child.material.depthTest = true;
+            child.material.metalness = 0.4;
+            child.material.roughness = 0.35;
+            child.material.envMapIntensity = 0.7;
+            child.material.needsUpdate = true;
+          }
           });
 
         try {
@@ -230,11 +221,34 @@ const ARSmartViewer = ({ src }) => {
         left.visible = false;
         right.visible = false;
 
+        scene.add(left);
+        scene.add(right);
+
         leftModelRef.current = left;
         rightModelRef.current = right;
 
-        scene.add(left);
-        scene.add(right);
+
+      // === SHADOWS ===
+      const makeShadow = () => {
+        const shadow = new THREE.Mesh(
+          new THREE.CircleGeometry(1.1, 64),
+          new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.35,
+          })
+        );
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.visible = false;
+        return shadow;
+      };
+
+      left.userData.shadow = makeShadow();
+      right.userData.shadow = makeShadow();
+
+      scene.add(left.userData.shadow);
+      scene.add(right.userData.shadow);
+
 
         setModelLoaded(true);
         console.log(
@@ -308,7 +322,6 @@ const ARSmartViewer = ({ src }) => {
 
 const applyWheelMask = (video, masks) => {
   const canvas = debugCanvasRef.current;
-  if (!canvas || !video || !wheelCanvasRef.current) return;
 
   const ctx = canvas.getContext("2d");
 
@@ -340,7 +353,6 @@ const applyWheelMask = (video, masks) => {
 
     // 3️⃣ Draw rendered wheel INSIDE the tire
     ctx.drawImage(
-      wheelCanvasRef.current,
       0,
       0,
       canvas.width,
@@ -384,12 +396,12 @@ const applyWheelMask = (video, masks) => {
           const preds = rims;
 
 
-          if (tires.length > 0) {
-            applyWheelMask(video, tires.map(t => t.mask));
-          } else {
-            applyWheelMask(video, []);
-          }
-
+// TEMPORARILY DISABLED — causes invisible output
+// if (tires.length > 0) {
+//   applyWheelMask(video, tires.map(t => t.mask));
+// } else {
+//   applyWheelMask(video, []);
+// }
 
 
         // sort by area (largest first)
@@ -507,6 +519,15 @@ const applyWheelMask = (video, masks) => {
         leftModelRef.current.position.set(s.x, -s.y, s.z);
         leftModelRef.current.scale.setScalar(appliedLeftScale);
         leftModelRef.current.rotation.set(0, 0, s.rot);
+
+        const shadow = leftModelRef.current.userData.shadow;
+        if (shadow) {
+          shadow.visible = leftModelRef.current.visible;
+          shadow.position.copy(leftModelRef.current.position);
+          shadow.position.z -= 0.05;
+          shadow.scale.setScalar(leftModelRef.current.scale.x * 1.15);
+        }
+
       }
 
       // RIGHT model smoothing & apply
@@ -526,36 +547,26 @@ const applyWheelMask = (video, masks) => {
         rightModelRef.current.position.set(s2.x, -s2.y, s2.z);
         rightModelRef.current.scale.setScalar(appliedRightScale);
         rightModelRef.current.rotation.set(0, 0, s2.rot);
+
+        const shadow = rightModelRef.current.userData.shadow;
+        if (shadow) {
+          shadow.visible = rightModelRef.current.visible;
+          shadow.position.copy(rightModelRef.current.position);
+          shadow.position.z -= 0.05;
+          shadow.scale.setScalar(rightModelRef.current.scale.x * 1.15);
+        }
+
       }
 
       // render
+      // render to screen
       try {
         const renderer = rendererRef.current;
-
-        // 1️⃣ Render wheel to texture
-          renderer.setRenderTarget(wheelRenderTargetRef.current);
-          renderer.clear();
-          renderer.render(sceneRef.current, cameraRef.current);
-
-          // 2️⃣ Copy pixels
-          const pixels = new Uint8Array(1024 * 1024 * 4);
-          renderer.readRenderTargetPixels(
-            wheelRenderTargetRef.current,
-            0,
-            0,
-            1024,
-            1024,
-            pixels
-          );
-
-      const ctxWheel = wheelCanvasRef.current.getContext("2d");
-      const imageData = ctxWheel.createImageData(1024, 1024);
-      imageData.data.set(pixels);
-      ctxWheel.putImageData(imageData, 0, 0);
-
-      // 3️⃣ Reset back to screen
+        const scene = sceneRef.current;
+        const camera = cameraRef.current;
 
         renderer.setRenderTarget(null);
+        renderer.render(scene, camera); // ✅ THIS WAS MISSING
       } catch (err) {
         console.warn("[AR] render error:", err);
       }
@@ -596,13 +607,20 @@ const applyWheelMask = (video, masks) => {
 )}
 
 
-  <video
-    ref={videoRef}
-    autoPlay
-    playsInline
-    muted
-    style={{ display: "none" }} // 👈 hide it
-  />
+<video
+  ref={videoRef}
+  autoPlay
+  playsInline
+  muted
+  style={{
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    zIndex: 1
+  }}
+/>
+
 
       <canvas
         ref={debugCanvasRef}
@@ -617,7 +635,13 @@ const applyWheelMask = (video, masks) => {
 
     <canvas
       ref={threeCanvasRef}
-      style={{ display: "block", opacity: 0.01 }}
+      style={{
+        position: "absolute",
+        width: "100%",
+        height: "100%",
+        zIndex: 2,
+        pointerEvents: "none"
+      }}
     />
 
 
