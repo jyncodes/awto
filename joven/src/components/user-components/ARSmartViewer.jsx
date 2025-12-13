@@ -42,6 +42,9 @@ const ARSmartViewer = ({ src }) => {
   const threeCanvasRef = useRef(null);
   const debugCanvasRef = useRef(null);
 
+  const wheelRenderTargetRef = useRef(null);
+  const wheelCanvasRef = useRef(null);
+
   const rendererRef = useRef(null);
   const cameraRef = useRef(null);
   const sceneRef = useRef(null);
@@ -126,6 +129,18 @@ const ARSmartViewer = ({ src }) => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     rendererRef.current = renderer;
 
+    // 🔹 Render target for wheel replacement
+    wheelRenderTargetRef.current = new THREE.WebGLRenderTarget(1024, 1024, {
+      format: THREE.RGBAFormat,
+      transparent: true,
+    });
+
+    // canvas to extract pixels from render target
+    wheelCanvasRef.current = document.createElement("canvas");
+    wheelCanvasRef.current.width = 1024;
+    wheelCanvasRef.current.height = 1024;
+
+
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
@@ -159,6 +174,13 @@ const ARSmartViewer = ({ src }) => {
       (gltf) => {
         const m = gltf.scene;
 
+          m.traverse(child => {
+            if (child.isMesh) {
+              child.material.depthWrite = true;
+              child.material.depthTest = true;
+            }
+          });
+
         try {
           // safe scaling and centering
           const box = new THREE.Box3().setFromObject(m);
@@ -181,10 +203,11 @@ const ARSmartViewer = ({ src }) => {
           box.getCenter(center);
           m.position.sub(center.multiplyScalar(baseScale));
 
-          // reset rotation
-          m.rotation.set(0, 0, 0);
+          // 🔧 FIX: orient wheel to face camera
+          m.rotation.set(0, Math.PI / 2, 0);
+
         } catch (err) {
-          // fallback
+          // fallback   
           m.scale.setScalar(0.12);
           baseScaleRef.current = 0.12;
         }
@@ -230,6 +253,7 @@ const ARSmartViewer = ({ src }) => {
       } catch {}
     };
   }, [effectiveSrc]);
+
 
   /* ---------------- BUILD FRAME ---------------- */
   const buildFrame = (video) => {
@@ -282,37 +306,45 @@ const ARSmartViewer = ({ src }) => {
 
 const applyWheelMask = (video, masks) => {
   const canvas = debugCanvasRef.current;
-  if (!canvas || !video) return;
+  if (!canvas || !video || !wheelCanvasRef.current) return;
 
   const ctx = canvas.getContext("2d");
 
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
-  // draw video frame
+  // 1️⃣ Draw camera frame
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // SOFT EDGE MASK (FEATHER)
-  ctx.globalCompositeOperation = "destination-out";
-  ctx.filter = "blur(6px)";
-
   masks.forEach(mask => {
+    // 2️⃣ Build clipping path
+    ctx.save();
     ctx.beginPath();
+
     mask.forEach(([x, y], i) => {
       const px = (x / 640) * canvas.width;
       const py = (y / 640) * canvas.height;
       if (i === 0) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
     });
-    ctx.closePath();
-    ctx.fill();
-  });
 
-  // reset
-  ctx.filter = "none";
-  ctx.globalCompositeOperation = "source-over";
+    ctx.closePath();
+    ctx.clip();
+
+    // 3️⃣ Draw rendered wheel INSIDE the tire
+    ctx.drawImage(
+      wheelCanvasRef.current,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    ctx.restore();
+  });
 };
+
 
 
 
@@ -483,13 +515,38 @@ const applyWheelMask = (video, masks) => {
 
       // render
       try {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
+        const renderer = rendererRef.current;
+
+        // 1️⃣ Render wheel to texture
+          renderer.setRenderTarget(wheelRenderTargetRef.current);
+          renderer.clear();
+          renderer.render(sceneRef.current, cameraRef.current);
+
+          // 2️⃣ Copy pixels
+          const pixels = new Uint8Array(1024 * 1024 * 4);
+          renderer.readRenderTargetPixels(
+            wheelRenderTargetRef.current,
+            0,
+            0,
+            1024,
+            1024,
+            pixels
+          );
+
+      const ctxWheel = wheelCanvasRef.current.getContext("2d");
+      const imageData = ctxWheel.createImageData(1024, 1024);
+      imageData.data.set(pixels);
+      ctxWheel.putImageData(imageData, 0, 0);
+
+      // 3️⃣ Reset back to screen
+
+        renderer.setRenderTarget(null);
       } catch (err) {
         console.warn("[AR] render error:", err);
       }
 
       rafRef.current = requestAnimationFrame(loop);
-    };
+  };
 
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
@@ -543,15 +600,11 @@ const applyWheelMask = (video, masks) => {
         }}
       />
 
-      <canvas
-        ref={threeCanvasRef}
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          zIndex: 2,
-        }}
-      />
+    <canvas
+      ref={threeCanvasRef}
+      style={{ display: "none" }} // 🔥 IMPORTANT
+    />
+
 
       {!cameraReady && <div style={msgStyle}>Initializing camera...</div>}
 
