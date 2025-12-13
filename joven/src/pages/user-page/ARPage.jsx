@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 
 // AR Components
@@ -19,6 +19,9 @@ const ARPage = () => {
   // modelUrl passed from ViewProduct.jsx
   const modelUrl = location.state?.modelUrl;
 
+  // Show instructions initially
+  const [showGuide, setShowGuide] = useState(true);
+
   /* 🔒 Disable scroll & gestures */
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -35,8 +38,8 @@ const ARPage = () => {
   /* ❌ No model safety */
   if (!modelUrl) {
     return (
-      <div className="ar-page" style={{ color: "white", display: "grid", placeItems: "center" }}>
-        <div style={{ textAlign: "center" }}>
+      <div className="ar-page ar-error">
+        <div className="ar-error-box">
           <p>❌ No 3D model available for AR</p>
           <button onClick={() => navigate(-1)}>Go Back</button>
         </div>
@@ -67,6 +70,30 @@ const ARPage = () => {
       <div className="ar-mode-label">
         {mode === "smart" ? "Smart AR (Beta)" : "AR Preview"}
       </div>
+
+      {/* 📘 AR Instructions Overlay */}
+      {showGuide && (
+        <div className="ar-guide-overlay">
+          <div className="ar-guide-card">
+            <h3>How to use AR</h3>
+
+            <ul>
+              <li>📷 Point your camera at your vehicle</li>
+              <li>🎯 Keep it steady until the product appears</li>
+              <li>🤏 Pinch with two fingers to scale</li>
+              <li>🔄 Drag with one finger to rotate</li>
+              <li>📍 Move your phone to reposition</li>
+            </ul>
+
+            <button
+              className="ar-guide-btn"
+              onClick={() => setShowGuide(false)}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

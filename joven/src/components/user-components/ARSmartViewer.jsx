@@ -4,9 +4,35 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
 const ROBOFLOW_URL =
-  "https://serverless.roboflow.com/dslr-w6mrp/2?api_key=y9iNRghfr0ZBlKhhW9LE&format=json";
+  `https://serverless.roboflow.com/wheel-segmentation-vf80o/1?api_key=${import.meta.env.VITE_ROBOFLOW_API_KEY}&format=json`;
+
+
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function getMaskCenter(mask) {
+  let sx = 0, sy = 0;
+  for (const [x, y] of mask) {
+    sx += x;
+    sy += y;
+  }
+  return { x: sx / mask.length, y: sy / mask.length };
+}
+
+function getMaskDiameter(mask) {
+  let minX = Infinity, maxX = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+
+  for (const [x, y] of mask) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+  }
+
+  return Math.max(maxX - minX, maxY - minY);
+}
+
 
 const ARSmartViewer = ({ src }) => {
   // if no src provided, fallback to uploaded test.glb path
@@ -280,108 +306,96 @@ const ARSmartViewer = ({ src }) => {
 
         const json = await sendToYOLO(frame);
 
-        // convert Roboflow predictions into bbox objects if present
-        const preds = (json?.predictions || []).map((p) => ({
-          x: p.x,
-          y: p.y,
-          width: p.width,
-          height: p.height,
-          confidence: p.confidence ?? 0,
-        }));
+        // convert Roboflow predictions into segmentation objects
+        const preds = (json?.predictions || [])
+          .filter(p => p.class === "rim" && p.mask)
+          .map(p => ({
+            mask: p.mask,
+            confidence: p.confidence ?? 0,
+          }));
+
 
         // sort by area (largest first)
-        preds.sort((a, b) => b.width * b.height - a.width * a.height);
+       preds.sort(
+          (a, b) => getMaskDiameter(b.mask) - getMaskDiameter(a.mask)
+        );
 
-        // We'll use up to two detections for left/right overlay (Level 2)
-        const bestLeftRight = [];
+        if (preds.length >= 2 && !isLocked) {
+  // sort wheels from left to right
+  const sorted = [...preds].sort(
+    (a, b) => getMaskCenter(a.mask).x - getMaskCenter(b.mask).x
+  );
 
-        if (preds.length > 0) {
-          if (preds.length >= 2) {
-            const firstTwo = preds.slice(0, 4);
-            const top2 = firstTwo.slice(0, 2);
-            top2.sort((a, b) => a.x - b.x);
-            bestLeftRight.push(...top2);
-          } else {
-            bestLeftRight.push(preds[0]);
-          }
-        }
+  const leftDet = sorted[0];
+  const rightDet = sorted[1];
 
-        if (bestLeftRight.length > 0 && !isLocked) {
-          if (bestLeftRight.length === 2) {
-            const leftDet = bestLeftRight[0];
-            const rightDet = bestLeftRight[1];
+  const leftCenter = getMaskCenter(leftDet.mask);
+  const rightCenter = getMaskCenter(rightDet.mask);
 
-            const leftNdcX = (leftDet.x / 640) * 2 - 1;
-            const leftNdcY = -((leftDet.y / 640) * 2 - 1);
-            const rightNdcX = (rightDet.x / 640) * 2 - 1;
-            const rightNdcY = -((rightDet.y / 640) * 2 - 1);
+  const leftDiameter = getMaskDiameter(leftDet.mask);
+  const rightDiameter = getMaskDiameter(rightDet.mask);
 
-            // detection-driven scale (multiplies baseScale)
-            const leftScaleRel = clamp(leftDet.width / 220, 0.04, 0.35);
-            const rightScaleRel = clamp(rightDet.width / 220, 0.04, 0.35);
+  const leftNdcX = (leftCenter.x / 640) * 2 - 1;
+  const leftNdcY = -((leftCenter.y / 640) * 2 - 1);
+  const rightNdcX = (rightCenter.x / 640) * 2 - 1;
+  const rightNdcY = -((rightCenter.y / 640) * 2 - 1);
 
-            // compute final z (depth) mapping
-            const leftZ = -clamp(2.8 - leftDet.width / 300, 1.0, 4.0);
-            const rightZ = -clamp(2.8 - rightDet.width / 300, 1.0, 4.0);
+  targetLeft.current = {
+    x: leftNdcX * 1.5,
+    y: leftNdcY * 1.2,
+    z: -2.5,
+    scale: clamp(leftDiameter / 260, 0.05, 0.4),
+    rot: 0,
+  };
 
-            const leftTilt = clamp(
-              (leftDet.height / leftDet.width - 1) * 0.8,
-              -0.6,
-              0.6
-            );
-            const rightTilt = clamp(
-              (rightDet.height / rightDet.width - 1) * 0.8,
-              -0.6,
-              0.6
-            );
+  targetRight.current = {
+    x: rightNdcX * 1.5,
+    y: rightNdcY * 1.2,
+    z: -2.5,
+    scale: clamp(rightDiameter / 260, 0.05, 0.4),
+    rot: 0,
+  };
 
-            // NOTE: store *relative* scale; we'll multiply by baseScaleRef when applying
-            targetLeft.current = {
-              x: leftNdcX * 1.5,
-              y: leftNdcY * 1.2,
-              z: leftZ,
-              scale: leftScaleRel,
-              rot: leftTilt,
-            };
-            targetRight.current = {
-              x: rightNdcX * 1.5,
-              y: rightNdcY * 1.2,
-              z: rightZ,
-              scale: rightScaleRel,
-              rot: rightTilt,
-            };
+  lastDetectionRef.current = Date.now();
+  setIsPlaced(true);
+  setNoWheel(false);
 
-            lastDetectionRef.current = Date.now();
-            setIsPlaced(true);
-            setNoWheel(false);
-          } else {
-            const d = bestLeftRight[0];
-            const ndcX = (d.x / 640) * 2 - 1;
-            const ndcY = -((d.y / 640) * 2 - 1);
-            const scaleRel = clamp(d.width / 220, 0.04, 0.35);
-            const z = -clamp(2.8 - d.width / 300, 1.0, 4.0);
-            const tilt = clamp((d.height / d.width - 1) * 0.8, -0.6, 0.6);
+        } else if (preds.length === 1 && !isLocked) {
+  const d = preds[0];
+  const center = getMaskCenter(d.mask);
+  const diameter = getMaskDiameter(d.mask);
 
-            targetLeft.current = {
-              x: ndcX * 1.5,
-              y: ndcY * 1.2,
-              z,
-              scale: scaleRel,
-              rot: tilt,
-            };
-            targetRight.current = { ...targetRight.current, scale: 0.001 };
-            lastDetectionRef.current = Date.now();
-            setIsPlaced(true);
-            setNoWheel(false);
-          }
-        } else if (!isLocked) {
-          if (Date.now() - lastDetectionRef.current > 3000) {
-            setIsPlaced(false);
-            setNoWheel(true);
-            if (leftModelRef.current) leftModelRef.current.visible = false;
-            if (rightModelRef.current) rightModelRef.current.visible = false;
-          }
-        }
+  const ndcX = (center.x / 640) * 2 - 1;
+  const ndcY = -((center.y / 640) * 2 - 1);
+
+  targetLeft.current = {
+    x: ndcX * 1.5,
+    y: ndcY * 1.2,
+    z: -2.5,
+    scale: clamp(diameter / 260, 0.05, 0.4),
+    rot: 0,
+  };
+
+  targetRight.current = { ...targetRight.current, scale: 0.001 };
+
+  lastDetectionRef.current = Date.now();
+  setIsPlaced(true);
+  setNoWheel(false);
+} else if (!isLocked) {
+  if (Date.now() - lastDetectionRef.current > 3000) {
+    setIsPlaced(false);
+    setNoWheel(true);
+
+    if (leftModelRef.current) leftModelRef.current.visible = false;
+    if (rightModelRef.current) rightModelRef.current.visible = false;
+  }
+  
+  console.log("Predictions:", json?.predictions?.length);
+
+  
+}
+
+
       }
 
       // Apply smoothing to both models and update scene transforms

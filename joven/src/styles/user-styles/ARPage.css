@@ -57,3 +57,64 @@
   border-radius: 8px;
   font-size: 12px;
 }
+
+/* ==============================
+   AR INSTRUCTION OVERLAY
+============================== */
+
+.ar-guide-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.ar-guide-card {
+  background: rgba(20, 20, 20, 0.95);
+  color: #fff;
+  padding: 18px 20px;
+  width: 90%;
+  max-width: 340px;
+  border-radius: 14px;
+  text-align: left;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.ar-guide-card h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.ar-guide-card ul {
+  padding-left: 18px;
+  margin: 0;
+}
+
+.ar-guide-card li {
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ar-guide-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #22c55e;
+  color: #000;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.ar-guide-btn:active {
+  transform: scale(0.97);
+}
