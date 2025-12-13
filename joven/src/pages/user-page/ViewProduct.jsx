@@ -16,8 +16,7 @@ import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
 
 import ModelViewer from "../../components/user-components/ModelViewer";
-import ARViewer from "../../components/user-components/ARViewer";
-import Navbar from "../../components/Navbar"; // <-- ADDED
+import Navbar from "../../components/Navbar"; 
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -39,7 +38,6 @@ const ViewProduct = () => {
 
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
-  const [showAR, setShowAR] = useState(false);
   const [modelUrl, setModelUrl] = useState(null);
 
   const [selectedSize, setSelectedSize] = useState("");
@@ -253,8 +251,12 @@ const ViewProduct = () => {
 
   const handleARClick = () => {
     if (!modelUrl) return alert("⚠ No 3D model found.");
-    setShowAR(true);
+
+    navigate(`/ar/basic/${product.id}`, {
+      state: { modelUrl },
+    });
   };
+
 
   if (!product) return <div className="view-product">Loading product…</div>;
 
@@ -290,17 +292,12 @@ const ViewProduct = () => {
         <div className="product-container">
           {/* LEFT IMAGE SECTION */}
           <div className="product-images">
-            {hasGLB ? (
-              <div className="ar-viewer-container">
-                {!showAR ? (
-                  <ModelViewer modelUrl={modelUrl} />
-                ) : (
-                  <ARViewer src={modelUrl} />
-                )}
-              </div>
+          {hasGLB ? (
+              <ModelViewer modelUrl={modelUrl} />
             ) : (
               <img src={fallbackImage} alt="Main" className="main-image" />
             )}
+
           </div>
 
           {/* RIGHT INFO */}
@@ -428,14 +425,6 @@ const ViewProduct = () => {
               </button>
             </div>
 
-            {showAR && (
-              <button
-                className="exit-ar-button"
-                onClick={() => setShowAR(false)}
-              >
-                Exit AR Mode
-              </button>
-            )}
           </div>
         </div>
       </div>

@@ -39,6 +39,8 @@ import ReceiptPage from './pages/user-page/ReceiptPage';
 import PaymentSuccess from "./pages/user-page/PaymentSuccess";
 import PaymentFailed from "./pages/user-page/PaymentFailed";
 import DevTools from './pages/user-page/DevTools';
+import ARPage from "./pages/user-page/ARPage";
+
 
 // Reservation Page
 import ReservationPage from './pages/user-page/ReservationPage';
@@ -118,6 +120,10 @@ export default function App() {
 
         <Route path="/verify" element={<Verify />} />
         <Route path="/view-product/:id" element={<ViewProduct />} />
+
+        {/* ⭐ FULLSCREEN AR ROUTE */}
+        <Route path="/ar/:mode/:productId" element={<ARPage />} />
+
 
         {/* DevTools */}
         <Route path="/devtools" element={<DevTools />} />

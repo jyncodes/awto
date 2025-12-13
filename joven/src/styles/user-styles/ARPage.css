@@ -1,0 +1,59 @@
+/* Fullscreen AR container */
+.ar-page {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Make navbar float over AR (no layout shift) */
+.ar-navbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9998;
+}
+
+/* Exit AR button */
+.ar-exit-btn {
+  position: absolute;
+  top: 70px; /* below navbar */
+  right: 16px;
+  z-index: 9999;
+
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.ar-exit-btn:active {
+  transform: scale(0.96);
+}
+
+/* AR mode label */
+.ar-mode-label {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 9999;
+
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}

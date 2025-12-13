@@ -34,6 +34,9 @@ const ARSmartViewer = ({ src }) => {
   const [isPlaced, setIsPlaced] = useState(false);
   const [noWheel, setNoWheel] = useState(false);
 
+  const [isLocked, setIsLocked] = useState(false);
+
+
   // target positions for each model
   const targetLeft = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
   const targetRight = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
@@ -263,7 +266,8 @@ const ARSmartViewer = ({ src }) => {
 
       const now = performance.now();
 
-      if (now - lastSentRef.current > sendDelayRef.current) {
+      if (!isLocked && now - lastSentRef.current > sendDelayRef.current) {
+
         lastSentRef.current = now;
 
         const frame = buildFrame(video);
@@ -302,7 +306,7 @@ const ARSmartViewer = ({ src }) => {
           }
         }
 
-        if (bestLeftRight.length > 0) {
+        if (bestLeftRight.length > 0 && !isLocked) {
           if (bestLeftRight.length === 2) {
             const leftDet = bestLeftRight[0];
             const rightDet = bestLeftRight[1];
@@ -370,7 +374,7 @@ const ARSmartViewer = ({ src }) => {
             setIsPlaced(true);
             setNoWheel(false);
           }
-        } else {
+        } else if (!isLocked) {
           if (Date.now() - lastDetectionRef.current > 3000) {
             setIsPlaced(false);
             setNoWheel(true);
@@ -439,6 +443,32 @@ const ARSmartViewer = ({ src }) => {
   /* ---------------- UI ---------------- */
   return (
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+      {isPlaced && !isLocked && (
+  <button
+    style={{
+      position: "absolute",
+      bottom: 80,
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 9999,
+      padding: "12px 18px",
+      background: "rgba(0,0,0,0.7)",
+      color: "white",
+      borderRadius: 10,
+      border: "1px solid rgba(255,255,255,0.4)",
+      fontWeight: 600,
+    }}
+    onClick={() => { setIsLocked(true);
+        // freeze targets at current smooth position
+  targetLeft.current = { ...smoothLeft.current };
+  targetRight.current = { ...smoothRight.current };
+    }}
+  >
+    ✔ Lock Wheels
+  </button>
+)}
+
+
       <video
         ref={videoRef}
         autoPlay
