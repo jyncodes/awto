@@ -1,159 +1,63 @@
 // src/pages/user-page/DevTools.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "../../styles/DevTools.css";
 
 // Components
 import CarData from "../../components/dev-components/CarData.jsx";
-import ARCameraDebugger from "../../components/dev-components/ARCameraDebugger.jsx";
-import DebugAR from "../../components/dev-components/DebugAR.jsx";   // ✔ Correct path
+import ResetCounterModal from "../../components/admin-components/ResetCounterModal";
 
 export default function DevTools() {
-  const [visibleSection, setVisibleSection] = useState("info");
-  const [authenticated, setAuthenticated] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Shortcut (*) to open devtools
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "*") {
-        window.location.href = "/#/devtools"; // ✔ HashRouter safe
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // Password submit
-  const handlePasswordSubmit = () => {
-    if (passwordInput === "capstone") {
-      setAuthenticated(true);
-    } else {
-      alert("Incorrect password.");
-    }
-  };
-
-  // Enter key = submit
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") handlePasswordSubmit();
-  };
+  const [showResetModal, setShowResetModal] = useState(false);
 
   return (
     <div className="devtools-container">
 
-      {/* =========================== LOCK SCREEN =========================== */}
-      {!authenticated && (
-        <div className="password-screen">
-          <h2>🔒 Developer Tools Locked</h2>
-          <p>Enter password to continue:</p>
+      <div className="devtools-header">
+        <h1>🛠 System Maintenance Tools</h1>
+        <p>Admin-only tools for maintaining system configuration and data.</p>
+      </div>
 
-          <div className="password-wrapper">
-            <input
-              type={showPassword ? "text" : "password"}
-              className="password-input"
-              placeholder="Enter password..."
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              onKeyDown={handleKeyPress}
-              autoComplete="new-password"
-            />
+      <div className="devtools-content">
+        <button
+          className="action-btn"
+          style={{ marginBottom: "1.5rem" }}
+          onClick={() => (window.location.href = "/admin-dashboard/settings")}
+        >
+          ← Back to Settings
+        </button>
 
-            <button
-              className="view-btn"
-              onClick={() => setShowPassword(!showPassword)}
-              type="button"
-            >
-              {showPassword ? "Hide" : "View"}
-            </button>
-          </div>
+        {/* ================= RESET COUNTER ================= */}
+        <div className="maintenance-section">
+          <h2>🔁 Reset Counter</h2>
+          <p>Reset official system counters used by transactions.</p>
 
-          <button className="action-btn" onClick={handlePasswordSubmit}>
-            Unlock
+          <button
+            className="action-btn danger"
+            onClick={() => setShowResetModal(true)}
+          >
+            Reset Counter
           </button>
         </div>
-      )}
 
-      {/* =========================== MAIN DEVTOOLS UI =========================== */}
-      {authenticated && (
-        <>
-          <div className="devtools-header">
-            <h1>🛠 Developer Tools</h1>
-            <p>⚠️ Internal debugging area — not part of final user system.</p>
-          </div>
+        <hr style={{ margin: "2.5rem 0" }} />
 
-          {/* Tabs */}
-          <div className="devtools-tabs">
-            <button
-              className={`tab-btn ${visibleSection === "info" ? "active" : ""}`}
-              onClick={() => setVisibleSection("info")}
-            >
-              Info
-            </button>
+        {/* ================= VEHICLE FITMENT ================= */}
+        <div className="maintenance-section">
+          <h2>🚗 Vehicle Fitment Manager</h2>
+          <p>
+            Manage tire and wheel fitment data used by the fitment and AR
+            modules.
+          </p>
 
-            <button
-              className={`tab-btn ${visibleSection === "vehicle" ? "active" : ""}`}
-              onClick={() => setVisibleSection("vehicle")}
-            >
-              Vehicle Fitment
-            </button>
+          <CarData />
+        </div>
+      </div>
 
-            <button
-              className={`tab-btn ${visibleSection === "ar" ? "active" : ""}`}
-              onClick={() => setVisibleSection("ar")}
-            >
-              AR Testing
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="devtools-content">
-            <button
-              className="action-btn"
-              style={{ marginBottom: "1rem" }}
-              onClick={() => (window.location.href = "/#/")}
-            >
-              ← Back to Home
-            </button>
-
-            {/* ---------------- INFO TAB ---------------- */}
-            {visibleSection === "info" && (
-              <div>
-                <h2>System Debug Info</h2>
-                <ul>
-                  <li>🧭 Test Firebase connection</li>
-                  <li>🧪 Test components</li>
-                  <li>🧰 Manage vehicle fitments</li>
-                  <li>⚠️ Developer-only access</li>
-                </ul>
-              </div>
-            )}
-
-            {/* ---------------- VEHICLE TAB ---------------- */}
-            {visibleSection === "vehicle" && (
-              <div>
-                <h2>Vehicle Fitment Manager</h2>
-                <p>Manage tire and wheel fitments for vehicles.</p>
-                <CarData />
-              </div>
-            )}
-
-            {/* ---------------- AR TAB ---------------- */}
-            {visibleSection === "ar" && (
-              <div>
-                <h2>AR Testing</h2>
-                <p>Debug the camera, canvas access, and 3D overlay.</p>
-
-                <h3>📸 Camera Debugger</h3>
-                <ARCameraDebugger />
-
-                <h3 style={{ marginTop: "2rem" }}>🧪 AR Model Viewer</h3>
-                <DebugAR />
-              </div>
-            )}
-          </div>
-        </>
-      )}
+      {/* RESET COUNTER MODAL */}
+      <ResetCounterModal
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+      />
     </div>
   );
 }

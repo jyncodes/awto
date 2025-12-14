@@ -1,5 +1,6 @@
 // src/pages/admin-page/Settings.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { auth, db, secondaryAuth } from "../../firebase";
 import {
   doc,
@@ -19,8 +20,6 @@ import {
 } from "firebase/auth";
 import "../../styles/admin-styles/Settings.css";
 
-// ✅ ADDED IMPORT
-import ResetCounterModal from "../../components/admin-components/ResetCounterModal";
 
 const AdminSettings = () => { 
   const [adminData, setAdminData] = useState({ name: "", email: "" });
@@ -46,8 +45,6 @@ const AdminSettings = () => {
   const [downpayment, setDownpayment] = useState("");
   const [savingDownpayment, setSavingDownpayment] = useState(false);
 
-  // ✅ ADDED STATE FOR RESET COUNTER MODAL
-  const [showResetModal, setShowResetModal] = useState(false);
 
   // =============================
   // FETCH ADMIN INFO + SETTINGS
@@ -313,30 +310,25 @@ const AdminSettings = () => {
                 ))}
               </ul>
             )}
+
+             {/* ============================= */}
+            {/* SYSTEM MAINTENANCE */}
+            {/* ============================= */}
+            <div className="settings-section">
+              <h2>System Maintenance</h2>
+
+              <button
+                className="settings-button danger"
+                onClick={() => (window.location.href = "/devtools")}
+              >
+                Open System Maintenance Tools
+              </button>
+            </div>
+
           </div>
         </div>
       </div>
 
-      {/* ============================= */}
-      {/* ✅ RESET COUNTER BUTTON */}
-      {/* ============================= */}
-      <div className="settings-section">
-        <h2>System Maintenance</h2>
-        <button
-          className="settings-button danger"
-          onClick={() => setShowResetModal(true)}
-        >
-          Reset Counter
-        </button>
-      </div>
-
-      {/* ============================= */}
-      {/* ✅ RESET COUNTER MODAL */}
-      {/* ============================= */}
-      <ResetCounterModal
-        isOpen={showResetModal}
-        onClose={() => setShowResetModal(false)}
-      />
     </div>
   );
 };

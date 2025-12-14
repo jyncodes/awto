@@ -66,29 +66,10 @@ const WithOrigin = ({ children }) => {
   return React.cloneElement(children, { origin: location.pathname });
 };
 
-// Global DevTools shortcut
-const GlobalKeyboardShortcuts = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.key === "*" && e.shiftKey) || e.key === "*") {
-        e.preventDefault();
-        navigate("/devtools");
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navigate]);
-
-  return null;
-};
 
 export default function App() {
   return (
     <Router>
-      <GlobalKeyboardShortcuts />
       <Routes>
 
         {/* ================= PUBLIC ROUTES ================= */}
@@ -126,11 +107,16 @@ export default function App() {
 
 
         {/* DevTools */}
-        <Route path="/devtools" element={<DevTools />} />
-
-        {/* ⭐ AR Debug Routes */}
-        <Route path="/debug-ar" element={<ARCameraDebugger />} />
-        <Route path="/debug-ar-model" element={<DebugAR />} />
+        <Route
+          path="/devtools"
+          element={
+            <RequireVerifiedEmail>
+              <ProtectedRoute allowedRole="Admin">
+                <DevTools />
+              </ProtectedRoute>
+            </RequireVerifiedEmail>
+          }
+        />
 
         {/* ================= USER ROUTES ================= */}
         <Route
