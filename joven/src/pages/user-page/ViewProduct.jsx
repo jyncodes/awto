@@ -1,5 +1,5 @@
 // src/pages/user-page/ViewProduct.jsx
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   doc,
@@ -16,7 +16,7 @@ import { db, auth } from "../../firebase";
 import "../../styles/user-styles/ViewProduct.css";
 
 import ModelViewer from "../../components/user-components/ModelViewer";
-import Navbar from "../../components/Navbar"; 
+import Navbar from "../../components/Navbar";
 
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/models";
@@ -33,9 +33,14 @@ const ViewProduct = () => {
     sizes = [],
     brand: passedBrand = "",
     model: passedModel = "",
+    year = "",
     vehicleLabel = "",
+    fitment = null,
   } = location.state || {};
 
+  /* ================================
+     STATE
+  ================================= */
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState(null);
   const [modelUrl, setModelUrl] = useState(null);
@@ -46,6 +51,9 @@ const ViewProduct = () => {
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [quantity, setQuantity] = useState(1);
 
+  /* ================================
+     HELPERS
+  ================================= */
   const getCollectionName = (productId) => {
     if (!productId) return null;
     if (productId.startsWith("TI-")) return "products_tires";
@@ -53,20 +61,9 @@ const ViewProduct = () => {
     return null;
   };
 
-  const parseSize = (s) => {
-    if (!s || typeof s !== "string") return null;
-    const m = s.match(/^(\d{2,3})(?:\/(\d{2,3}))?[rR]?(\d{2}(?:\.\d)?)$/);
-    if (!m) return null;
-    return {
-      tireWidth: m[1],
-      aspectRatio: m[2] || "",
-      rimDiameter: m[3],
-    };
-  };
-
-  // ================================
-  // FETCH MAIN PRODUCT + IMAGE FALLBACK
-  // ================================
+  /* ================================
+     FETCH PRODUCT
+  ================================= */
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -75,65 +72,62 @@ const ViewProduct = () => {
 
         if (!collectionName) {
           docSnap = await getDoc(doc(db, "products_tires", id));
-          if (!docSnap.exists())
+          if (!docSnap.exists()) {
             docSnap = await getDoc(doc(db, "products_mags", id));
+          }
         } else {
           docSnap = await getDoc(doc(db, collectionName, id));
         }
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setProduct({ ...data, id: docSnap.id });
+        if (!docSnap.exists()) return;
 
-          const pngUrl = `${SUPABASE_IMAGE_URL}/${id}.png`;
-          const jpegUrl = `${SUPABASE_IMAGE_URL}/${id}.jpeg`;
+        const data = docSnap.data();
+        setProduct({ ...data, id: docSnap.id });
 
-          fetch(pngUrl, { method: "HEAD" })
-            .then((res) => {
-              if (res.ok) setMainImage(pngUrl);
-              else {
-                fetch(jpegUrl, { method: "HEAD" })
-                  .then((res2) => {
-                    if (res2.ok) setMainImage(jpegUrl);
-                    else setMainImage(null);
-                  })
-                  .catch(() => setMainImage(null));
-              }
-            })
-            .catch(() => setMainImage(null));
+        const pngUrl = `${SUPABASE_IMAGE_URL}/${id}.png`;
+        const jpegUrl = `${SUPABASE_IMAGE_URL}/${id}.jpeg`;
 
-          if (sizes.length === 0) {
-            const defaultRetail = data.retail ?? data.price ?? null;
-            setSelectedPrice(defaultRetail);
-            setSelectedStock(data.stock ?? null);
-          }
+        fetch(pngUrl, { method: "HEAD" })
+          .then((res) => {
+            if (res.ok) setMainImage(pngUrl);
+            else {
+              fetch(jpegUrl, { method: "HEAD" })
+                .then((res2) => {
+                  if (res2.ok) setMainImage(jpegUrl);
+                  else setMainImage(null);
+                })
+                .catch(() => setMainImage(null));
+            }
+          })
+          .catch(() => setMainImage(null));
 
-          const isTire =
-            collectionName === "products_tires" ||
-            (data.type && data.type.toLowerCase().includes("tire"));
-
-          setQuantity(isTire ? 1 : 1);
+        if (sizes.length === 0) {
+          setSelectedPrice(data.retail ?? data.price ?? null);
+          setSelectedStock(data.stock ?? null);
         }
+
+        setQuantity(1);
       } catch (err) {
         console.error("❌ Error fetching product:", err);
       }
     };
 
     fetchProduct();
-  }, [id]);
+  }, [id, sizes.length]);
 
-  // ================================
-  // CHECK GLB MODEL
-  // ================================
+  /* ================================
+     CHECK GLB MODEL
+  ================================= */
   useEffect(() => {
     const checkModel = async () => {
       if (!id) return;
-      const paths = [
+
+      const urls = [
         `${SUPABASE_BASE_URL}/${id}.glb`,
         `${SUPABASE_BASE_URL}/${id}.GLB`,
       ];
 
-      for (const url of paths) {
+      for (const url of urls) {
         try {
           const res = await fetch(url, { method: "HEAD" });
           if (res.ok) {
@@ -142,33 +136,68 @@ const ViewProduct = () => {
           }
         } catch {}
       }
+
       setModelUrl(null);
     };
 
     checkModel();
   }, [id]);
 
-  // ================================
-  // SIZE-SPECIFIC PRICE
-  // ================================
+  /* ================================
+     DERIVED VALUES (IMPORTANT FIX)
+  ================================= */
+  const productType = product ? getCollectionName(product.id) : null;
+
+  const formattedSizes =
+    productType === "products_mags"
+      ? product
+        ? [
+            {
+              size: `${product.wheelDiameter}x${product.wheelWidth} ${product.boltPattern}`,
+              price: product.price ?? product.cost,
+              stock: product.stock,
+              docId: product.id,
+            },
+          ]
+        : []
+      : sizes;
+
+  /* ================================
+     AUTO SELECT SIZE FROM FITMENT
+  ================================= */
+  useEffect(() => {
+    if (selectedSize) return;
+    if (!fitment?.size || !formattedSizes.length) return;
+
+    const match = formattedSizes.find(
+      (s) => s.size === fitment.size
+    );
+
+    if (match) {
+      setSelectedSize(match.size);
+    }
+  }, [fitment, formattedSizes, selectedSize]);
+
+  /* ================================
+     SIZE-SPECIFIC PRICE
+  ================================= */
   useEffect(() => {
     if (!selectedSize) return;
 
-    const selectedObj = sizes.find((s) => {
-      // NEW LOGIC FOR MAGS: match the formatted size string
-      if (s.wheelDiameter && s.wheelWidth && s.boltPattern) {
-        return `${s.wheelDiameter}x${s.wheelWidth} ${s.boltPattern}` === selectedSize;
-      }
-      return s.size === selectedSize;
-    });
+    const selectedObj = formattedSizes.find(
+      (s) => s.size === selectedSize
+    );
 
     if (!selectedObj) return;
 
-    setSelectedPrice(selectedObj.price ?? selectedObj.cost ?? product?.price);
+    setSelectedPrice(selectedObj.price ?? product?.price);
     setSelectedStock(selectedObj.stock ?? product?.stock);
-    setSelectedDocId(selectedObj.docId ?? selectedObj.id);
-  }, [selectedSize, sizes, product]);
+    setSelectedDocId(selectedObj.docId ?? product?.id);
+  }, [selectedSize, formattedSizes, product]);
 
+  /* ================================
+     QUANTITY
+  ================================= */
   const decreaseQty = () => {
     setQuantity((q) => Math.max(1, q - 1));
   };
@@ -178,68 +207,61 @@ const ViewProduct = () => {
     setQuantity((q) => Math.min(max, q + 1));
   };
 
+  /* ================================
+     CART
+  ================================= */
   const handleAddToCart = async () => {
     const user = auth.currentUser;
-    if (!user) return alert("You must be logged in to add selections.");
-    if (!product?.id) return alert("Product data not ready.");
+    if (!user) return alert("You must be logged in.");
 
-    if (sizes.length > 0 && !selectedSize)
+    if (formattedSizes.length && !selectedSize)
       return alert("Please select a size first.");
 
-    if (!selectedPrice && selectedPrice !== 0)
-      return alert("Price not available.");
+    const cartRef = collection(db, "cartSelections");
 
-    try {
-      const cartRef = collection(db, "cartSelections");
+    const q = query(
+      cartRef,
+      where("userId", "==", user.uid),
+      where("productId", "==", product.id),
+      where("selectedSize", "==", selectedSize)
+    );
 
-      const q = query(
-        cartRef,
-        where("userId", "==", user.uid),
-        where("productId", "==", product.id),
-        where("selectedSize", "==", selectedSize)
-      );
+    const existing = await getDocs(q);
+    if (!existing.empty)
+      return alert("Item already in My Selections.");
 
-      const existing = await getDocs(q);
+    await addDoc(cartRef, {
+      userId: user.uid,
+      productId: product.id,
+      productName: `${passedBrand || product.brand} ${
+        passedModel || product.model
+      } (${selectedSize})`,
+      brand: passedBrand || product.brand,
+      model: passedModel || product.model,
+      selectedSize,
+      selectedDocId,
+      pricePerItem: selectedPrice,
+      quantity,
+      totalPrice: selectedPrice * quantity,
+      createdAt: serverTimestamp(),
+      vehicleLabel,
+      collection: productType,
+    });
 
-      if (!existing.empty) {
-        return alert("Item with this size is already in My Selections.");
-      }
-
-      await addDoc(cartRef, {
-        userId: user.uid,
-        productId: product.id,
-        productName: `${passedBrand || product.brand || ""} ${
-          passedModel || product.model || ""
-        } (${selectedSize})`,
-        brand: passedBrand || product.brand || "Unknown",
-        model: passedModel || product.model || "",
-        selectedSize,
-        selectedDocId,
-        pricePerItem: selectedPrice,
-        quantity,
-        totalPrice: selectedPrice * quantity,
-        createdAt: serverTimestamp(),
-        vehicleLabel: vehicleLabel || null,
-        collection: getCollectionName(product.id),
-      });
-
-      alert("✔ Added to My Selections!");
-    } catch (err) {
-      console.error("Add to cart error:", err);
-      alert("Failed to add. Try again.");
-    }
+    alert("✔ Added to My Selections!");
   };
 
+  /* ================================
+     RESERVE / AR
+  ================================= */
   const handleReserveClick = () => {
-    if (sizes.length > 0 && !selectedSize)
+    if (formattedSizes.length && !selectedSize)
       return alert("Select a size first.");
-
-    if (!selectedPrice && selectedPrice !== 0)
-      return alert("Price not available.");
 
     navigate(`/reservation/${product.id}`, {
       state: {
         vehicleLabel,
+        year,
         selectedSize,
         product,
         selectedDocId,
@@ -251,38 +273,26 @@ const ViewProduct = () => {
 
   const handleARClick = () => {
     if (!modelUrl) return alert("⚠ No 3D model found.");
-
-    navigate(`/ar/basic/${product.id}`, {
-      state: { modelUrl },
-    });
+    navigate(`/ar/basic/${product.id}`, { state: { modelUrl } });
   };
 
+  /* ================================
+     EARLY RETURN
+  ================================= */
+  if (!product) {
+    return <div className="view-product">Loading product…</div>;
+  }
 
-  if (!product) return <div className="view-product">Loading product…</div>;
-
-  const productType = getCollectionName(product.id);
   const hasGLB = !!modelUrl;
   const fallbackImage =
     mainImage || "https://placehold.co/300x300?text=No+Image";
 
-  // ================================
-  // FORMATTED SIZES FOR MAGS
-  // ================================
-  const formattedSizes =
-    productType === "products_mags"
-      ? [
-          {
-            size: `${product.wheelDiameter}x${product.wheelWidth} ${product.boltPattern}`,
-            price: product.price ?? product.cost,
-            stock: product.stock,
-            docId: product.id,
-          },
-        ]
-      : sizes;
-
+  /* ================================
+     JSX
+  ================================= */
   return (
     <div className="view-product-page">
-      <Navbar /> {/* <-- RENDER NAVBAR HERE */}
+      <Navbar />
 
       <div className="view-product">
         <button className="back-button" onClick={() => navigate(-1)}>
@@ -290,17 +300,14 @@ const ViewProduct = () => {
         </button>
 
         <div className="product-container">
-          {/* LEFT IMAGE SECTION */}
           <div className="product-images">
-          {hasGLB ? (
+            {hasGLB ? (
               <ModelViewer modelUrl={modelUrl} />
             ) : (
               <img src={fallbackImage} alt="Main" className="main-image" />
             )}
-
           </div>
 
-          {/* RIGHT INFO */}
           <div className="product-info">
             {vehicleLabel && (
               <div className="fitment-context">
@@ -309,122 +316,89 @@ const ViewProduct = () => {
             )}
 
             <span className="tag">NEW</span>
-
-            <h2 className="brand-logo">{passedBrand || product.brand}</h2>
-            <h1 className="product-name">{passedModel || product.model}</h1>
+            <h2>{passedBrand || product.brand}</h2>
+            <h1>{passedModel || product.model}</h1>
 
             <p className="price">
-              ₱
-              {(selectedPrice ?? 0).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-              <span style={{ fontSize: "14px", opacity: 0.7, marginLeft: 4 }}>
+              ₱{(selectedPrice ?? 0).toLocaleString()}
+              <span>
                 {productType === "products_mags" ? "/set" : "/piece"}
               </span>
             </p>
 
             {/* Quantity */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: 12,
-              }}
-            >
-              <div>
-                <label style={{ display: "block", fontSize: 14 }}>
-                  {productType === "products_mags"
-                    ? "Quantity (per set)"
-                    : "Quantity (per piece)"}
-                </label>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <button onClick={decreaseQty} className="qty-btn">
-                    -
-                  </button>
-                  <div style={{ minWidth: 36, textAlign: "center" }}>
-                    {quantity}
-                  </div>
-                  <button onClick={increaseQty} className="qty-btn">
-                    +
-                  </button>
-                </div>
-                {typeof selectedStock === "number" && (
-                  <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
-                    Stock: {selectedStock}
-                  </div>
-                )}
-              </div>
-            </div>
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  }}
+>
+  <div>
+    <label style={{ display: "block", fontSize: 14 }}>
+      {productType === "products_mags"
+        ? "Quantity (per set)"
+        : "Quantity (per piece)"}
+    </label>
 
-            {/* Size selector */}
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <button onClick={decreaseQty} className="qty-btn">-</button>
+
+      <div style={{ minWidth: 36, textAlign: "center" }}>
+        {quantity}
+      </div>
+
+      <button onClick={increaseQty} className="qty-btn">+</button>
+    </div>
+
+    {typeof selectedStock === "number" && (
+      <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
+        Stock: {selectedStock}
+      </div>
+    )}
+  </div>
+</div>
+
+{/* Total Price */}
+<div style={{ margin: "12px 0", fontWeight: 700 }}>
+  Total ({quantity} item{quantity > 1 ? "s" : ""}): ₱
+  {(selectedPrice * quantity).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}
+</div>
+
+
             {formattedSizes.length > 0 && (
-              <div className="size-selector" style={{ marginBottom: 12 }}>
-                <label style={{ display: "block", marginBottom: 6 }}>
-                  Select Size:
-                </label>
-                <select
-                  value={selectedSize}
-                  onChange={(e) => setSelectedSize(e.target.value)}
-                >
-                  <option value="">Choose a size</option>
-                  {formattedSizes.map((s, i) => (
-                    <option key={i} value={s.size}>
-                      {s.size}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={selectedSize}
+                onChange={(e) => setSelectedSize(e.target.value)}
+              >
+                <option value="">Choose a size</option>
+                {formattedSizes.map((s, i) => (
+                  <option key={i} value={s.size}>
+                    {s.size}
+                  </option>
+                ))}
+              </select>
             )}
 
-            <div style={{ margin: "12px 0", fontWeight: 700 }}>
-              Total ({quantity} item{quantity > 1 ? "s" : ""}): ₱
-              {(selectedPrice * quantity).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-
-            <details className="desc-section" open>
-              <summary>Description</summary>
-              <p>{product.description || "No description available."}</p>
-            </details>
-
-            <div className="button-row" style={{ marginTop: 12 }}>
+            <div className="button-row">
               {hasGLB && (
                 <button className="ar-button" onClick={handleARClick}>
                   Visualize it in your vehicle
                 </button>
               )}
 
-              <button
-                className="reserve-button"
-                onClick={handleReserveClick}
-                disabled={
-                  // NEW LOGIC
-                  formattedSizes.length > 0
-                    ? !selectedSize
-                    : !selectedPrice && selectedPrice !== 0
-                }
-              >
+              <button className="reserve-button" onClick={handleReserveClick}>
                 Reserve Now
               </button>
 
-              <button
-                className="icon-button"
-                onClick={handleAddToCart}
-                title="Add to My Selections"
-                disabled={
-                  formattedSizes.length > 0
-                    ? !selectedSize
-                    : !selectedPrice && selectedPrice !== 0
-                }
-              >
+              <button className="icon-button" onClick={handleAddToCart}>
                 <FiShoppingCart size={24} />
               </button>
             </div>
-
           </div>
         </div>
       </div>

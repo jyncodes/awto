@@ -8,10 +8,10 @@ import "../../styles/user-styles/CatalogBox.css";
 const SUPABASE_BASE_URL =
   "https://ojyapkmalpnfwskpozbx.supabase.co/storage/v1/object/public/Images";
 
-const CatalogBox = ({ filters = {}, onPageData }) => {
+const CatalogBox = ({ filters = {}, fitmentState, onPageData }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { vehicleLabel = "", fitment = {} } = location.state || {};
+  const { vehicleLabel = "", fitment = {}, year = "", } = location.state || {};
 
   const [products, setProducts] = useState([]);
   const [validImages, setValidImages] = useState({});
@@ -239,7 +239,11 @@ const CatalogBox = ({ filters = {}, onPageData }) => {
         sizes: product.sizes,
         brand: product.brand,
         model: product.model,
-        vehicleLabel,
+        year: fitmentState?.year || "",
+        vehicleLabel: fitmentState
+         ? `${fitmentState.brand} ${fitmentState.model} ${fitmentState.year} | ${fitmentState.type} ${fitmentState.size}`
+          : "",
+          fitment: fitmentState || null,
       },
     });
 

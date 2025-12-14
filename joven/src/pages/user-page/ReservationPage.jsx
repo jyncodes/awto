@@ -30,6 +30,8 @@ const ReservationPage = () => {
   const isServiceReservation = serviceType === "service";
 
   const passedVehicle = location.state?.vehicleLabel || null;
+  const passedYear = location.state?.year || "";
+
 
   const navigate = useNavigate();
 
@@ -80,16 +82,29 @@ const ReservationPage = () => {
   }, []);
 
   // ================= AUTO-FILL VEHICLE INFO =================
-  useEffect(() => {
-    if (typeof passedVehicle === "string") {
-      const [brandModel] = passedVehicle.split(" - ");
-      if (brandModel) {
-        const parts = brandModel.trim().split(" ");
-        setVehicleBrand(parts[0] || "");
-        setVehicleModel(parts.slice(1).join(" ") || "");
-      }
-    }
-  }, [passedVehicle]);
+useEffect(() => {
+  if (!passedVehicle) return;
+
+  // Example: "Toyota Hilux 2021 - Tire 265/65R17"
+  const [vehiclePart] = passedVehicle.split(" | ");
+
+
+  if (!vehiclePart) return;
+
+  const parts = vehiclePart.trim().split(" ");
+
+  // Last part is year
+  const extractedYear = parts[parts.length - 1];
+
+  // Remaining parts = brand + model
+  const brand = parts[0];
+  const model = parts.slice(1, -1).join(" ");
+
+  setVehicleBrand(brand || "");
+  setVehicleModel(model || "");
+  setVehicleYear(passedYear || extractedYear || "");
+}, [passedVehicle, passedYear]);
+
 
   // ================= LOAD USER =================
   useEffect(() => {
@@ -284,8 +299,10 @@ const ReservationPage = () => {
                 }
               }}
               placeholder="Year (2000–2026)"
-              className={vehicleYearError ? "invalid" : ""}
+              disabled={!!passedVehicle}        // 👈 ADD THIS
+              className={`${vehicleYearError ? "invalid" : ""} ${passedVehicle ? "disabled-input" : ""}`}
             />
+
           </div>
 
           {vehicleYearError && (

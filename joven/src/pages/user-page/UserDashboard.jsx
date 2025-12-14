@@ -1,5 +1,5 @@
 // src/pages/user-page/UserDashboard.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebase";
@@ -19,6 +19,15 @@ const UserDashboard = () => {
   const { size, vehicleLabel } = location.state || {};
   const [filters, setFilters] = useState(size ? { size } : {});
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  const [fitmentState, setFitmentState] = useState(null);
+
+  useEffect(() => {
+  if (fitmentState?.size) {
+    setFilters({ size: fitmentState.size });
+  }
+}, [fitmentState]);
+
 
   // pagination data that CatalogBox sends up
   const [pageData, setPageData] = useState(null);
@@ -44,18 +53,18 @@ const UserDashboard = () => {
 
         {/* Fitment */}
         <div className="fitment-section">
-          <Manual />
+          <Manual
+              fitmentState={fitmentState}
+              setFitmentState={setFitmentState}
+              onClearFitment={() => {
+                setFilters({});
+                setFitmentState(null);
+              }}
+            />
         </div>
 
-        {/* Vehicle label */}
-        {vehicleLabel && size && (
-          <div className="vehicle-banner">
-            <h2>
-              Results for: {vehicleLabel}{" "}
-              <span className="tire-size">({size[0]})</span>
-            </h2>
-          </div>
-        )}
+        
+
 
         {!vehicleLabel && (
           <p className="dashboard-intro centered-intro">
@@ -86,7 +95,11 @@ const UserDashboard = () => {
 
           {/* Right Catalog */}
           <div className="catalog-panel">
-            <CatalogBox filters={filters} onPageData={setPageData} />
+            <CatalogBox
+              filters={filters}
+              fitmentState={fitmentState}
+              onPageData={setPageData}
+              />
 
             {/* PAGINATION HERE */}
             {pageData && pageData.totalPages > 1 && (

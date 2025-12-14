@@ -22,6 +22,7 @@ const CarData = () => {
   const [form, setForm] = useState({
     brand: "",
     model: "",
+    year: "",
     type: "",
     tireFitments: [],
     wheelFitments: [],
@@ -42,7 +43,7 @@ const CarData = () => {
       (snapshot) => {
         const data = {};
         snapshot.forEach((docSnap) => {
-          const { brand, model, tireFitments = [], wheelFitments = [] } =
+          const { brand, model, year = "", tireFitments = [], wheelFitments = [] } =
             docSnap.data();
           if (!brand || !model) return;
           if (!data[brand]) data[brand] = {};
@@ -53,6 +54,7 @@ const CarData = () => {
             id: docSnap.id,
             brand,
             model,
+            year,
           });
         });
         setVehicleData(data);
@@ -158,6 +160,7 @@ const CarData = () => {
     setForm({
       brand: data.brand,
       model: data.model,
+      year: data.year || "",
       type: "",
       tireFitments: data.tireFitments || [],
       wheelFitments: data.wheelFitments || [],
@@ -217,6 +220,12 @@ const CarData = () => {
               value={form.model}
               onChange={(e) => setForm({ ...form, model: e.target.value })}
             />
+            <input
+            type="text"
+            placeholder="Year (e.g. 2018 or 2018–2022)"
+            value={form.year}
+            onChange={(e) => setForm({ ...form, year: e.target.value })}
+          />
             <select
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
@@ -345,6 +354,7 @@ const CarData = () => {
               <table className="fitment-table">
                 <thead>
                   <tr>
+                    <th>Year</th>
                     <th>Tire Fitments</th>
                     <th>Wheel Fitments</th>
                     <th>Action</th>
@@ -353,6 +363,7 @@ const CarData = () => {
                 <tbody>
                   {fitmentList.map((data) => (
                     <tr key={data.id}>
+                      <td>{data.year || "—"}</td>
                       <td>{data.tireFitments?.length || 0}</td>
                       <td>{data.wheelFitments?.length || 0}</td>
                       <td>
