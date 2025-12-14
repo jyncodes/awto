@@ -272,7 +272,7 @@ const LandingPage = () => {
                     : null
                 }
               >
-                <h3>Our Partners</h3>
+                <h3> Available brands</h3>
                 <p>World-class brands that power our quality and service.</p>
               </div>
 

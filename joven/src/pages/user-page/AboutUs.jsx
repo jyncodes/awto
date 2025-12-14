@@ -88,7 +88,7 @@ const AboutUs = () => {
         {/*           OUR PARTNERS           */}
         {/* -------------------------------- */}
         <section className="partners-section" ref={partnersRef}>
-          <h2>Our Partners</h2>
+          <h2>Available brands</h2>
 
           <div className="logo-slider">
             <div className="logo-track">
