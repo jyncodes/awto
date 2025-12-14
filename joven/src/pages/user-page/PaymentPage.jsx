@@ -84,7 +84,6 @@ const PaymentPage = () => {
 
     localStorage.setItem("finalReservationData", JSON.stringify(finalReservationData));
 
-    alert("Redirecting to PayPal...");
   };
 
   if (loading || !draft) return <div className="payment-page">Loading...</div>;

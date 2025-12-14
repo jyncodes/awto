@@ -217,3 +217,54 @@
     padding: 0.5rem;
   }
 }
+
+/* ================= VERIFY EMAIL BANNER ================= */
+.verify-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1001; /* higher than navbar */
+  width: 100%;
+  background: #fff3cd; /* soft yellow */
+  color: #856404;
+  border-bottom: 1px solid #ffeeba;
+  padding: 0.6rem 1rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.verify-banner button {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  transition: 0.2s ease;
+}
+
+.verify-banner button:hover {
+  background: var(--accent-deep);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .verify-banner {
+    font-size: 0.75rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .verify-banner button {
+    width: 100%;
+    text-align: center;
+  }
+}
