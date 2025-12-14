@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/user-components/Footer";
 import LoginSection from "../components/LoginSection";
 import Manual from "../components/user-components/Manual";
+import Testimonials from "../components/user-components/Testimonials";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
@@ -210,6 +211,9 @@ const LandingPage = () => {
             ))}
           </div>
         </section>
+
+        {/* ⭐ TESTIMONIALS */}
+        <Testimonials />
 
         {/* ⭐⭐⭐ ABOUT US (REVISED) ⭐⭐⭐ */}
         <section

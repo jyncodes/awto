@@ -1,0 +1,60 @@
+/* =========================
+   TESTIMONIALS SECTION
+========================= */
+.testimonials-section {
+  background: #f7f7f7;
+}
+
+/* Grid */
+.testimonials-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px;
+  padding: 0 1.2rem;
+}
+
+/* Card */
+.testimonial-card {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 14px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-4px);
+  border-color: #f39c12;
+}
+
+/* Message */
+.testimonial-message {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #444;
+  margin-bottom: 16px;
+}
+
+/* Footer */
+.testimonial-footer {
+  border-top: 1px solid #eee;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.testimonial-name {
+  font-weight: 700;
+  color: #222;
+}
+
+.testimonial-vehicle {
+  font-size: 0.85rem;
+  color: #777;
+}
