@@ -49,6 +49,8 @@ const ViewProduct = () => {
   const [selectedPrice, setSelectedPrice] = useState(null);
   const [selectedStock, setSelectedStock] = useState(null);
   const [selectedDocId, setSelectedDocId] = useState(null);
+  const [showDescription, setShowDescription] = useState(false);
+
   const [quantity, setQuantity] = useState(1);
 
   const [stockError, setStockError] = useState("");
@@ -317,11 +319,11 @@ const ViewProduct = () => {
       <Navbar />
 
       <div className="view-product">
-        <button className="back-button" onClick={() => navigate(-1)}>
-          ← Back
-        </button>
 
         <div className="product-container">
+           <button className="back-button" onClick={() => navigate(-1)}>
+          ← Back
+        </button>
           <div className="product-images">
             {hasGLB ? (
               <ModelViewer modelUrl={modelUrl} />
@@ -347,6 +349,30 @@ const ViewProduct = () => {
                 {productType === "products_mags" ? "/set" : "/piece"}
               </span>
             </p>
+            
+
+            {/* PRODUCT DESCRIPTION (DROPDOWN) */}
+            {product.description && (
+              <div className="description-wrapper">
+                <button
+                  className="description-toggle"
+                  onClick={() => setShowDescription((prev) => !prev)}
+                >
+                  Product Description
+                  <span className={`arrow ${showDescription ? "open" : ""}`}>
+                    ▼
+                  </span>
+                </button>
+
+                {showDescription && (
+                  <p className="product-description">
+                    {product.description}
+                  </p>
+                )}
+              </div>
+            )}
+
+
 
             {/* Quantity */}
 <div
