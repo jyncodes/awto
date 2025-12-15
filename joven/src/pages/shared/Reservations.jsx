@@ -133,16 +133,37 @@ const [activeReceipt, setActiveReceipt] = useState(null);
 const goToPOS = (res) => {
   const cust = customers[res.userId] || {};
 
-  // Block service-only reservations
-  if (res.type === "service") {
-    alert("Service-only reservations are paid separately.");
-    return;
-  }
-
   // Prevent double payment
   if (res.status === "Completed") {
     alert("This reservation is already paid.");
     return;
+  }
+
+  
+  // 🔥 Build items for POS
+  let reservedItems = [];
+
+    if (res.type === "service") {
+    reservedItems = res.selectedServices.map((s) => ({
+      id: s.id,
+      name: s.name,
+      price: s.price,
+      qty: 1,
+      type: "service",
+    }));
+  } else if (res.type === "multiple-products") {
+    reservedItems = res.items;
+  } else {
+    // single product
+    reservedItems = [
+      {
+        id: res.productId,
+        name: res.productName,
+        price: res.price,
+        qty: res.quantity,
+        type: "product",
+      },
+    ];
   }
 
   navigate(
@@ -160,7 +181,7 @@ const goToPOS = (res) => {
         },
 
         // ✅ RAW DATA ONLY — NO MAPPING
-        reservedItems: res.items,
+        reservedItems,
       },
     }
   );

@@ -148,14 +148,18 @@ const resolvedName =
       qty: Number(item.quantity ?? item.qty ?? 1),
 
       // 🔖 TYPE
-      type: "product",
+      type: item.type || "product",
 
       // 🗂 CATEGORY
       category:
-        item.collection === "products_mags" ? "mags" : "tires",
+        item.type === "service"
+          ? "service"
+          : item.collection === "products_mags"
+          ? "mags"  
+          : "tires",
 
       // ⚠️ TEMP SAFE STOCK
-      stock: Number(item.quantity ?? 1),
+      stock: item.type === "product" ? Number(item.quantity ?? 1) : undefined,
 
       // OPTIONAL
       brand: item.brand,
@@ -335,6 +339,13 @@ const change = paymentMode === "Cash"
   ? Math.max(Number(cashReceived || 0) - computedTotal, 0)
   : 0;
 
+  
+  const sanitizeForFirestore = (obj) => {
+  return JSON.parse(JSON.stringify(obj));
+};
+
+
+
   // ================== CHECKOUT ==================
 const handleCheckout = async () => {
   try {
@@ -391,7 +402,11 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
     reservationApplied: reservationFeeApplied > 0,
   };
 
-await setDoc(doc(db, "sales", formattedSaleId), saleData, { merge: false });
+await setDoc(
+  doc(db, "sales", formattedSaleId),
+  sanitizeForFirestore(saleData),
+  { merge: false }
+);
 
 // ✅ IF SALE CAME FROM RESERVATION → MARK AS COMPLETED
 if (fromReservation && reservationId) {
