@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/user-components/Footer";
 import LoginSection from "../components/LoginSection";
 import Manual from "../components/user-components/Manual";
+import Testimonials from "../components/user-components/Testimonials";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
@@ -24,6 +25,15 @@ import sailunImg from "../pages/user-page/images/brands/sailun.png";
 import michelinImg from "../pages/user-page/images/brands/michelin.png";
 import goodyearImg from "../pages/user-page/images/brands/goodyear.png";
 import bridgestoneImg from "../pages/user-page/images/brands/bridgestone.png";
+
+
+const toTitleCase = (str = "") =>
+  str
+    .toLowerCase()
+    .split(" ")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
 
 const LandingPage = () => {
   const [user, setUser] = useState(null);
@@ -49,13 +59,15 @@ const LandingPage = () => {
     setShowLogin(false);
   };
 
-  const topBrands = [
-    { name: "ARIVO", image: arivoImg },
-    { name: "Sailun", image: sailunImg },
-    { name: "Michelin", image: michelinImg },
-    { name: "Goodyear", image: goodyearImg },
-    { name: "Bridgestone", image: bridgestoneImg },
-  ];
+    const topBrands = [
+      { name: "Maxxis", image: arivoImg },
+      { name: "Westlake", image: sailunImg },
+      { name: "CST", image: michelinImg },
+      { name: "Bridgestone", image: goodyearImg },
+      { name: "Arivo", image: bridgestoneImg },
+    ];
+
+
 
   const guardNavigation = (callback) => {
     if (!user) {
@@ -68,6 +80,7 @@ const LandingPage = () => {
   const handleBrandClick = (brandName) => {
     guardNavigation(() => {
       localStorage.setItem("selectedBrand", brandName);
+      localStorage.setItem("fromLanding", "true");
       navigate("/user-dashboard");
     });
   };
@@ -181,7 +194,7 @@ const LandingPage = () => {
               >
                 <img src={brand.image} alt={brand.name} />
                 <div className="brand-overlay">
-                  <p>{brand.name}</p>
+                  <p>{toTitleCase(brand.name)}</p>
                 </div>
               </div>
             ))}
@@ -210,6 +223,9 @@ const LandingPage = () => {
             ))}
           </div>
         </section>
+
+        {/* ⭐ TESTIMONIALS */}
+        <Testimonials />
 
         {/* ⭐⭐⭐ ABOUT US (REVISED) ⭐⭐⭐ */}
         <section
@@ -272,7 +288,7 @@ const LandingPage = () => {
                     : null
                 }
               >
-                <h3>Our Partners</h3>
+                <h3> Available brands</h3>
                 <p>World-class brands that power our quality and service.</p>
               </div>
 
