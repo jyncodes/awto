@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
   collection,
-  addDoc,
-  updateDoc,
   doc,
+  setDoc,
+  updateDoc,
+  getDoc,
+  deleteField,
   serverTimestamp,
   onSnapshot,
-  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import "../../styles/CarData.css";
@@ -17,7 +18,7 @@ const CarData = () => {
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [loading, setLoading] = useState(true);
-  const [editDocId, setEditDocId] = useState(null);
+const [editingYear, setEditingYear] = useState(null);
 
   const [form, setForm] = useState({
     brand: "",
@@ -43,18 +44,21 @@ const CarData = () => {
       (snapshot) => {
         const data = {};
         snapshot.forEach((docSnap) => {
-          const { brand, model, year = "", tireFitments = [], wheelFitments = [] } =
-            docSnap.data();
-          if (!brand || !model) return;
-          if (!data[brand]) data[brand] = {};
-          if (!data[brand][model]) data[brand][model] = [];
+        const { brand, model, years = {} } = docSnap.data();
+        if (!brand || !model) return;
+
+        if (!data[brand]) data[brand] = {};
+        if (!data[brand][model]) data[brand][model] = [];
+
+        Object.entries(years).forEach(([year, fitment]) => {
           data[brand][model].push({
-            tireFitments,
-            wheelFitments,
             id: docSnap.id,
             brand,
             model,
             year,
+            tireFitments: fitment.tireFitments || [],
+            wheelFitments: fitment.wheelFitments || [],
+          });
           });
         });
         setVehicleData(data);
@@ -116,70 +120,107 @@ const CarData = () => {
     }
   };
 
-  const handleUpload = async (e) => {
-    e.preventDefault();
+const handleUpload = async (e) => {
+  e.preventDefault();
 
-    if (!form.brand || !form.model)
-      return alert("⚠️ Complete Brand and Model fields.");
-    if (form.tireFitments.length === 0 && form.wheelFitments.length === 0)
-      return alert("⚠️ Add at least one fitment.");
+  const { brand, model, year, tireFitments, wheelFitments } = form;
 
-    try {
-      if (editDocId) {
-        const docRef = doc(db, "vehicleFitment", editDocId);
-        await updateDoc(docRef, {
-          ...form,
-          timestamp: serverTimestamp(),
-        });
-        alert("✅ Vehicle fitment updated successfully!");
-        setEditDocId(null);
-      } else {
-        const ref = collection(db, "vehicleFitment");
-        await addDoc(ref, {
-          ...form,
-          timestamp: serverTimestamp(),
-        });
-        alert("✅ New vehicle fitment added successfully!");
-      }
+  if (!brand || !model || !year)
+    return alert("⚠️ Brand, Model, and Year are required.");
 
-      setForm({
-        brand: "",
-        model: "",
-        type: "",
-        tireFitments: [],
-        wheelFitments: [],
-      });
-    } catch (err) {
-      console.error("Upload failed:", err);
-      alert("❌ Upload failed. Try again.");
-    }
-  };
+  if (tireFitments.length === 0 && wheelFitments.length === 0)
+    return alert("⚠️ Add at least one fitment.");
 
-  const handleEdit = (data, id) => {
-    setEditDocId(id);
+  try {
+    // 🔑 ONE document per Brand + Model
+    const docId = `${brand.toLowerCase()}_${model.toLowerCase()}`;
+    const docRef = doc(db, "vehicleFitment", docId);
+
+     // 🔍 1. Read existing document
+    const snap = await getDoc(docRef);
+    const existingYears = snap.exists() ? snap.data().years || {} : {};
+
+    const existingTires = existingYears?.[year]?.tireFitments || [];
+    const existingWheels = existingYears?.[year]?.wheelFitments || [];
+
+    // ➕ 2. Append new fitments
+    const mergedTires = [...existingTires, ...tireFitments];
+    const mergedWheels = [...existingWheels, ...wheelFitments];
+
+    // 💾 3. Save merged data
+    await setDoc(
+      docRef,
+      {
+        brand,
+        model,
+        years: {
+          [year]: {
+            tireFitments: mergedTires,
+            wheelFitments: mergedWheels,
+          },
+        },
+        timestamp: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+
+    alert("✅ Vehicle fitment saved under one document!");
+
     setForm({
-      brand: data.brand,
-      model: data.model,
-      year: data.year || "",
+      brand: "",
+      model: "",
+      year: "",
       type: "",
-      tireFitments: data.tireFitments || [],
-      wheelFitments: data.wheelFitments || [],
+      tireFitments: [],
+      wheelFitments: [],
     });
-    setSelectedBrand(data.brand);
-    setSelectedModel(data.model);
-  };
+    setEditingYear(null);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this vehicle data?"))
-      return;
-    try {
-      await deleteDoc(doc(db, "vehicleFitment", id));
-      alert("🗑️ Vehicle data deleted successfully.");
-    } catch (error) {
-      console.error("Delete failed:", error);
-      alert("❌ Failed to delete data.");
-    }
-  };
+  } catch (err) {
+    console.error("Upload failed:", err);
+    alert("❌ Upload failed.");
+  }
+};
+
+
+const handleEdit = (data) => {
+  setEditingYear(data.year);
+
+  setForm({
+    brand: data.brand,
+    model: data.model,
+    year: data.year,
+    type: "",
+    tireFitments: data.tireFitments || [],
+    wheelFitments: data.wheelFitments || [],
+  });
+
+  setSelectedBrand(data.brand);
+  setSelectedModel(data.model);
+};
+
+
+const handleDelete = async (year) => {
+  if (!selectedBrand || !selectedModel) return;
+
+  if (!window.confirm(`Delete fitment for year ${year}?`)) return;
+
+  try {
+    const docId = `${selectedBrand.toLowerCase()}_${selectedModel.toLowerCase()}`;
+    const docRef = doc(db, "vehicleFitment", docId);
+
+    await updateDoc(docRef, {
+      [`years.${year}`]: deleteField(),
+    });
+
+    alert("🗑️ Year fitment deleted.");
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to delete year.");
+  }
+};
+
 
   const handleBrandChange = (e) => {
     setSelectedBrand(e.target.value);
@@ -208,18 +249,21 @@ const CarData = () => {
 
         <form className="upload-form" onSubmit={handleUpload}>
           <div className="form-grid">
-            <input
-              type="text"
-              placeholder="Brand"
-              value={form.brand}
-              onChange={(e) => setForm({ ...form, brand: e.target.value })}
-            />
-            <input
-              type="text"
-              placeholder="Model"
-              value={form.model}
-              onChange={(e) => setForm({ ...form, model: e.target.value })}
-            />
+          <input
+            type="text"
+            placeholder="Brand"
+            value={form.brand}
+            disabled={!!editingYear}
+            onChange={(e) => setForm({ ...form, brand: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Model"
+            value={form.model}
+            disabled={!!editingYear}
+            onChange={(e) => setForm({ ...form, model: e.target.value })}
+          />
+
             <input
             type="text"
             placeholder="Year (e.g. 2018 or 2018–2022)"
@@ -318,7 +362,7 @@ const CarData = () => {
               ➕ Add Fitment
             </button>
             <button type="submit" className="btn-primary">
-              {editDocId ? "💾 Update Vehicle" : "🚀 Save to Firestore"}
+              {editingYear ? "💾 Update Year Fitment" : "🚀 Save to Firestore"}
             </button>
           </div>
         </form>
@@ -375,10 +419,11 @@ const CarData = () => {
                         </button>
                         <button
                           className="btn-delete"
-                          onClick={() => handleDelete(data.id)}
+                          onClick={() => handleDelete(data.year)}
                         >
                           🗑️ Delete
                         </button>
+
                       </td>
                     </tr>
                   ))}

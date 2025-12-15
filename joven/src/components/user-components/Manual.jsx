@@ -46,27 +46,29 @@
           const dataMap = {};
 
           snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            const { brand, model, year = "", tireFitments = [], wheelFitments = [] } = data;
+  const { brand, model, years = {} } = docSnap.data();
+  if (!brand || !model) return;
 
-            if (!brand || !model) return;
+  if (!dataMap[brand]) dataMap[brand] = {};
+  if (!dataMap[brand][model]) dataMap[brand][model] = {};
 
-            if (!dataMap[brand]) dataMap[brand] = {};
-            if (!dataMap[brand][model]) dataMap[brand][model] = {};
-            if (!dataMap[brand][model][year])
-              dataMap[brand][model][year] = {
-                tireFitments: [],
-                wheelFitments: [],
-              };
+  Object.entries(years).forEach(([year, fitment]) => {
+    if (!dataMap[brand][model][year]) {
+      dataMap[brand][model][year] = {
+        tireFitments: [],
+        wheelFitments: [],
+      };
+    }
 
-            dataMap[brand][model][year].tireFitments.push(
-              ...(Array.isArray(tireFitments) ? tireFitments : [])
-            );
-            dataMap[brand][model][year].wheelFitments.push(
-              ...(Array.isArray(wheelFitments) ? wheelFitments : [])
-            );
+    dataMap[brand][model][year].tireFitments.push(
+      ...(fitment.tireFitments || [])
+    );
+    dataMap[brand][model][year].wheelFitments.push(
+      ...(fitment.wheelFitments || [])
+    );
+  });
+});
 
-          });
 
           setVehicleData(dataMap);
           setLoading(false);
