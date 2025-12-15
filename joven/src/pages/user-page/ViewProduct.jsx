@@ -51,6 +51,9 @@ const ViewProduct = () => {
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [quantity, setQuantity] = useState(1);
 
+  const [stockError, setStockError] = useState("");
+
+
   /* ================================
      HELPERS
   ================================= */
@@ -191,8 +194,17 @@ const ViewProduct = () => {
     if (!selectedObj) return;
 
     setSelectedPrice(selectedObj.price ?? product?.price);
-    setSelectedStock(selectedObj.stock ?? product?.stock);
+    const safeStock = Math.max(0, selectedObj.stock ?? product?.stock ?? 0);
+      setSelectedStock(safeStock);
+
     setSelectedDocId(selectedObj.docId ?? product?.id);
+
+      if (safeStock === 0) {
+    setStockError("❌ Out of stock – unable to reserve or add to cart");
+  } else {
+    setStockError("");
+  }
+
   }, [selectedSize, formattedSizes, product]);
 
   /* ================================
@@ -203,7 +215,7 @@ const ViewProduct = () => {
   };
 
   const increaseQty = () => {
-    const max = typeof selectedStock === "number" ? selectedStock : 99;
+    const max = typeof selectedStock === "number" ? Math.max(0, selectedStock) : 0;
     setQuantity((q) => Math.min(max, q + 1));
   };
 
@@ -213,6 +225,11 @@ const ViewProduct = () => {
   const handleAddToCart = async () => {
     const user = auth.currentUser;
     if (!user) return alert("You must be logged in.");
+
+      if (selectedStock === 0) {
+    setStockError("❌ Out of stock – unable to add to cart");
+    return;
+  }
 
     if (formattedSizes.length && !selectedSize)
       return alert("Please select a size first.");
@@ -255,6 +272,11 @@ const ViewProduct = () => {
      RESERVE / AR
   ================================= */
   const handleReserveClick = () => {
+      if (selectedStock === 0) {
+    setStockError("❌ Out of stock – unable to reserve");
+    return;
+  }
+
     if (formattedSizes.length && !selectedSize)
       return alert("Select a size first.");
 
@@ -352,11 +374,12 @@ const ViewProduct = () => {
       <button onClick={increaseQty} className="qty-btn">+</button>
     </div>
 
-    {typeof selectedStock === "number" && (
+    {typeof selectedStock === "number" && selectedStock > 0 && (
       <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
         Stock: {selectedStock}
       </div>
     )}
+
   </div>
 </div>
 
@@ -368,6 +391,13 @@ const ViewProduct = () => {
     maximumFractionDigits: 2,
   })}
 </div>
+
+{stockError && (
+  <p style={{ color: "red", fontWeight: 600, marginTop: 8 }}>
+    {stockError}
+  </p>
+)}
+
 
 
             {formattedSizes.length > 0 && (
@@ -391,13 +421,23 @@ const ViewProduct = () => {
                 </button>
               )}
 
-              <button className="reserve-button" onClick={handleReserveClick}>
-                Reserve Now
-              </button>
+            <button
+              className="reserve-button"
+              onClick={handleReserveClick}
+              disabled={selectedStock === 0}
+            >
+              Reserve Now
+            </button>
 
-              <button className="icon-button" onClick={handleAddToCart}>
+              <button
+                className="icon-button"
+                onClick={handleAddToCart}
+                disabled={selectedStock === 0}
+                title={selectedStock === 0 ? "Out of stock" : "Add to cart"}
+              >
                 <FiShoppingCart size={24} />
               </button>
+
             </div>
           </div>
         </div>
