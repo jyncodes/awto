@@ -1,89 +1,51 @@
-import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { auth, db } from "../../firebase";
-import {
-  doc,
-  getDoc,
-  addDoc,
-  collection,
-  serverTimestamp,
-} from "firebase/firestore";
-import Navbar from "../../components/Navbar";
+import React from "react";
+import "../../styles/user-styles/Testimonials.css";
 
-const WriteTestimonial = () => {
-  const { state } = useLocation();
-  const navigate = useNavigate();
+const testimonials = [
+  {
+    name: "Mark D.",
+    vehicle: "Toyota Hilux",
+    message:
+      "Maayos at mabilis ang serbisyo. From tire replacement to wheel alignment, ramdam mo talaga ang kalidad ng trabaho. Babalik ulit ako.",
+  },
+  {
+    name: "Angela R.",
+    vehicle: "Honda City",
+    message:
+      "Very accommodating staff and malinaw ang explanation ng services. Comfortable pa ang waiting area. Highly recommended!",
+  },
+  {
+    name: "Joseph L.",
+    vehicle: "Ford Ranger",
+    message:
+      "Accurate fitment at professional ang gumawa. Hindi minadali, pulido ang trabaho. Sulit ang bayad.",
+  },
+];
 
-  const [reservation, setReservation] = useState(null);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadReservation = async () => {
-      if (!state?.reservationId) {
-        navigate("/profile?tab=reservations");
-        return;
-      }
-
-      const ref = doc(db, "reservations", state.reservationId);
-      const snap = await getDoc(ref);
-
-      if (
-        !snap.exists() ||
-        snap.data().userId !== auth.currentUser.uid ||
-        snap.data().status !== "Completed" ||
-        !snap.data().transactionId
-      ) {
-        alert("You are not allowed to write feedback for this reservation.");
-        navigate("/profile?tab=reservations");
-        return;
-      }
-
-      setReservation({ id: snap.id, ...snap.data() });
-      setLoading(false);
-    };
-
-    loadReservation();
-  }, [state, navigate]);
-
-  const submitReview = async () => {
-    if (!message.trim()) return;
-
-    await addDoc(collection(db, "testimonials"), {
-      reservationId: reservation.id,
-      userId: auth.currentUser.uid,
-      name: reservation.userName,
-      vehicle: `${reservation.vehicleYear} ${reservation.vehicleBrand} ${reservation.vehicleModel}`,
-      message,
-      status: "Pending",
-      createdAt: serverTimestamp(),
-    });
-
-    alert("Thank you! Your feedback is pending approval.");
-    navigate("/profile?tab=reservations");
-  };
-
-  if (loading) return <div className="profile-loading">Loading...</div>;
-
+const Testimonials = () => {
   return (
-    <>
-      <Navbar />
-      <div className="write-testimonial-page">
-        <h2>Leave Your Feedback</h2>
-
-        <p><strong>Reservation ID:</strong> {reservation.id}</p>
-
-        <textarea
-          placeholder="Share your experience with our service..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          rows={6}
-        />
-
-        <button onClick={submitReview}>Submit Feedback</button>
+    <section className="section testimonials-section">
+      <div className="section-header">
+        <h2 className="section-title">What Our Customers Say</h2>
+        <p className="section-sub">
+          Real feedback from drivers who trust Joven Tire Enterprise
+        </p>
       </div>
-    </>
+
+      <div className="testimonials-grid">
+        {testimonials.map((t, index) => (
+          <div key={index} className="testimonial-card">
+            <p className="testimonial-message">“{t.message}”</p>
+
+            <div className="testimonial-footer">
+              <span className="testimonial-name">{t.name}</span>
+              <span className="testimonial-vehicle">{t.vehicle}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 };
 
-export default WriteTestimonial;
+export default Testimonials;
