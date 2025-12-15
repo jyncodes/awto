@@ -331,9 +331,6 @@ useEffect(() => {
       <Navbar />
 
       <div className="reservation-page">
-        <button className="back-button" onClick={() => navigate(-1)}>
-          ← Back
-        </button>
 
         <h2>
           {isServiceReservation
@@ -480,6 +477,13 @@ useEffect(() => {
     </>
   )}
 </div>
+
+  <button
+    className="back-btn"
+    onClick={() => navigate(-1)}
+  >
+    ← Back
+  </button>
 
 
           <button className="submit-btn" onClick={handleProceedToPayment}>
