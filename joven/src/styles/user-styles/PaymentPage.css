@@ -1,274 +1,223 @@
-/* src/styles/PaymentPage.css */
+/* =====================================================
+   PAYMENT PAGE — MODERN CLEAN DESIGN
+===================================================== */
 
-/* ----------------------------------------------
+/* ------------------------------
    PAGE WRAPPER
----------------------------------------------- */
+------------------------------ */
 .payment-page {
-  font-family: 'Segoe UI', sans-serif;
-  background: #f4f6f8;
-  padding: 2rem 1.5rem;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: linear-gradient(180deg, #f4f6f8 0%, #eef1f4 100%);
+  padding: 2.5rem 1.5rem;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: fadeIn 0.25s ease;
+  animation: fadeIn 0.3s ease;
 }
 
 .payment-page h2 {
-  font-size: 2rem;
-  margin-bottom: 1.4rem;
+  font-size: 2.1rem;
+  margin-bottom: 1.6rem;
   font-weight: 700;
   color: #1f2d3d;
   letter-spacing: 0.4px;
   text-align: center;
 }
 
-/* ----------------------------------------------
+/* ------------------------------
    TWO COLUMN LAYOUT
----------------------------------------------- */
+------------------------------ */
 .payment-layout {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
   width: 100%;
-  max-width: 1150px;
-  gap: 1.5rem;
+  max-width: 1200px;
+  gap: 1.75rem;
   align-items: flex-start;
 }
 
-/* LEFT = ORDER SUMMARY | RIGHT = PAYMENT OPTIONS */
-.payment-left {
-  width: 60%;
-  display: flex;
-  flex-direction: column;
-  gap: 1.4rem;
-}
-
+/* ------------------------------
+   LEFT / RIGHT
+------------------------------ */
+.payment-left,
 .payment-right {
-  width: 40%;
   display: flex;
   flex-direction: column;
-  gap: 1.4rem;
+  gap: 1.5rem;
 }
 
-/* ----------------------------------------------
+/* ------------------------------
    CARD COMPONENT
----------------------------------------------- */
+------------------------------ */
 .payment-card {
   background: #ffffff;
-  border-radius: 14px;
-  padding: 1.6rem 1.8rem;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.08);
-  animation: slideIn 0.25s ease;
-  transition: box-shadow 0.2s ease;
+  border-radius: 16px;
+  padding: 1.8rem 2rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+  animation: slideIn 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .payment-card:hover {
-  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.12);
 }
 
 .payment-card h3 {
-  margin-bottom: 0.6rem;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 600;
   color: #1f2d3d;
+  margin-bottom: 0.8rem;
 }
 
 .payment-card p {
-  font-size: 0.96rem;
+  font-size: 0.97rem;
   color: #3a4750;
-  margin: 0.35rem 0;
-  line-height: 1.4;
+  margin: 0.4rem 0;
+  line-height: 1.45;
 }
 
-/* List for services */
+/* Lists */
 .payment-card ul {
-  padding-left: 1rem;
-  margin: 0.4rem 0 1rem 0;
-  color: #3a4750;
+  padding-left: 1.1rem;
+  margin: 0.5rem 0 1rem;
 }
 
 .payment-card li {
-  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+  margin-bottom: 0.3rem;
 }
 
 /* Divider */
 hr {
   border: none;
-  border-top: 1px solid #dcdfe3;
-  margin: 1rem 0;
+  border-top: 1px solid #e1e5ea;
+  margin: 1.2rem 0;
 }
 
-/* ----------------------------------------------
-   WARNING BOX (RIGHT SIDE) — optional
----------------------------------------------- */
-.payment-warning {
-  background: #fff4f4;
-  border-left: 4px solid #e74c3c;
-  padding: 1rem 1.2rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  color: #a94442;
-  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.1);
-  line-height: 1.35;
+/* ------------------------------
+   PAYMENT SECTION (RIGHT)
+------------------------------ */
+.paypal-section {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.6rem;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+  text-align: center;
 }
 
-/* ----------------------------------------------
+.paypal-section h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2d3d;
+  margin-bottom: 1rem;
+}
+
+/* ------------------------------
    BUTTONS
----------------------------------------------- */
+------------------------------ */
 .pay-button,
 .pay-later-button,
-.cancel-btn,
 .back-btn {
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1rem;
   font-size: 1rem;
   font-weight: 600;
   width: 100%;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
   border: none;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
-/* Pay Now Button */
-.pay-button {
-  background: linear-gradient(135deg, #27ae60, #1e8d4e);
-  color: white;
-  box-shadow: 0 4px 12px rgba(39,174,96,0.25);
-}
-
-.pay-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #219150, #197a43);
-  box-shadow: 0 6px 16px rgba(39,174,96,0.35);
-}
-
-/* Pay Later Button */
+/* Pay Later */
 .pay-later-button {
-  background: #3498db;
-  color: white;
-  box-shadow: 0 4px 12px rgba(52,152,219,0.25);
+  background: linear-gradient(135deg, #3498db, #2b7dbc);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(52, 152, 219, 0.35);
 }
 
-.pay-later-button:hover:not(:disabled) {
-  background: #2b89c7;
-  box-shadow: 0 6px 16px rgba(52,152,219,0.35);
+.pay-later-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(52, 152, 219, 0.45);
 }
 
-/* Cancel */
-.cancel-btn {
-  background: white;
-  border: 1px solid #ccd1d6;
-  color: #7f8c8d;
-}
-.cancel-btn:hover:not(:disabled) {
-  background: #f7f7f7;
-}
-
-/* Back Button */
+/* Back */
 .back-btn {
   background: #ecf0f1;
   color: #2c3e50;
 }
 
 .back-btn:hover {
-  background: #d7dee2;
+  background: #dfe6eb;
 }
 
-/* Disabled Buttons */
-.pay-button:disabled,
-.pay-later-button:disabled {
-  background: #c3cbd3 !important;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.cancel-btn:disabled {
-  background: #e2e2e2;
-  color: #888;
-  cursor: not-allowed;
-}
-
+/* ------------------------------
+   CONFIRM MODAL
+------------------------------ */
 .confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  animation: fadeIn 0.2s ease;
 }
 
 .confirm-modal {
-  background: #fff;
-  padding: 24px;
-  border-radius: 10px;
+  background: #ffffff;
+  padding: 1.8rem;
+  border-radius: 14px;
   width: 90%;
-  max-width: 400px;
+  max-width: 420px;
   text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
 }
 
 .confirm-modal h3 {
-  margin-bottom: 12px;
+  font-size: 1.35rem;
+  margin-bottom: 0.6rem;
 }
 
 .confirm-modal p {
-  font-size: 14px;
-  color: #444;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.45;
 }
 
 .confirm-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 0.75rem;
+  margin-top: 1.4rem;
   justify-content: center;
 }
 
 .confirm-cancel {
-  background: #d32f2f;
-  color: #fff;
+  background: linear-gradient(135deg, #e53935, #c62828);
+  color: #ffffff;
   border: none;
-  padding: 10px 14px;
-  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .confirm-stay {
-  background: #ccc;
+  background: #e0e0e0;
   border: none;
-  padding: 10px 14px;
-  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
   cursor: pointer;
 }
 
-
-/* ----------------------------------------------
-   INPUT FIELD (if needed in future)
----------------------------------------------- */
-.tx-input {
-  width: 100%;
-  padding: 0.7rem;
-  border-radius: 8px;
-  border: 1px solid #c8cdd2;
-  margin-top: 0.4rem;
-  margin-bottom: 0.8rem;
-  font-size: 0.95rem;
-  transition: 0.2s;
-}
-
-.tx-input:focus {
-  border-color: #3498db;
-  box-shadow: 0 0 5px rgba(52,152,219,0.3);
-}
-
-/* ----------------------------------------------
-   RESPONSIVE (MOBILE)
----------------------------------------------- */
-@media (max-width: 850px) {
+/* ------------------------------
+   RESPONSIVE
+------------------------------ */
+@media (max-width: 900px) {
   .payment-layout {
-    flex-direction: column;
-  }
-
-  .payment-left,
-  .payment-right {
-    width: 100%;
+    grid-template-columns: 1fr;
   }
 
   .payment-page {
@@ -276,15 +225,27 @@ hr {
   }
 }
 
-/* ----------------------------------------------
+/* ------------------------------
    ANIMATIONS
----------------------------------------------- */
+------------------------------ */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

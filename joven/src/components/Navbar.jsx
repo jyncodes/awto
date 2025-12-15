@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { signOut, onAuthStateChanged } from "firebase/auth";
+import { FiShoppingCart, FiUser } from "react-icons/fi";
 import { FaBars } from "react-icons/fa";
-import { FiBell, FiShoppingCart, FiUser } from "react-icons/fi";
 import jovenLogo from "../assets/jovenlogo.png";
 import { auth, db } from "../firebase";
 import {
@@ -13,12 +13,10 @@ import {
   query,
   where,
   onSnapshot,
-  orderBy,
 } from "firebase/firestore";
 import "../styles/Navbar.css";
 
 import LoginSection from "./LoginSection";
-import NotificationPanel from "./user-components/NotificationPanel";
 import MySelection from "./user-components/MySelection";
 
 const Navbar = () => {
@@ -29,13 +27,11 @@ const Navbar = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showCartPanel, setShowCartPanel] = useState(false);
 
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [cartItems, setCartItems] = useState([]);
-  const [notifications, setNotifications] = useState([]);
 
   const [isVerified, setIsVerified] = useState(false);
 
@@ -45,7 +41,6 @@ const Navbar = () => {
       setUser(null);
       setUserData(null);
       setCartItems([]);
-      setNotifications([]);
       setIsVerified(false);
 
       if (!currentUser) return;
@@ -74,19 +69,10 @@ const Navbar = () => {
         setCartItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
 
-      const notifQuery = query(
-        collection(db, "notifications"),
-        where("userId", "==", currentUser.uid),
-        orderBy("createdAt", "desc")
-      );
 
-      const unsubscribeNotif = onSnapshot(notifQuery, (snapshot) => {
-        setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      });
 
       return () => {
         unsubscribeCart();
-        unsubscribeNotif();
       };
     });
 
@@ -115,7 +101,6 @@ const Navbar = () => {
     navigate(`/profile?tab=${tab}`);
   };
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const goToSection = (id) => {
     if (location.pathname !== "/") {
@@ -154,11 +139,6 @@ const Navbar = () => {
 
           {isVerified && (
             <>
-              <button className="icon-button" onClick={() => setShowNotifications(!showNotifications)}>
-                <FiBell size={20} />
-                {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
-              </button>
-
               <button className="icon-button" onClick={() => setShowCartPanel(!showCartPanel)}>
                 <FiShoppingCart size={20} />
                 {cartItems.length > 0 && <span className="badge">{cartItems.length}</span>}
@@ -252,12 +232,6 @@ const Navbar = () => {
         </div>
       )}
 
-      {showNotifications && (
-        <NotificationPanel
-          notifications={notifications}
-          onClose={() => setShowNotifications(false)}
-        />
-      )}
 
       {showCartPanel && (
         <MySelection

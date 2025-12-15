@@ -1,7 +1,15 @@
 // src/pages/user-page/PaymentPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../firebase";
 import "../../styles/user-styles/PaymentPage.css";
@@ -18,15 +26,36 @@ const PaymentPage = () => {
   const [tempLockId, setTempLockId] = useState(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
+  const [customerData, setCustomerData] = useState(null);
+
+ const fetchCustomerData = async (uid) => {
+  try {
+    const q = query(
+      collection(db, "customers"),
+      where("uid", "==", uid)
+    );
+
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      setCustomerData(snap.docs[0].data());
+    }
+  } catch (err) {
+    console.error("fetchCustomerData error:", err);
+  }
+};
 
   /* ---------------- AUTH CHECK ---------------- */
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) return navigate("/login");
-      setCurrentUser(user);
-    });
-    return () => unsubscribe();
-  }, [navigate]);
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!user) return navigate("/login");
+
+    setCurrentUser(user);
+    await fetchCustomerData(user.uid);
+  });
+
+  return () => unsubscribe();
+}, [navigate]);
 
   /* ---------------- LOAD LOCAL DRAFT ---------------- */
   useEffect(() => {
@@ -47,12 +76,18 @@ const PaymentPage = () => {
 
     try {
       const docRef = await addDoc(collection(db, "temp_locks"), {
-        userId: currentUser.uid,
-        createdAt: serverTimestamp(),
-        expiresAt: serverTimestamp(),
-        ...draft,
-        status: "pending-payment",
-      });
+  userId: currentUser.uid,
+
+  customerName: customerData?.name || "",
+  customerEmail: customerData?.email || "",
+  customerContact: customerData?.contact || "",
+
+  createdAt: serverTimestamp(),
+  expiresAt: serverTimestamp(),
+  ...draft,
+  status: "pending-payment",
+});
+
 
       setTempLockId(docRef.id);
       localStorage.setItem("activeTempLockId", docRef.id);
@@ -61,6 +96,9 @@ const PaymentPage = () => {
       alert("Something went wrong. Try again.");
     }
   };
+
+ 
+
 
   /* ---------------- CALL CREATE TEMP LOCK WHEN READY ---------------- */
   useEffect(() => {
@@ -76,13 +114,21 @@ const PaymentPage = () => {
       return alert("Missing reservation details.");
     }
 
-    const finalReservationData = {
-      ...draft,
-      userId: currentUser.uid,
-      userEmail: currentUser.email,
-      userName: currentUser.displayName || "Customer",
-      timestamp: Date.now()
-    };
+const finalReservationData = {
+  ...draft,
+  userId: currentUser.uid,
+
+  // ✅ customer info
+  customerName: customerData?.name || "Customer",
+  customerEmail: customerData?.email || currentUser.email,
+  customerContact: customerData?.contact || "",
+  customerAddress: customerData?.address || "",
+  customerGender: customerData?.gender || "",
+  customerBirthday: customerData?.birthday || "",
+
+  timestamp: Date.now(),
+};
+
 
     localStorage.setItem("finalReservationData", JSON.stringify(finalReservationData));
 
@@ -152,7 +198,13 @@ const totalPrice =
               <p><strong>Year:</strong> {draft.vehicleYear}</p>
               <p><strong>Plate Number:</strong> {draft.plateNumber}</p>
 
-              <hr />
+              <h3>Customer Info</h3>
+                <p><strong>Name:</strong> {customerData?.name}</p>
+                <p><strong>Email:</strong> {customerData?.email}</p>
+                <p><strong>Contact:</strong> {customerData?.contact}</p>
+                <p><strong>Address:</strong> {customerData?.address}</p>
+                <hr />
+
               <h3>Pricing</h3>
 
               {draft.type === "service" ? (
