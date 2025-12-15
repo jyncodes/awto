@@ -92,7 +92,7 @@ const ServicesPage = () => {
             <aside className="services-sidebar">
               <h2>Service List</h2>
               <p className="service-helper-text">
-                Please select the services you want to reserve.
+                All prices shown are LABOR ONLY.
               </p>
 
               <table className="services-table">
