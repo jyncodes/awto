@@ -28,6 +28,12 @@ const ReservationPage = () => {
   const multipleItems = location.state?.items || [];
 const isMultipleProducts = location.state?.type === "multiple-products";
 
+const [closedDates, setClosedDates] = useState([]);
+
+
+const MAX_BOOKINGS_PER_DATE = 5; // reservation slots
+
+
 
   // ===== SERVICE MODE DETECTION =====
   const serviceType = location.state?.type || null;
@@ -78,7 +84,7 @@ const isMultipleProducts = location.state?.type === "multiple-products";
   const [downpayment, setDownpayment] = useState(0);
   const [loadingDownpayment, setLoadingDownpayment] = useState(true);
 
-  const MAX_BOOKINGS_PER_DATE = 3;
+
 
   // ================= LOAD DOWNPAYMENT =================
   useEffect(() => {
@@ -157,42 +163,70 @@ useEffect(() => {
 
   // ================= FULLY BOOKED DATES =================
   useEffect(() => {
-    const fetchFullyBooked = async () => {
-      try {
-        const q = isServiceReservation
-          ? query(
-              collection(db, "reservations"),
-              where("type", "==", "service"),
-              where("isCancelled", "==", false)
-            )
-          : query(
-              collection(db, "reservations"),
-              where("productId", "==", productId),
-              where("isCancelled", "==", false)
-            );
+  const fetchFullyBooked = async () => {
+    try {
+      const q = query(
+        collection(db, "reservations"),
+        where("isCancelled", "==", false)
+      );
 
-        const snapshot = await getDocs(q);
+      const snapshot = await getDocs(q);
 
-        const dateCounts = {};
-        snapshot.forEach((docSnap) => {
-          const ts = docSnap.data().preferredDate;
-          const dt = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
-          const key = dt.toDateString();
-          dateCounts[key] = (dateCounts[key] || 0) + 1;
-        });
+      const dateCounts = {};
 
-        setFullyBookedDates(
-          Object.keys(dateCounts).filter(
-            (d) => dateCounts[d] >= MAX_BOOKINGS_PER_DATE
-          )
-        );
-      } catch (error) {
-        console.error("Error fetching fully booked dates:", error);
-      }
-    };
+      snapshot.forEach((docSnap) => {
+        const ts = docSnap.data().preferredDate;
+        if (!ts) return;
 
-    fetchFullyBooked();
-  }, [productId, isServiceReservation]);
+        const dateObj =
+          ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+
+        dateObj.setHours(0, 0, 0, 0);
+        const key = dateObj.toDateString();
+
+        dateCounts[key] = (dateCounts[key] || 0) + 1;
+      });
+
+      const blocked = Object.keys(dateCounts).filter(
+        (d) => dateCounts[d] >= MAX_BOOKINGS_PER_DATE
+      );
+
+      setFullyBookedDates(blocked);
+    } catch (err) {
+      console.error("Error fetching fully booked dates:", err);
+    }
+  };
+
+  fetchFullyBooked();
+}, []);
+
+ // ================= CLOSED DATES (ADMIN) =================
+useEffect(() => {
+  const fetchClosedDates = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "closed_dates"));
+      const closed = [];
+
+      snapshot.forEach((docSnap) => {
+        const ts = docSnap.data().date;
+        if (!ts) return;
+
+        const d =
+          ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+
+        d.setHours(0, 0, 0, 0);
+        closed.push(d.toDateString());
+      });
+
+      setClosedDates(closed);
+    } catch (err) {
+      console.error("Error fetching closed dates:", err);
+    }
+  };
+
+  fetchClosedDates();
+}, []);
+
 
   // ================= CONTINUE TO PAYMENT =================
   const handleProceedToPayment = () => {
@@ -268,11 +302,23 @@ useEffect(() => {
   };
 
   // ================= DISABLE DATES =================
-  const tileDisabled = ({ date }) => {
-    const now = new Date();
-    const key = date.toDateString();
-    return date <= now || fullyBookedDates.includes(key);
-  };
+    const tileDisabled = ({ date }) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+
+      const key = d.toDateString();
+
+      return (
+            d < today ||
+            fullyBookedDates.includes(key) ||
+            closedDates.includes(key)
+          );
+
+    };
+
 
   if (loading || loadingDownpayment)
     return <div className="reservation-page">Loading...</div>;

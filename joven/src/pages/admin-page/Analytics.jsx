@@ -1,7 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
-import { collection, onSnapshot, query, orderBy, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  doc,
+  updateDoc,
+  addDoc,
+  deleteDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import {
   LineChart,
   Line,
@@ -19,6 +29,8 @@ import ReservationCalendar from "../../components/shared-components/ReservationC
 
 const Analytics = () => {
   const navigate = useNavigate();
+
+  /* ================= STATE ================= */
   const [salesData, setSalesData] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [todaySales, setTodaySales] = useState(0);
@@ -30,13 +42,26 @@ const Analytics = () => {
   const [selectedChart, setSelectedChart] = useState("all");
   const [selectedReservation, setSelectedReservation] = useState(null);
 
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [closedDates, setClosedDates] = useState({});
+
+  /* ================= HELPERS ================= */
   const formatCurrency = (amount) =>
     `₱${Number(amount || 0).toLocaleString(undefined, {
       minimumFractionDigits: 2,
     })}`;
 
+  const reservationsForSelectedDate = selectedDate
+    ? reservations.filter((r) => {
+        if (!r.preferredDate?.seconds) return false;
+        const rDate = new Date(r.preferredDate.seconds * 1000);
+        return rDate.toDateString() === selectedDate.toDateString();
+      })
+    : [];
+
+  /* ================= FIRESTORE LISTENERS ================= */
   useEffect(() => {
-    // ================= SALES LISTENER =================
+    // ---------- SALES ----------
     const qSales = query(collection(db, "sales"), orderBy("createdAt", "desc"));
     const unsubSales = onSnapshot(qSales, (snapshot) => {
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -49,11 +74,9 @@ const Analytics = () => {
         grouped[date] = (grouped[date] || 0) + (s.totalAmount || 0);
       });
 
-      const formatted = Object.entries(grouped)
-        .map(([date, total]) => ({ date, total }))
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      setChartData(formatted);
+      setChartData(
+        Object.entries(grouped).map(([date, total]) => ({ date, total }))
+      );
 
       const now = new Date();
       const today = now.toDateString();
@@ -66,152 +89,165 @@ const Analytics = () => {
 
       data.forEach((sale) => {
         const total = sale.totalAmount || 0;
-        const date = sale.createdAt?.seconds
+        const d = sale.createdAt?.seconds
           ? new Date(sale.createdAt.seconds * 1000)
           : null;
+        if (!d) return;
 
-        if (!date) return;
-        if (date.toDateString() === today) todayTotal += total;
-        if (date >= startOfWeek) weekTotal += total;
+        if (d.toDateString() === today) todayTotal += total;
+        if (d >= startOfWeek) weekTotal += total;
       });
 
       setTodaySales(todayTotal);
       setWeeklySales(weekTotal);
     });
 
-    // ================= LOW STOCK =================
+    // ---------- CLOSED DATES ----------
+    const unsubClosed = onSnapshot(collection(db, "closed_dates"), (snapshot) => {
+      const map = {};
+      snapshot.forEach((docSnap) => {
+        const d = docSnap.data().date?.toDate();
+        if (!d) return;
+        d.setHours(0, 0, 0, 0);
+        map[d.toDateString()] = {
+          id: docSnap.id,
+          reason: docSnap.data().reason || "Closed",
+        };
+      });
+      setClosedDates(map);
+    });
+
+    // ---------- LOW STOCK ----------
     let combined = [];
 
-    const unsubTires = onSnapshot(collection(db, "products_tires"), (snapshot) => {
-      const tires = snapshot.docs.map((d) => ({ id: d.id, type: "Tire", ...d.data() }));
+    const updateLowStock = (list) => {
+      setLowStockProducts(list.filter((p) => Number(p.stock) <= 5).slice(0, 5));
+    };
+
+    const unsubTires = onSnapshot(collection(db, "products_tires"), (snap) => {
+      const tires = snap.docs.map((d) => ({ id: d.id, type: "Tire", ...d.data() }));
       combined = [...tires, ...combined.filter((p) => p.type !== "Tire")];
       updateLowStock(combined);
     });
 
-    const unsubMags = onSnapshot(collection(db, "products_mags"), (snapshot) => {
-      const mags = snapshot.docs.map((d) => ({ id: d.id, type: "Mags", ...d.data() }));
+    const unsubMags = onSnapshot(collection(db, "products_mags"), (snap) => {
+      const mags = snap.docs.map((d) => ({ id: d.id, type: "Mags", ...d.data() }));
       combined = [...combined.filter((p) => p.type !== "Mags"), ...mags];
       updateLowStock(combined);
     });
 
-    const updateLowStock = (list) => {
-      const low = list.filter((p) => Number(p.stock) <= 5).slice(0, 5);
-      setLowStockProducts(low);
-    };
-
-    // ================= RESERVATIONS =================
+    // ---------- RESERVATIONS ----------
     const qRes = query(collection(db, "reservations"), orderBy("preferredDate", "asc"));
     const unsubRes = onSnapshot(qRes, (snapshot) => {
-      const allReservations = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setReservations(allReservations);
+      setReservations(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
 
     return () => {
       unsubSales();
+      unsubClosed();
       unsubTires();
       unsubMags();
       unsubRes();
     };
   }, []);
 
-  // ================= CHART FILTERING =================
-  let filteredChartData = chartData;
-
-  if (selectedChart === "today") {
-    const today = new Date().toLocaleDateString();
-    filteredChartData = chartData.filter((d) => d.date === today);
-  }
-
-  if (selectedChart === "week") {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    filteredChartData = chartData.filter((d) => {
-      const dDate = new Date(d.date);
-      return dDate >= startOfWeek;
-    });
-  }
-
-  // ================= UPDATE RESERVATION STATUS =================
+  /* ================= RESERVATION ACTIONS ================= */
   const updateStatus = async (status) => {
     await updateDoc(doc(db, "reservations", selectedReservation.id), { status });
     setSelectedReservation((prev) => ({ ...prev, status }));
   };
 
+  const closeDate = async (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    await addDoc(collection(db, "closed_dates"), {
+      date: d,
+      reason: "Admin closed",
+      createdAt: serverTimestamp(),
+    });
+  };
+
+  const reopenDate = async (key) => {
+    await deleteDoc(doc(db, "closed_dates", closedDates[key].id));
+  };
+
+  /* ================= UI ================= */
   return (
     <div className="analytics-container">
-
       {/* HEADER */}
       <div className="analytics-header">
         <h1>Business Analytics</h1>
         <p>Monitor reservations, inventory health, and performance charts.</p>
       </div>
 
-      {/* ===================================================== */}
-      {/* 📆 RESERVATION CALENDAR */}
-      {/* ===================================================== */}
+      {/* ================= CALENDAR ================= */}
       <div className="table-card">
         <h2>📆 Reservation Calendar</h2>
 
         <ReservationCalendar
           reservations={reservations}
-          onSelectReservation={(res) => setSelectedReservation(res)}
+          closedDates={closedDates}
+          onSelectReservation={setSelectedReservation}
+          onSelectDate={setSelectedDate}
         />
 
-        {/* MODAL */}
-        {selectedReservation && (
+        {/* DATE MODAL */}
+        {selectedDate && (
+          <div className="reservation-modal-overlay" onClick={() => setSelectedDate(null)}>
+            <div className="reservation-modal" onClick={(e) => e.stopPropagation()}>
+              <h2>Reservations on {selectedDate.toLocaleDateString()}</h2>
+
+              {reservationsForSelectedDate.length ? (
+                <ul>
+                  {reservationsForSelectedDate.map((r) => (
+                    <li
+                      key={r.id}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => {
+                        setSelectedReservation(r);
+                        setSelectedDate(null);
+                      }}
+                    >
+                      <strong>{r.userName}</strong> — {r.status}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No reservations.</p>
+              )}
+
+              {!closedDates[selectedDate.toDateString()] ? (
+                <button className="status-btn cancel" onClick={() => closeDate(selectedDate)}>
+                  Close Date
+                </button>
+              ) : (
+                <button
+                  className="status-btn approve"
+                  onClick={() => reopenDate(selectedDate.toDateString())}
+                >
+                  Re-open Date
+                </button>
+              )}
+
+              <button className="close-btn" onClick={() => setSelectedDate(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* RESERVATION MODAL */}
+        {selectedReservation && !selectedDate && (
           <div className="reservation-modal-overlay" onClick={() => setSelectedReservation(null)}>
             <div className="reservation-modal" onClick={(e) => e.stopPropagation()}>
               <h2>Reservation Details</h2>
-
-              <p><strong>ID:</strong> {selectedReservation.id}</p>
               <p><strong>Customer:</strong> {selectedReservation.userName}</p>
               <p><strong>Status:</strong> {selectedReservation.status}</p>
-              <p>
-                <strong>Date:</strong>{" "}
-                {selectedReservation.preferredDate?.seconds
-                  ? new Date(selectedReservation.preferredDate.seconds * 1000).toLocaleDateString()
-                  : "—"}
-              </p>
 
-              {selectedReservation.selectedServices?.length > 0 && (
-                <>
-                  <p><strong>Services:</strong></p>
-                  <ul>
-                    {selectedReservation.selectedServices.map((s, index) => (
-                      <li key={index}>{s.name} – ₱{s.price}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-
-              {selectedReservation.productName && (
-                <p><strong>Product:</strong> {selectedReservation.productName}</p>
-              )}
-
-              {/* ================= STATUS BUTTONS ================= */}
               <div className="status-buttons">
-                <button className="status-btn approve" onClick={() => updateStatus("Approved")}>
-                  Approve
-                </button>
-
-                <button className="status-btn complete" onClick={() => updateStatus("Completed")}>
-                  Mark Completed
-                </button>
-
-                <button className="status-btn noshow" onClick={() => updateStatus("No-Show")}>
-                  No-Show
-                </button>
-
-                <button className="status-btn cancel" onClick={() => updateStatus("Cancelled")}>
-                  Cancel
-                </button>
-
-                <button className="status-btn pending" onClick={() => updateStatus("Pending")}>
-                  Set to Pending
-                </button>
+                <button className="status-btn approve" onClick={() => updateStatus("Approved")}>Approve</button>
+                <button className="status-btn complete" onClick={() => updateStatus("Completed")}>Completed</button>
+                <button className="status-btn cancel" onClick={() => updateStatus("Cancelled")}>Cancel</button>
               </div>
 
               <button className="close-btn" onClick={() => setSelectedReservation(null)}>
@@ -222,9 +258,7 @@ const Analytics = () => {
         )}
       </div>
 
-      {/* ===================================================== */}
-      {/* LOW STOCK PRODUCTS */}
-      {/* ===================================================== */}
+      {/* ================= LOW STOCK ================= */}
       <div className="table-card">
         <h2>⚠️ Low Stock Products</h2>
         <table>
@@ -233,16 +267,16 @@ const Analytics = () => {
               <th>Product</th>
               <th>Type</th>
               <th>Stock</th>
-              <th>Restock</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {lowStockProducts.length ? (
-              lowStockProducts.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.brand} {item.model}</td>
-                  <td>{item.type}</td>
-                  <td>{item.stock}</td>
+              lowStockProducts.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.brand} {p.model}</td>
+                  <td>{p.type}</td>
+                  <td>{p.stock}</td>
                   <td>
                     <button
                       className="restock-btn"
@@ -254,28 +288,19 @@ const Analytics = () => {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan="4">All stocks are sufficient.</td></tr>
+              <tr><td colSpan="4">All stocks sufficient.</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* ===================================================== */}
-      {/* SALES CARDS + CHART */}
-      {/* ===================================================== */}
+      {/* ================= SALES ================= */}
       <div className="summary-cards">
-        <div
-          className={`summary-card blue ${selectedChart === "today" ? "active" : ""}`}
-          onClick={() => setSelectedChart("today")}
-        >
+        <div className="summary-card blue">
           <h3>Today’s Sales</h3>
           <p>{formatCurrency(todaySales)}</p>
         </div>
-
-        <div
-          className={`summary-card green ${selectedChart === "week" ? "active" : ""}`}
-          onClick={() => setSelectedChart("week")}
-        >
+        <div className="summary-card green">
           <h3>This Week’s Sales</h3>
           <p>{formatCurrency(weeklySales)}</p>
         </div>
@@ -284,17 +309,16 @@ const Analytics = () => {
       <div className="chart-card">
         <h2>📊 Sales Trend</h2>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={filteredChartData}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />
-            <Tooltip formatter={(value) => `₱${value.toLocaleString()}`} />
+            <Tooltip />
             <Legend />
             <Line type="monotone" dataKey="total" stroke="#007bff" strokeWidth={3} />
           </LineChart>
         </ResponsiveContainer>
       </div>
-
     </div>
   );
 };

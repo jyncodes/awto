@@ -11,6 +11,9 @@
   backdrop-filter: blur(2px);
   z-index: 3000;
   animation: fadeIn 0.2s ease-in-out;
+
+  /* ✅ FIX: ensure overlay only blocks clicks while visible */
+  pointer-events: auto;
 }
 
 /* ================================
@@ -25,13 +28,9 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
   position: relative;
   animation: slideUp 0.25s ease-out;
-}
 
-.reservation-modal h2 {
-  margin: 0 0 1rem 0;
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #1f2937;
+  /* ✅ ensure modal receives clicks */
+  pointer-events: auto;
 }
 
 /* ================================
@@ -52,7 +51,7 @@
 ================================ */
 .reservation-modal ul {
   list-style: none;
-  padding: 0.3rem 0 0.3rem 0;
+  padding: 0.3rem 0;
 }
 
 .reservation-modal ul li {
@@ -123,46 +122,21 @@
   font-size: 0.9rem;
   color: white;
   transition: background-color 0.2s ease, transform 0.1s ease;
+
+  /* ✅ ensure buttons always clickable */
+  pointer-events: auto;
 }
 
-/* Hover effect */
 .status-btn:hover {
   transform: scale(1.05);
 }
 
-/* INDIVIDUAL COLORS */
-.status-btn.approve {
-  background-color: #34A853; /* green */
-}
-.status-btn.approve:hover {
-  background-color: #2d8d46;
-}
-
-.status-btn.complete {
-  background-color: #4285F4; /* blue */
-}
-.status-btn.complete:hover {
-  background-color: #2f6ed4;
-}
-
-.status-btn.noshow {
-  background-color: #EA4335; /* red */
-}
-.status-btn.noshow:hover {
-  background-color: #c73528;
-}
-
-.status-btn.cancel {
-  background-color: #6b7280; /* gray */
-}
-.status-btn.cancel:hover {
-  background-color: #4b5563;
-}
-
+/* COLORS */
+.status-btn.approve { background-color: #34A853; }
+.status-btn.complete { background-color: #4285F4; }
+.status-btn.noshow { background-color: #EA4335; }
+.status-btn.cancel { background-color: #6b7280; }
 .status-btn.pending {
-  background-color: #FBBC04; /* yellow */
+  background-color: #FBBC04;
   color: #333;
-}
-.status-btn.pending:hover {
-  background-color: #e0a903;
 }

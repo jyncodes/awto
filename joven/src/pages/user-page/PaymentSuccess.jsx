@@ -11,6 +11,7 @@ import {
   query,
   where,
   getDocs,
+  deleteDoc,
 } from "firebase/firestore";
 import { jsPDF } from "jspdf";
 import { db } from "../../firebase";
@@ -186,7 +187,7 @@ if (isServiceReservation) {
     downpayment: doneData.downpayment,
     paymentMethod: "PayPal",
     transactionId: transactionId || null,
-    status: "Awaiting Approval",
+    status: "Approved",
     createdAt: serverTimestamp(),
     isCancelled: false,
   };
@@ -217,7 +218,7 @@ if (isServiceReservation) {
     downpayment: doneData.downpayment,
     paymentMethod: "PayPal",
     transactionId: transactionId || null,
-    status: "Awaiting Approval",
+    status: "Approved",
     createdAt: serverTimestamp(),
     isCancelled: false,
   };
@@ -247,7 +248,7 @@ if (isServiceReservation) {
     downpayment: doneData.downpayment,
     paymentMethod: "PayPal",
     transactionId: transactionId || null,
-    status: "Awaiting Approval",
+    status: "Approved",
     createdAt: serverTimestamp(),
     isCancelled: false,
   };
@@ -256,6 +257,26 @@ if (isServiceReservation) {
 
 // SAVE FINAL DATA TO FIRESTORE
 await setDoc(doc(db, "reservations", newResId), reservationData);
+
+// 🧹 REMOVE CART ITEMS AFTER SUCCESSFUL RESERVATION
+if (isMultipleProducts && Array.isArray(doneData.items)) {
+  try {
+    await Promise.all(
+      doneData.items.map((item) => {
+        // item.id = cartSelections document ID
+        if (item.id) {
+          return deleteDoc(doc(db, "cartSelections", item.id));
+        }
+        return null;
+      })
+    );
+
+    console.log("🛒 Selected cart items removed");
+  } catch (err) {
+    console.error("❌ Failed to remove cart items:", err);
+  }
+}
+
 
 
       // ---------------- SAVE ONLY LAST PLATE NUMBER ----------------
@@ -353,7 +374,12 @@ await setDoc(doc(db, "reservations", newResId), reservationData);
               {isSaved ? "✔ Reservation Saved" : "✅ Finish Reservation"}
             </button>
           </>
+
+          
         )}
+        
+
+        
       </div>
     </div>
   );
