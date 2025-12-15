@@ -1,0 +1,223 @@
+/* ===========================
+   MY ACCOUNT PAGE
+=========================== */
+
+/* Section Title */
+h2 {
+  font-size: 1.9rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: #f39c12; /* YELLOW TEXT ONLY */
+}
+
+/* ===========================
+   ACCOUNT DETAILS VIEW
+=========================== */
+.profile-details-view {
+  background: #ffffff;
+  padding: 22px;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 28px;
+}
+
+.profile-details-view p {
+  font-size: 1rem;
+  margin-bottom: 10px;
+  color: #334155;
+}
+
+.profile-details-view strong {
+  color: #1e293b;
+}
+
+/* ===========================
+   PROFILE FORM
+=========================== */
+.profile-form {
+  background: #ffffff;
+  padding: 26px;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 32px;
+}
+
+.profile-form h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #1e293b;
+}
+
+.profile-form input,
+.profile-form select {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.95rem;
+  transition: 0.2s ease;
+  background: #ffffff;
+}
+
+.profile-form input:focus,
+.profile-form select:focus {
+  outline: none;
+  border-color: #f39c12;
+  box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.3);
+}
+
+/* Save Button */
+.profile-form button {
+  width: 100%;
+  background: #f39c12;
+  color: #ffffff;
+  border: none;
+  padding: 12px;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.profile-form button:hover {
+  background: #d97706;
+}
+
+/* ===========================
+   PASSWORD SECTION
+=========================== */
+.password-update {
+  background: #ffffff;
+  padding: 26px;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.password-update h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #1e293b;
+}
+
+.password-update input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.95rem;
+  transition: 0.2s ease;
+}
+
+.password-update input:focus {
+  outline: none;
+  border-color: #f39c12;
+  box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.25);
+}
+
+/* ===========================
+   SHOW PASSWORD (FIXED ALIGNMENT)
+=========================== */
+.show-pass-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  margin: 14px 0 18px;
+  color: #334155;
+}
+
+.show-pass-inline input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #f39c12;
+}
+
+
+/* ===========================
+   PASSWORD STRENGTH METER
+=========================== */
+.pwd-meter {
+  margin: 10px 0 16px;
+}
+
+.meter-bar {
+  height: 6px;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.meter-bar.weak {
+  background: #ef4444;
+  width: 33%;
+}
+
+.meter-bar.medium {
+  background: #f59e0b;
+  width: 66%;
+}
+
+.meter-bar.strong {
+  background: #22c55e;
+  width: 100%;
+}
+
+.meter-label {
+  font-size: 0.85rem;
+  margin-top: 5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* Password Errors */
+.password-errors {
+  margin: 10px 0 14px;
+  padding-left: 18px;
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Update Password Button */
+.password-update button {
+  width: 100%;
+  padding: 12px;
+  background: #1e293b;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.password-update button:hover {
+  background: #0f172a;
+}
+
+/* Disabled Button */
+.disabled-btn {
+  background: #94a3b8 !important;
+  cursor: not-allowed;
+}
+
+/* ===========================
+   MOBILE RESPONSIVE
+=========================== */
+@media (max-width: 768px) {
+  .profile-details-view,
+  .profile-form,
+  .password-update {
+    padding: 20px;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+  }
+}

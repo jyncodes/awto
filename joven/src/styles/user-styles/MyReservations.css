@@ -1,0 +1,168 @@
+/* ===========================
+   RESERVATIONS LIST
+=========================== */
+.orders-list {
+  display: grid;
+  gap: 20px;
+}
+
+.order-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  border-left: 5px solid #f39c12;
+  transition: transform 0.2s ease;
+}
+
+.order-card:hover {
+  transform: translateX(5px);
+}
+
+.order-card p {
+  margin: 8px 0;
+  font-size: 1rem;
+}
+
+/* Buttons */
+.pay-button,
+.receipt-button {
+  margin-top: 12px;
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  transition: 0.2s;
+}
+
+.pay-button {
+  background: #f39c12;
+  color: white;
+}
+
+.pay-button:hover {
+  background: #d97706;
+}
+
+.receipt-button {
+  background: #16a34a;
+  color: white;
+}
+
+.receipt-button:hover {
+  background: #15803d;
+}
+
+/* ===========================
+   SORT DROPDOWN
+=========================== */
+.reservation-sort-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.reservation-sort-box label {
+  font-weight: 600;
+  color: #444;
+}
+
+.reservation-sort-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+/* ===========================
+   MODAL
+=========================== */
+.reservation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  z-index: 9999;
+}
+
+.reservation-modal {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 12px;
+  width: 480px;
+  max-width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  border: 1px solid #e2e8f0;
+}
+
+/* Modal Content */
+.modal-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.receipt-section {
+  width: 100%;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.receipt-section:last-child {
+  border-bottom: none;
+}
+
+.receipt-section h4 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #f39c12;
+}
+
+.receipt-section p {
+  margin: 4px 0;
+  font-size: 0.95rem;
+  color: #334155;
+  word-break: break-word;
+}
+
+/* Modal Buttons */
+.modal-buttons {
+  margin-top: 25px;
+  display: flex;
+  justify-content: center;
+}
+
+.close-modal {
+  background: #1e293b;
+  color: #fff;
+  padding: 12px 22px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.close-modal:hover {
+  background: #0f172a;
+}
