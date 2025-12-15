@@ -144,3 +144,18 @@ h2 {
     padding: 22px 18px;
   }
 }
+.testimonial-button {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #f39c12;
+  background: transparent;
+  color: #f39c12;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.testimonial-button:hover {
+  background: #f39c12;
+  color: #fff;
+}

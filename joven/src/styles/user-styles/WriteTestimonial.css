@@ -1,0 +1,117 @@
+/* =================================================
+   WRITE TESTIMONIAL — CLEAN & PROFESSIONAL
+   Theme Accent: #f39c12
+================================================== */
+
+/* =========================
+   PAGE WRAPPER
+========================= */
+.testimonial-write {
+  max-width: 720px;
+  margin: 120px auto 80px;
+  padding: 36px 32px;
+
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* =========================
+   TITLE
+========================= */
+.testimonial-write h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+/* =========================
+   TEXTAREA
+========================= */
+.testimonial-write textarea {
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1.5px solid #e5e7eb;
+
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-family: "Poppins", sans-serif;
+
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.testimonial-write textarea::placeholder {
+  color: #9ca3af;
+}
+
+.testimonial-write textarea:focus {
+  outline: none;
+  border-color: #f39c12;
+  box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.15);
+}
+
+/* =========================
+   SUBMIT BUTTON
+========================= */
+.testimonial-write button {
+  align-self: flex-end;
+
+  padding: 12px 26px;
+  border-radius: 14px;
+  border: none;
+
+  background: #f39c12;
+  color: #1a1a1a;
+
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.testimonial-write button:hover {
+  background: #e68a00;
+  transform: translateY(-2px);
+}
+
+.testimonial-write button:active {
+  transform: translateY(0);
+}
+
+/* =========================
+   LOADING TEXT
+========================= */
+.testimonial-write p {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+/* =========================
+   MOBILE RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .testimonial-write {
+    margin: 90px 16px 60px;
+    padding: 26px 20px;
+  }
+
+  .testimonial-write h2 {
+    font-size: 1.5rem;
+  }
+
+  .testimonial-write button {
+    width: 100%;
+    align-self: stretch;
+  }
+}
