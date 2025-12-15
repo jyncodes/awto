@@ -18,6 +18,7 @@ const Filter = ({ onChange, mobileControl }) => {
   const [selectedFilters, setSelectedFilters] = useState({});
   const [expanded, setExpanded] = useState([]);
   const [searchTerms, setSearchTerms] = useState({});
+  const [fromLanding, setFromLanding] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   /* ================= SYNC MOBILE STATE ================= */
@@ -30,6 +31,30 @@ const Filter = ({ onChange, mobileControl }) => {
   useEffect(() => {
     mobileControl?.setOpen && mobileControl.setOpen(isMobileOpen);
   }, [isMobileOpen]);
+
+  /* ================= AUTO FILTER FROM LANDING ================= */
+useEffect(() => {
+  const storedBrand = localStorage.getItem("selectedBrand");
+  const landingFlag = localStorage.getItem("fromLanding");
+
+  if (!storedBrand || !landingFlag) return;
+
+  setFromLanding(true);
+
+  // auto select
+  setSelectedFilters({
+    type: new Set(["Tire"]),
+    brand: new Set([storedBrand]),
+    model: new Set(),
+  });
+
+  // auto open Brand section
+  setExpanded((prev) => [...new Set([...prev, "brand"])]);
+
+  // cleanup
+  localStorage.removeItem("selectedBrand");
+  localStorage.removeItem("fromLanding");
+}, []);
 
   /* ================= FETCH DATA ================= */
   useEffect(() => {
@@ -48,6 +73,23 @@ const Filter = ({ onChange, mobileControl }) => {
     fetchData();
   }, []);
 
+  /* ================= AUTO FILTER FROM LANDING PAGE ================= */
+useEffect(() => {
+  const storedBrand = localStorage.getItem("selectedBrand");
+  if (!storedBrand) return;
+
+  console.log("Auto filter brand:", storedBrand); // debug
+
+  setSelectedFilters({
+    type: new Set(["Tire"]),          // EXACT match sa Firestore
+    brand: new Set([storedBrand]),    // EXACT match sa Firestore
+    model: new Set(),
+  });
+
+  localStorage.removeItem("selectedBrand");
+}, []);
+
+
   /* ================= DERIVED FILTER OPTIONS ================= */
   const filtersData = useMemo(() => {
     let filtered = [...allProducts];
@@ -55,14 +97,14 @@ const Filter = ({ onChange, mobileControl }) => {
     // Apply selected Type
     if (selectedFilters.type?.size) {
       filtered = filtered.filter((p) =>
-        selectedFilters.type.has(toTitleCase(p.type))
+      selectedFilters.type.has(p.type)
       );
     }
 
     // Apply selected Brand
     if (selectedFilters.brand?.size) {
       filtered = filtered.filter((p) =>
-        selectedFilters.brand.has(toTitleCase(p.brand))
+      selectedFilters.brand.has(p.brand)
       );
     }
 
@@ -74,8 +116,8 @@ const Filter = ({ onChange, mobileControl }) => {
     };
 
     filtered.forEach((p) => {
-      if (p.type) unique.type.add(toTitleCase(p.type));
-      if (p.brand) unique.brand.add(toTitleCase(p.brand));
+      if (p.type) unique.type.add(p.type.trim());
+      if (p.brand) unique.brand.add(p.brand.trim());
       if (p.model) unique.model.add(p.model.trim());
 
 
@@ -132,6 +174,8 @@ const Filter = ({ onChange, mobileControl }) => {
     );
 
   const toggleOption = (filter, option, multi) => {
+    if (fromLanding && filter === "type") return; // 👈 LOCK TYPE
+
     setSelectedFilters((prev) => {
       const set = new Set(prev[filter] || []);
       if (set.has(option)) set.delete(option);
@@ -140,7 +184,6 @@ const Filter = ({ onChange, mobileControl }) => {
         set.add(option);
       }
 
-      // Reset dependent filters
       if (filter === "brand") {
         return { ...prev, brand: set, model: new Set() };
       }
@@ -228,7 +271,7 @@ const Filter = ({ onChange, mobileControl }) => {
                         toggleOption(name, option, multiSelect)
                       }
                     >
-                      {option}
+                      {toTitleCase(option)}
                     </div>
                   ))}
                 </div>
