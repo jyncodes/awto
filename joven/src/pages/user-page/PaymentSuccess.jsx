@@ -28,6 +28,8 @@ const PaymentSuccess = () => {
   const [isSaved, setIsSaved] = useState(false);
 
   const isServiceReservation = doneData?.type === "service";
+  const isMultipleProducts = doneData?.type === "multiple-products";
+
 
 
   /* ---------------- Fetch Draft from Local Storage ---------------- */
@@ -163,7 +165,7 @@ const PaymentSuccess = () => {
 let reservationData;
 
 if (isServiceReservation) {
-  // ⭐ SERVICE RESERVATION FORMAT
+  // ===== SERVICE =====
   reservationData = {
     id: newResId,
     type: "service",
@@ -189,7 +191,39 @@ if (isServiceReservation) {
     isCancelled: false,
   };
 
+} else if (isMultipleProducts) {
+  // ===== MULTIPLE PRODUCTS =====
+  reservationData = {
+    id: newResId,
+    type: "multiple-products",
+    userId: doneData.userId,
+    userEmail: doneData.userEmail,
+    userName: doneData.userName,
+
+    items: doneData.items, // 👈 FULL CART SNAPSHOT
+    totalPrice: doneData.items.reduce(
+      (sum, item) =>
+        sum + (item.totalPrice ?? item.pricePerItem * item.quantity),
+      0
+    ),
+
+    vehicleBrand: doneData.vehicleBrand,
+    vehicleModel: doneData.vehicleModel,
+    vehicleYear: doneData.vehicleYear,
+    plateNumber: doneData.plateNumber,
+    note: doneData.note || "",
+
+    preferredDate: new Date(doneData.preferredDate),
+    downpayment: doneData.downpayment,
+    paymentMethod: "PayPal",
+    transactionId: transactionId || null,
+    status: "Awaiting Approval",
+    createdAt: serverTimestamp(),
+    isCancelled: false,
+  };
+
 } else {
+  // ===== SINGLE PRODUCT =====
   reservationData = {
     id: newResId,
     type: "product",
@@ -218,6 +252,7 @@ if (isServiceReservation) {
     isCancelled: false,
   };
 }
+
 
 // SAVE FINAL DATA TO FIRESTORE
 await setDoc(doc(db, "reservations", newResId), reservationData);
@@ -261,7 +296,10 @@ await setDoc(doc(db, "reservations", newResId), reservationData);
             reservationId: newResId,
             productName: isServiceReservation
               ? doneData.selectedServices.map(s => s.name).join(", ")
-              : `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
+              : isMultipleProducts
+                ? doneData.items.map(i => i.productName).join(", ")
+                : `${doneData.product?.brand} ${doneData.product?.model} ${doneData.selectedSize}`,
+
             plateNumber: doneData.plateNumber,
             date: new Date(doneData.preferredDate).toLocaleDateString(),
           }),

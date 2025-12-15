@@ -16,6 +16,8 @@ const PaymentPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [tempLockId, setTempLockId] = useState(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
 
   /* ---------------- AUTH CHECK ---------------- */
   useEffect(() => {
@@ -88,9 +90,17 @@ const PaymentPage = () => {
 
   if (loading || !draft) return <div className="payment-page">Loading...</div>;
 
-  const totalPrice = draft.type === "service"
+const totalPrice =
+  draft.type === "service"
     ? draft.totalServicePrice
-    : draft.pricePerItem * draft.quantity;
+    : draft.type === "multiple-products"
+      ? draft.items.reduce(
+          (sum, item) =>
+            sum + (item.totalPrice ?? item.pricePerItem * item.quantity),
+          0
+        )
+      : draft.pricePerItem * draft.quantity;
+
 
   return (
     <div className="payment-page-wrapper">
@@ -106,18 +116,35 @@ const PaymentPage = () => {
               <h3>Order Summary</h3>
               <hr />
 
-              {draft.type === "service" ? (
-                <>
-                  <p><strong>Service Reservation</strong></p>
-                  <ul>
-                    {draft.selectedServices?.map((svc, index) => (
-                      <li key={index}>{svc.name} — ₱{svc.price}</li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <p><strong>Product:</strong> {draft.product?.brand} {draft.product?.model}</p>
-              )}
+            {draft.type === "service" ? (
+  <>
+    <p><strong>Service Reservation</strong></p>
+    <ul>
+      {draft.selectedServices?.map((svc, index) => (
+        <li key={index}>
+          {svc.name} — ₱{svc.price.toLocaleString()}
+        </li>
+      ))}
+    </ul>
+  </>
+) : draft.type === "multiple-products" ? (
+  <>
+    <p><strong>Selected Products</strong></p>
+    <ul>
+      {draft.items.map((item, index) => (
+        <li key={index}>
+          {item.productName} — ₱
+          {(item.totalPrice ?? item.pricePerItem * item.quantity).toLocaleString()}
+        </li>
+      ))}
+    </ul>
+  </>
+) : (
+  <p>
+    <strong>Product:</strong> {draft.product?.brand} {draft.product?.model}
+  </p>
+)}
+
 
               <h3>Vehicle Info</h3>
               <p><strong>Brand:</strong> {draft.vehicleBrand}</p>
@@ -129,18 +156,32 @@ const PaymentPage = () => {
               <h3>Pricing</h3>
 
               {draft.type === "service" ? (
-                <>
-                  <p><strong>Total Service Price:</strong> ₱{draft.totalServicePrice.toLocaleString()}</p>
-                  <p><strong>Downpayment Required:</strong> ₱{draft.downpayment.toLocaleString()}</p>
-                </>
-              ) : (
-                <>
-                  <p><strong>Price per item:</strong> ₱{draft.pricePerItem.toLocaleString()}</p>
-                  <p><strong>Quantity:</strong> {draft.quantity}</p>
-                  <p><strong>Total Price:</strong> ₱{(draft.pricePerItem * draft.quantity).toLocaleString()}</p>
-                  <p><strong>Downpayment Required:</strong> ₱{draft.downpayment.toLocaleString()}</p>
-                </>
-              )}
+  <>
+    <p><strong>Total Service Price:</strong> ₱{draft.totalServicePrice.toLocaleString()}</p>
+    <p><strong>Downpayment Required:</strong> ₱{draft.downpayment.toLocaleString()}</p>
+  </>
+) : draft.type === "multiple-products" ? (
+  <>
+    <p>
+      <strong>Total Price:</strong> ₱{totalPrice.toLocaleString()}
+    </p>
+    <p>
+      <strong>Downpayment Required:</strong> ₱{draft.downpayment.toLocaleString()}
+    </p>
+  </>
+) : (
+  <>
+    <p><strong>Price per item:</strong> ₱{draft.pricePerItem.toLocaleString()}</p>
+    <p><strong>Quantity:</strong> {draft.quantity}</p>
+    <p>
+      <strong>Total Price:</strong> ₱{(draft.pricePerItem * draft.quantity).toLocaleString()}
+    </p>
+    <p>
+      <strong>Downpayment Required:</strong> ₱{draft.downpayment.toLocaleString()}
+    </p>
+  </>
+)}
+
             </div>
           </div>
 
@@ -187,16 +228,51 @@ const PaymentPage = () => {
               </form>
             </div>
 
-            <button
-              className="pay-later-button"
-              onClick={() => navigate("/profile?tab=reservations")}
-            >
-              Cancel & Back
-            </button>
+          <button
+            className="pay-later-button"
+            onClick={() => setShowCancelConfirm(true)}
+          >
+            Cancel & Back
+          </button>
 
             <button className="back-btn" onClick={() => navigate(-1)}>
               ← Back
             </button>
+
+            {showCancelConfirm && (
+  <div className="confirm-overlay">
+    <div className="confirm-modal">
+      <h3>Cancel Reservation?</h3>
+      <p>
+        Are you sure you want to cancel this reservation?
+        <br />
+        <strong>This action is irreversible.</strong>
+      </p>
+
+      <div className="confirm-actions">
+        <button
+          className="confirm-cancel"
+          onClick={() => {
+            localStorage.removeItem("reservationDraft");
+            localStorage.removeItem("finalReservationData");
+            navigate("/profile?tab=reservations");
+          }}
+        >
+          Yes, Cancel Reservation
+        </button>
+
+        <button
+          className="confirm-stay"
+          onClick={() => setShowCancelConfirm(false)}
+        >
+          No, Stay on Page
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
           </div>
         </div>
       </div>

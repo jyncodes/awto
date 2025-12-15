@@ -22,6 +22,13 @@ const ReservationPage = () => {
   const { productId } = useParams();
   const location = useLocation();
 
+  const passedProduct = location.state?.product || null;
+
+
+  const multipleItems = location.state?.items || [];
+const isMultipleProducts = location.state?.type === "multiple-products";
+
+
   // ===== SERVICE MODE DETECTION =====
   const serviceType = location.state?.type || null;
   const selectedServices = location.state?.selectedServices || [];
@@ -36,7 +43,12 @@ const ReservationPage = () => {
   const navigate = useNavigate();
 
   // ===== PRODUCT RESERVATION DATA =====
-  const passedProduct = location.state?.product || null;
+  const products = isMultipleProducts
+  ? multipleItems
+  : passedProduct
+  ? [passedProduct]
+  : [];
+
   const selectedSize = location.state?.selectedSize || null;
   const selectedDocId = location.state?.selectedDocId || null;
   const pricePerItem =
@@ -45,7 +57,10 @@ const ReservationPage = () => {
 
   const [product, setProduct] = useState(passedProduct);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(!passedProduct);
+ const [loading, setLoading] = useState(
+        !isMultipleProducts && !passedProduct
+      );
+
 
   // ===== VEHICLE FIELDS =====
   const [vehicleBrand, setVehicleBrand] = useState("");
@@ -218,21 +233,34 @@ useEffect(() => {
         downpayment,
       };
     } else {
-      draftData = {
-        type: "product",
-        product,
-        selectedSize,
-        selectedDocId,
-        pricePerItem,
-        quantity,
-        vehicleBrand,
-        vehicleModel,
-        vehicleYear,
-        plateNumber,
-        preferredDate: chosenDate.toISOString(),
-        note,
-        downpayment,
-      };
+      draftData = isMultipleProducts
+  ? {
+      type: "multiple-products",
+      items: products,
+      vehicleBrand,
+      vehicleModel,
+      vehicleYear,
+      plateNumber,
+      preferredDate: chosenDate.toISOString(),
+      note,
+      downpayment,
+    }
+  : {
+      type: "product",
+      product,
+      selectedSize,
+      selectedDocId,
+      pricePerItem,
+      quantity,
+      vehicleBrand,
+      vehicleModel,
+      vehicleYear,
+      plateNumber,
+      preferredDate: chosenDate.toISOString(),
+      note,
+      downpayment,
+    };
+
     }
 
     localStorage.setItem("reservationDraft", JSON.stringify(draftData));
@@ -264,7 +292,9 @@ useEffect(() => {
         <h2>
           {isServiceReservation
             ? "Reserve Selected Services"
-            : `Reserve: ${product?.brand} ${product?.model}`}
+            : isMultipleProducts
+              ? `Reserve ${products.length} Selected Products`
+              : `Reserve: ${product?.brand} ${product?.model}`}
         </h2>
 
         <div className="reservation-form">
@@ -354,28 +384,57 @@ useEffect(() => {
           />
 
           {/* PRICE SUMMARY */}
-          <div className="price-summary">
-            {isServiceReservation ? (
-              <>
-                <p><strong>Selected Services:</strong></p>
-                <ul>
-                  {selectedServices.map((svc, index) => (
-                    <li key={index}>{svc.name} — ₱{svc.price}</li>
-                  ))}
-                </ul>
+<div className="price-summary">
+  {isServiceReservation ? (
+    <>
+      <p><strong>Selected Services:</strong></p>
+      <ul>
+        {selectedServices.map((svc, index) => (
+          <li key={index}>
+            {svc.name} — ₱{svc.price.toLocaleString()}
+          </li>
+        ))}
+      </ul>
 
-                <p><strong>Total Service Price:</strong> ₱{totalServicePrice.toLocaleString()}</p>
-                <p><strong>Downpayment:</strong> ₱{downpayment}</p>
-              </>
-            ) : (
-              <>
-                <p><strong>Price per Item:</strong> ₱{pricePerItem.toLocaleString()}</p>
-                <p><strong>Quantity:</strong> {quantity}</p>
-                <p><strong>Total Price:</strong> ₱{(pricePerItem * quantity).toLocaleString()}</p>
-                <p><strong>Downpayment:</strong> ₱{downpayment}</p>
-              </>
-            )}
-          </div>
+      <p><strong>Total Service Price:</strong> ₱{totalServicePrice.toLocaleString()}</p>
+      <p><strong>Downpayment:</strong> ₱{downpayment}</p>
+    </>
+  ) : isMultipleProducts ? (
+    <>
+      <p><strong>Selected Products:</strong></p>
+      <ul>
+        {products.map((item, idx) => (
+          <li key={idx}>
+            {item.productName} — ₱
+            {(item.totalPrice ?? item.pricePerItem * item.quantity).toLocaleString()}
+          </li>
+        ))}
+      </ul>
+
+      <p>
+        <strong>Total Price:</strong> ₱
+        {products.reduce(
+          (sum, item) =>
+            sum + (item.totalPrice ?? item.pricePerItem * item.quantity),
+          0
+        ).toLocaleString()}
+      </p>
+
+      <p><strong>Downpayment:</strong> ₱{downpayment}</p>
+    </>
+  ) : (
+    <>
+      <p><strong>Price per Item:</strong> ₱{pricePerItem.toLocaleString()}</p>
+      <p><strong>Quantity:</strong> {quantity}</p>
+      <p>
+        <strong>Total Price:</strong> ₱
+        {(pricePerItem * quantity).toLocaleString()}
+      </p>
+      <p><strong>Downpayment:</strong> ₱{downpayment}</p>
+    </>
+  )}
+</div>
+
 
           <button className="submit-btn" onClick={handleProceedToPayment}>
             Continue to Payment

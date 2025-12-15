@@ -2,12 +2,12 @@
   position: fixed;
   top: 60px;
   right: 20px;
-  z-index: 9999; /* High z-index to prevent overlaps from other UI elements */
+  z-index: 9999;
   width: auto;
   height: auto;
-  background: rgba(0, 0, 0, 0.1); /* Subtle backdrop for isolation (transparent but helps layering) */
-  backdrop-filter: blur(2px); /* Optional: Adds depth without blocking */
-  pointer-events: auto !important; /* Ensure entire overlay responds to events */
+  background: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2px);
+  pointer-events: auto !important;
 }
 
 .my-selection-panel {
@@ -19,9 +19,9 @@
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
   overflow-y: auto;
   padding: 0.5rem 0.75rem;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   animation: fadeInSlide 0.3s ease;
-  pointer-events: auto !important; /* Force panel to be interactive */
+  pointer-events: auto !important;
 }
 
 .my-selection-header {
@@ -42,16 +42,15 @@
 .close-button {
   background: none;
   border: none;
-  font-size: 1.2rem;
   cursor: pointer;
   color: #555;
-  pointer-events: auto !important; /* Ensure close button is clickable */
-  user-select: none; /* Prevent text selection on click */
+  pointer-events: auto !important;
+  user-select: none;
 }
 
 .my-selection-body {
   padding: 0.5rem 0;
-  pointer-events: auto; /* Ensure body content is interactive */
+  pointer-events: auto;
 }
 
 .empty {
@@ -60,23 +59,47 @@
   padding: 1rem 0;
 }
 
+/* ================= CART LIST ================= */
+
 .cart-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.cart-item {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eee;
+/* 🔥 FORCE BUTTON COLORS (FIX) */
+.view-button {
+  background-color: #f59e0b !important;
+  color: #ffffff !important;
+}
+
+.view-button:hover {
+  background-color: #d97706 !important;
+}
+
+.remove-button {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.remove-button:hover {
+  background-color: #f87171 !important;
+}
+
+
+/* 🔥 NEW: checkbox styling */
+.cart-checkbox {
+  margin-top: 4px;
+  cursor: pointer;
+  transform: scale(1.1);
+}
+
+/* 🔥 NEW: content wrapper */
+.cart-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  pointer-events: auto !important; /* Ensure item container doesn't block clicks */
-}
-
-.cart-item * {
-  pointer-events: auto !important; /* Force all children (e.g., buttons) to be clickable */
 }
 
 .cart-name {
@@ -93,30 +116,26 @@
   color: #555;
 }
 
+/* ================= BUTTONS ================= */
+
 .cart-buttons {
   display: flex;
-  gap: 0.25rem;
-  margin-top: 0.25rem;
-  pointer-events: auto !important; /* Ensure buttons container is clickable */
-  z-index: 100; /* High z-index for buttons layer */
-  /* border: 1px solid red; */ /* TEMP DEBUG: Remove in production to visualize buttons */
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  pointer-events: auto !important;
 }
 
 .view-button,
 .remove-button {
   flex: 1;
-  padding: 6px 12px; /* Slightly more padding for better touch targets */
+  padding: 6px 12px;
   font-size: 0.8rem;
   border-radius: 5px;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  pointer-events: auto !important; /* Explicitly ensure buttons are clickable */
-  position: relative;
-  z-index: 100; /* Ensure buttons are on top of everything */
-  user-select: none; /* Prevent text selection */
-  touch-action: manipulation; /* Improve mobile click response */
+  user-select: none;
 }
 
 .view-button {
@@ -124,10 +143,8 @@
   color: #fff;
 }
 
-.view-button:hover,
-.view-button:focus {
+.view-button:hover {
   background-color: #d97706;
-  outline: none; /* Remove default focus outline if desired */
 }
 
 .remove-button {
@@ -135,16 +152,43 @@
   color: #fff;
 }
 
-.remove-button:hover,
-.remove-button:focus {
+.remove-button:hover {
   background-color: #f87171;
-  outline: none;
 }
+
+/* ================= RESERVE SELECTED ================= */
+
+.reserve-all-container {
+  padding: 0.75rem 0.25rem 0.25rem;
+}
+
+.reserve-all-button {
+  width: 100%;
+  padding: 0.65rem;
+  background-color: #ffb75b;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reserve-all-button:hover {
+  background-color: #e6a34a;
+}
+
+.reserve-all-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ================= ANIMATION ================= */
 
 @keyframes fadeInSlide {
   from {
     opacity: 0;
-    transform: translateX(20px); /* Slide in from right for better side-panel feel */
+    transform: translateX(20px);
   }
   to {
     opacity: 1;
@@ -152,17 +196,17 @@
   }
 }
 
-/* Responsive: Adjust width on smaller screens for better usability */
+/* ================= RESPONSIVE ================= */
+
 @media (max-width: 768px) {
   .my-selection-panel {
     width: 280px;
-    max-height: 80vh; /* Use viewport height on mobile */
-    right: 10px;
+    max-height: 80vh;
   }
 
   .view-button,
   .remove-button {
-    padding: 8px 12px; /* Larger touch targets on mobile */
+    padding: 8px 12px;
     font-size: 0.9rem;
   }
 }

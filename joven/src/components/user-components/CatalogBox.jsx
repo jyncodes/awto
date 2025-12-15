@@ -1,6 +1,6 @@
 // src/components/user-components/CatalogBox.jsx
 import React, { useEffect, useState, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import "../../styles/user-styles/CatalogBox.css";
@@ -10,8 +10,6 @@ const SUPABASE_BASE_URL =
 
 const CatalogBox = ({ filters = {}, fitmentState, onPageData }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { vehicleLabel = "", fitment = {}, year = "", } = location.state || {};
 
   const [products, setProducts] = useState([]);
   const [validImages, setValidImages] = useState({});
@@ -181,11 +179,12 @@ const CatalogBox = ({ filters = {}, fitmentState, onPageData }) => {
       });
     }
 
-    if (fitment?.size) {
+    if (fitmentState?.size) {
       result = result.filter((p) =>
-        p.sizes.some((s) => s.size === fitment.size)
+        p.sizes.some((s) => s.size === fitmentState.size)
       );
     }
+
 
     switch (sortOption) {
       case "name-asc":
@@ -199,7 +198,8 @@ const CatalogBox = ({ filters = {}, fitmentState, onPageData }) => {
       default:
         return result;
     }
-  }, [products, filters, sortOption, fitment]);
+}, [products, filters, sortOption, fitmentState]);
+
 
   /* ================================
      PAGINATION (NO UI here)

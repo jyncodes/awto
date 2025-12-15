@@ -1,3 +1,4 @@
+
   import React, { useState, useEffect } from "react";
   import { useNavigate } from "react-router-dom";
   import { collection, onSnapshot } from "firebase/firestore";
@@ -5,7 +6,7 @@
   import { onAuthStateChanged } from "firebase/auth";
   import "../../styles/user-styles/Manual.css";
 
-  const Manual = ({ fitmentState, setFitmentState, onClearFitment }) => {
+  const Manual = ({ fitmentState, onClearFitment }) => {
 
     const navigate = useNavigate();
 
@@ -20,23 +21,23 @@
 
     const [currentUser, setCurrentUser] = useState(null);
 
-        useEffect(() => {
-        if (fitmentState) {
-          setBrand(fitmentState.brand);
-          setModel(fitmentState.model);
-          setYear(fitmentState.year);
-          setType(fitmentState.type);
-          setSize(fitmentState.size);
-        }
-      }, [fitmentState]);
-
-
     useEffect(() => {
       const unlisten = onAuthStateChanged(auth, (user) => {
         setCurrentUser(user);
       });
       return () => unlisten();
     }, []);
+
+    useEffect(() => {
+  if (!fitmentState) {
+    setBrand("");
+    setModel("");
+    setYear("");
+    setType("");
+    setSize("");
+  }
+}, [fitmentState]);
+
 
     useEffect(() => {
       const unsubscribe = onSnapshot(
@@ -79,16 +80,15 @@
       return () => unsubscribe();
     }, []);
 
-    const handleClear = () => {
-      setBrand("");
-      setModel("");
-      setYear("");
-      setType("");
-      setSize("");
+    // ⭐ FIXED — Clear button now stays on the same page
+const handleClear = () => {
+  setBrand("");
+  setModel("");
+  setYear("");
+  setType("");
+  setSize("");
 
-      if (typeof onClearFitment === "function") {
-        onClearFitment(); // clears filters
-      }
+  onClearFitment?.(); 
 };
 
     const brandOptions = Object.keys(vehicleData);
@@ -135,25 +135,26 @@
         return;
       }
 
-        setFitmentState({
-    brand,
-    model,
-    year,
-    type,
-    size,
-    fitment: {
-      type: type.toLowerCase(),
-      size,
-      rimDiameter:
-        selectedFitment.rimDiameter ||
-        selectedFitment.wheelDiameter ||
-        "",
-      width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
-      boltPattern: selectedFitment.boltPattern || "",
-      tireWidth: selectedFitment.tireWidth || "",
-      aspectRatio: selectedFitment.aspectRatio || "",
-    },
-  });
+      navigate("/user-dashboard", {
+        state: {
+          selectionType: "fitment",
+          vehicleLabel: `${brand} ${model} ${year} - ${type} ${size}`,
+          year,
+          size,
+          fitment: {
+            type: type.toLowerCase(),
+            size,
+            rimDiameter:
+              selectedFitment.rimDiameter ||
+              selectedFitment.wheelDiameter ||
+              "",
+            width: selectedFitment.wheelWidth || selectedFitment.tireWidth || "",
+            boltPattern: selectedFitment.boltPattern || "",
+            tireWidth: selectedFitment.tireWidth || "",
+            aspectRatio: selectedFitment.aspectRatio || "",
+          },
+        },
+      });
     };
 
     return (

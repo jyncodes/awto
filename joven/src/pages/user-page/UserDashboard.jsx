@@ -28,6 +28,20 @@ const UserDashboard = () => {
   }
 }, [fitmentState]);
 
+useEffect(() => {
+  if (location.state?.fitment) {
+    setFitmentState({
+      ...location.state.fitment,
+      brand: location.state.vehicleLabel?.split(" ")[0] || "",
+      model: location.state.vehicleLabel?.split(" ")[1] || "",
+      year: location.state.year || "",
+      type: location.state.fitment.type,
+      size: location.state.fitment.size,
+    });
+  }
+}, [location.state]);
+
+
 
   // pagination data that CatalogBox sends up
   const [pageData, setPageData] = useState(null);
