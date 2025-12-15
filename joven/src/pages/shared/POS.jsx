@@ -125,22 +125,49 @@ useEffect(() => {
   }
 }, [fromReservation, reservedCustomer]);
 
-  // ================== LOAD RESERVED ITEMS ==================
-  useEffect(() => {
-    if (!fromReservation || !reservedItems) return;
+useEffect(() => {
+  if (!fromReservation || !Array.isArray(reservedItems)) return;
 
-    setCart(
-      reservedItems.map((item, i) => ({
-        id: `reserved-${i}`,
-        name: `${item.brand} ${item.model}`,
-        price: Number(item.price),
-        qty: item.qty || 1,
-        stock: item.stock || 1,
-        firestoreId: item.firestoreId,
-        type: "product",
-      }))
-    );
-  }, [fromReservation, reservedItems]);
+    const normalizedCart = reservedItems.map((item) => {
+    const productKey = item.selectedDocId || item.productId || item.id;
+
+const resolvedName =
+  typeof item.name === "string" && item.name.trim().length > 0
+    ? item.name
+    : typeof item.productName === "string" && item.productName.trim().length > 0
+      ? item.productName
+      : `${item.brand || ""} ${item.model || ""} ${item.selectedSize || ""}`.trim();
+
+    return {
+     id: `product-${productKey}`,
+  firestoreId: productKey,
+
+  name: resolvedName || "Unnamed Product",
+
+      price: Number(item.pricePerItem ?? item.price ?? 0),
+      qty: Number(item.quantity ?? item.qty ?? 1),
+
+      // 🔖 TYPE
+      type: "product",
+
+      // 🗂 CATEGORY
+      category:
+        item.collection === "products_mags" ? "mags" : "tires",
+
+      // ⚠️ TEMP SAFE STOCK
+      stock: Number(item.quantity ?? 1),
+
+      // OPTIONAL
+      brand: item.brand,
+      model: item.model,
+      selectedSize: item.selectedSize,
+    };
+  });
+
+  console.log("✅ FINAL normalized reservation cart:", normalizedCart);
+  setCart(normalizedCart);
+}, [fromReservation, reservedItems]);
+
 
   // ================== SEARCH FILTER ==================
   useEffect(() => {
@@ -153,41 +180,121 @@ useEffect(() => {
 }, [products]);
 
   // ================== CART ACTIONS ==================
-  const addToCart = (product) => {
-    const existing = cart.find((c) => c.firestoreId === product.firestoreId);
-    if (existing) {
-      if (existing.qty + 1 > product.stock) return alert("Not enough stock.");
-      return setCart(cart.map((c) => (c.firestoreId === product.firestoreId ? { ...c, qty: c.qty + 1 } : c)));
-    }
-    setCart([{ ...product, id: product.productId, qty: 1 }, ...cart]);
-  };
+const addToCart = (product) => {
+  const existing = cart.find((c) => c.firestoreId === product.firestoreId);
 
-  const addServiceToCart = (svc) => {
-    if (cart.some((c) => c.id === svc.id)) return alert("Service already added");
-    setCart([{ ...svc, qty: 1 }, ...cart]);
-  };
+  if (existing) {
+    if (existing.qty + 1 > existing.stock) {
+      alert("Not enough stock.");
+      return;
+    }
+
+    setCart(
+      cart.map((c) =>
+        c.firestoreId === product.firestoreId
+          ? { ...c, qty: c.qty + 1 }
+          : c
+      )
+    );
+    return;
+  }
+
+  // 🔥 NORMALIZE PRODUCT BEFORE ADDING TO CART
+  setCart([
+    {
+      id: `product-${product.firestoreId}`,
+firestoreId: product.firestoreId,
+
+
+      // ✅ REQUIRED BY POSCart
+      name: `${product.brand} ${product.model}`,
+      price: Number(product.pricePerItem ?? 0),
+      qty: 1,
+
+      // REQUIRED LOGIC
+      type: "product",
+      firestoreId: product.firestoreId,
+      category: product.category,
+      stock: Number(product.stock ?? 0),
+
+      // OPTIONAL
+      brand: product.brand,
+      model: product.model,
+    },
+    ...cart,
+  ]);
+};
+
+useEffect(() => {
+  console.table(cart);
+}, [cart]);
+
+
+const addServiceToCart = (svc) => {
+  if (cart.some((c) => c.id === svc.id)) {
+    alert("Service already added");
+    return;
+  }
+
+  setCart([
+    {
+      id: `service-${svc.id}`,
+
+
+      // ✅ REQUIRED BY POSCart & totals
+      name: svc.name,
+      price: Number(svc.price ?? 0),
+      qty: 1,
+
+      // REQUIRED
+      type: "service",
+
+      // optional
+      category: "service",
+    },
+    ...cart,
+  ]);
+};
+
 
   const incQty = (id) => setCart(cart.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c)));
   const decQty = (id) =>
     setCart(cart.map((c) => (c.id === id ? { ...c, qty: c.qty - 1 } : c)).filter((c) => c.qty > 0));
-  const updateQty = (id, q) => setCart(cart.map((c) => (c.id === id ? { ...c, qty: Number(q) } : c)));
+  const updateQty = (id, q) => {
+  setCart(cart.map((c) => {
+    if (c.id !== id) return c;
+
+    const newQty = Math.max(1, Number(q) || 1);
+
+    if (c.type === "product" && newQty > c.stock) {
+      alert("Quantity exceeds available stock.");
+      return c;
+    }
+
+    return { ...c, qty: newQty };
+  }));
+};
+
   const removeFromCart = (id) => setCart(cart.filter((c) => c.id !== id));
 
   // ================== TOTALS ==================
-const subtotal = cart.reduce((t, i) => t + i.price * i.qty, 0);
 
 const computeTotals = () => {
   let productTotal = 0;
   let serviceTotal = 0;
 
   // Separate product vs service totals
-  cart.forEach(item => {
-    if (item.type === "service") {
-      serviceTotal += item.price * item.qty;
-    } else {
-      productTotal += item.price * item.qty;
-    }
-  });
+cart.forEach(item => {
+  const price = Number(item.price || 0);
+  const qty = Number(item.qty || 0);
+
+  if (item.type === "service") {
+    serviceTotal += price * qty;
+  } else {
+    productTotal += price * qty;
+  }
+});
+
 
   // VAT calculations
   const productVat = productTotal - (productTotal / 1.12);
@@ -285,6 +392,16 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
   };
 
 await setDoc(doc(db, "sales", formattedSaleId), saleData, { merge: false });
+
+// ✅ IF SALE CAME FROM RESERVATION → MARK AS COMPLETED
+if (fromReservation && reservationId) {
+  await updateDoc(doc(db, "reservations", reservationId), {
+    status: "Completed",
+    completedAt: Timestamp.now(),
+    salesId: formattedSaleId
+  });
+}
+
 
     // update product stocks
     for (const item of cart.filter((i) => i.type === "product")) {

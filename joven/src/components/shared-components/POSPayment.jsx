@@ -34,10 +34,13 @@ export default function POSPayment({
   let productTotal = 0;
   let serviceTotal = 0;
 
-  cart.forEach(item => {
-    if (item.type === "service") serviceTotal += item.price * item.qty;
-    else productTotal += item.price * item.qty;
-  });
+cart.forEach(item => {
+  const price = Number(item.price || 0);
+  const qty = Number(item.qty || 0);
+
+  if (item.type === "service") serviceTotal += price * qty;
+  else productTotal += price * qty;
+});
 
   // VAT breakdown
   const productVat = productTotal - (productTotal / 1.12);
@@ -91,15 +94,17 @@ export default function POSPayment({
       {isNegotiated && subtotal > 0 && (
         <div className="payment-field">
           <label>Negotiated Discount Amount (₱)</label>
-          <input
-            type="number"
-            className="input-field"
-            value={negotiatedDiscount}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setNegotiatedDiscount(val > subtotal ? subtotal : val);
-            }}
-          />
+            <input
+              type="number"
+              className="input-field"
+              value={Number.isFinite(negotiatedDiscount) ? negotiatedDiscount : ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const val = raw === "" ? 0 : Number(raw);
+                setNegotiatedDiscount(val > subtotal ? subtotal : val);
+              }}
+            />
+
         </div>
       )}
 
@@ -135,12 +140,13 @@ export default function POSPayment({
       {paymentMode === "Cash" && (
         <div className="payment-field">
           <label>Cash Received</label>
-          <input
-            type="number"
-            className="input-field"
-            value={cashReceived}
-            onChange={(e) => setCashReceived(e.target.value)}
-          />
+        <input
+          type="number"
+          className="input-field"
+          value={cashReceived || ""}
+          onChange={(e) => setCashReceived(e.target.value)}
+        />
+
         </div>
       )}
 
@@ -182,7 +188,9 @@ export default function POSPayment({
         onClick={handleCheckout}
         disabled={
           isProcessing ||
-          (paymentMode === "Cash" && (cashReceived.trim() === "" || Number(cashReceived) < total)) ||
+          (paymentMode === "Cash" &&
+          (!cashReceived || Number(cashReceived) < total))
+          ||
           ((paymentMode === "GCash" || paymentMode === "Bank Transfer") && paymentRef.trim() === "")
         }
       >
