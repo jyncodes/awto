@@ -4,7 +4,7 @@
 =========================== */
 
 .terms-page-container {
-  padding-top: 120px; /* space for navbar */
+  padding-top: 50px; /* space for navbar */
   width: 100%;
   display: flex;
   justify-content: center;
