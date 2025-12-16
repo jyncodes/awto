@@ -1,59 +1,14 @@
+/* =================================================
+   MY RESERVATIONS — STRUCTURE & LAYOUT FIX
+================================================== */
+
 /* ===========================
-   RESERVATIONS LIST
+   TITLE
 =========================== */
-.orders-list {
-  display: grid;
-  gap: 20px;
-}
-
-.order-card {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  border-left: 5px solid #f39c12;
-  transition: transform 0.2s ease;
-}
-
-.order-card:hover {
-  transform: translateX(5px);
-}
-
-.order-card p {
-  margin: 8px 0;
-  font-size: 1rem;
-}
-
-/* Buttons */
-.pay-button,
-.receipt-button {
-  margin-top: 12px;
-  width: 100%;
-  padding: 12px;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-weight: 700;
-  transition: 0.2s;
-}
-
-.pay-button {
-  background: #f39c12;
-  color: white;
-}
-
-.pay-button:hover {
-  background: #d97706;
-}
-
-.receipt-button {
-  background: #16a34a;
-  color: white;
-}
-
-.receipt-button:hover {
-  background: #15803d;
+h2 {
+  margin-bottom: 18px;
+  font-size: 1.6rem;
+  font-weight: 800;
 }
 
 /* ===========================
@@ -62,107 +17,145 @@
 .reservation-sort-box {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.reservation-sort-box label {
-  font-weight: 600;
-  color: #444;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .reservation-sort-select {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: 0.2s ease-in-out;
+  min-width: 200px;
 }
 
 /* ===========================
-   MODAL
+   RESERVATION LIST
 =========================== */
+.orders-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 22px;
+}
+
+/* ===========================
+   ORDER CARD
+=========================== */
+.order-card {
+  padding: 22px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-card p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ===========================
+   RECEIPT BUTTON
+=========================== */
+.receipt-button {
+  margin-top: auto;
+}
+
+/* =================================================
+   MODAL OVERLAY
+================================================== */
 .reservation-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.55);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
   z-index: 9999;
+
+  display: flex;
+  justify-content: flex-end; /* RIGHT SIDE PANEL */
 }
 
+/* =================================================
+   MODAL PANEL (SIDE DRAWER)
+================================================== */
 .reservation-modal {
-  background: #ffffff;
-  padding: 30px;
-  border-radius: 12px;
-  width: 480px;
-  max-width: 95%;
-  max-height: 90vh;
+  width: 420px;
+  max-width: 100%;
+  height: 100vh;
+
+  padding: 28px 26px;
   overflow-y: auto;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-  border: 1px solid #e2e8f0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
 }
 
-/* Modal Content */
+/* ===========================
+   MODAL TITLE
+=========================== */
 .modal-title {
-  text-align: center;
-  margin-bottom: 20px;
+  text-align: left;
   font-size: 1.4rem;
   font-weight: 800;
-  color: #1e293b;
+  margin-bottom: 10px;
 }
 
+/* ===========================
+   RECEIPT SECTIONS
+=========================== */
 .receipt-section {
-  width: 100%;
-  margin-bottom: 18px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.receipt-section:last-child {
-  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .receipt-section h4 {
-  font-size: 1.1rem;
-  margin-bottom: 8px;
-  font-weight: 700;
-  color: #f39c12;
+  font-size: 1rem;
+  margin-bottom: 6px;
 }
 
 .receipt-section p {
-  margin: 4px 0;
+  margin: 0;
   font-size: 0.95rem;
-  color: #334155;
+  line-height: 1.5;
   word-break: break-word;
 }
 
-/* Modal Buttons */
+/* ===========================
+   MODAL BUTTONS
+=========================== */
 .modal-buttons {
-  margin-top: 25px;
+  margin-top: auto;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .close-modal {
-  background: #1e293b;
-  color: #fff;
-  padding: 12px 22px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 700;
-  transition: 0.2s ease;
+  min-width: 120px;
 }
 
-.close-modal:hover {
-  background: #0f172a;
+/* =================================================
+   MOBILE RESPONSIVE
+================================================== */
+@media (max-width: 768px) {
+  .orders-list {
+    grid-template-columns: 1fr;
+  }
+
+  .reservation-modal {
+    width: 100%;
+    padding: 22px 18px;
+  }
+}
+.testimonial-button {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #f39c12;
+  background: transparent;
+  color: #f39c12;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.testimonial-button:hover {
+  background: #f39c12;
+  color: #fff;
 }

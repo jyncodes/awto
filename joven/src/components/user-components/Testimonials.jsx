@@ -1,28 +1,32 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { db } from "../../firebase";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+} from "firebase/firestore";
 import "../../styles/user-styles/Testimonials.css";
 
-const testimonials = [
-  {
-    name: "Mark D.",
-    vehicle: "Toyota Hilux",
-    message:
-      "Maayos at mabilis ang serbisyo. From tire replacement to wheel alignment, ramdam mo talaga ang kalidad ng trabaho. Babalik ulit ako.",
-  },
-  {
-    name: "Angela R.",
-    vehicle: "Honda City",
-    message:
-      "Very accommodating staff and malinaw ang explanation ng services. Comfortable pa ang waiting area. Highly recommended!",
-  },
-  {
-    name: "Joseph L.",
-    vehicle: "Ford Ranger",
-    message:
-      "Accurate fitment at professional ang gumawa. Hindi minadali, pulido ang trabaho. Sulit ang bayad.",
-  },
-];
-
 const Testimonials = () => {
+  const [testimonials, setTestimonials] = useState([]);
+
+  useEffect(() => {
+    const loadTestimonials = async () => {
+      const q = query(
+        collection(db, "testimonials"),
+        where("approved", "==", true),
+        orderBy("createdAt", "desc")
+      );
+
+      const snap = await getDocs(q);
+      setTestimonials(snap.docs.map((d) => d.data()));
+    };
+
+    loadTestimonials();
+  }, []);
+
   return (
     <section className="section testimonials-section">
       <div className="section-header">
@@ -33,12 +37,12 @@ const Testimonials = () => {
       </div>
 
       <div className="testimonials-grid">
-        {testimonials.map((t, index) => (
-          <div key={index} className="testimonial-card">
+        {testimonials.map((t, i) => (
+          <div key={i} className="testimonial-card">
             <p className="testimonial-message">“{t.message}”</p>
 
             <div className="testimonial-footer">
-              <span className="testimonial-name">{t.name}</span>
+              <span className="testimonial-name">{t.userName}</span>
               <span className="testimonial-vehicle">{t.vehicle}</span>
             </div>
           </div>

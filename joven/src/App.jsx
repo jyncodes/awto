@@ -40,6 +40,7 @@ import PaymentSuccess from "./pages/user-page/PaymentSuccess";
 import PaymentFailed from "./pages/user-page/PaymentFailed";
 import DevTools from './pages/user-page/DevTools';
 import ARPage from "./pages/user-page/ARPage";
+import WriteTestimonial from "./pages/user-page/WriteTestimonial";
 
 
 // Reservation Page
@@ -76,6 +77,8 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/write-testimonial" element={<WriteTestimonial />} />
+
 
         <Route
           path="/login"

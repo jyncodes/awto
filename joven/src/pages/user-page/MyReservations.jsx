@@ -1,5 +1,6 @@
 // src/pages/user-page/MyReservations.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { auth, db } from "../../firebase";
 import {
   collection,
@@ -25,6 +26,7 @@ const MyReservations = () => {
   const [sortOption, setSortOption] = useState("newest");
   const [showModal, setShowModal] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
+  const navigate = useNavigate();
 
   /* ---------------- FETCH RESERVATIONS ---------------- */
   useEffect(() => {
@@ -108,6 +110,19 @@ const MyReservations = () => {
                     : res.totalPrice
                   )?.toLocaleString()
                 }</p>
+
+                {res.status === "Completed" && !res.hasTestimonial && (
+                  <button
+                    className="testimonial-button"
+                    onClick={() =>
+                      navigate("/write-testimonial", {
+                        state: { reservationId: res.id },
+                      })
+                    }
+                  >
+                    Leave Testimonial
+                  </button>
+                )}
 
                 <button
                   className="receipt-button"
