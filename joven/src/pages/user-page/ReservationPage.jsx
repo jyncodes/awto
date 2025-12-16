@@ -30,6 +30,11 @@ const isMultipleProducts = location.state?.type === "multiple-products";
 
 const [closedDates, setClosedDates] = useState([]);
 
+// ===== PRE-ASSESSMENT IMAGE =====
+const [preAssessmentImage, setPreAssessmentImage] = useState(null);
+const [imagePreview, setImagePreview] = useState(null);
+
+
 
 const MAX_BOOKINGS_PER_DATE = 5; // reservation slots
 
@@ -227,6 +232,40 @@ useEffect(() => {
   fetchClosedDates();
 }, []);
 
+const convertToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file); // 👈 converts to Base64
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Optional validation
+  if (!file.type.startsWith("image/")) {
+    alert("Please upload an image file");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert("Image must be less than 5MB");
+    return;
+  }
+
+  try {
+    const base64 = await convertToBase64(file);
+    setPreAssessmentImage(base64);
+    setImagePreview(base64);
+  } catch (err) {
+    console.error("Image conversion failed:", err);
+  }
+};
+
+
 
   // ================= CONTINUE TO PAYMENT =================
   const handleProceedToPayment = () => {
@@ -411,6 +450,25 @@ useEffect(() => {
 
             {plateError && <span className="plate-error">{plateError}</span>}
           </div>
+
+          {/* PRE-ASSESSMENT IMAGE */}
+          <label>Vehicle Pre-Assessment Photo (Optional)</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+          />
+
+          {imagePreview && (
+            <div className="image-preview">
+              <img
+                src={imagePreview}
+                alt="Pre-assessment preview"
+                style={{ maxWidth: "100%", marginTop: "10px", borderRadius: "8px" }}
+              />
+            </div>
+          )}
+
 
           {/* DATE PICKER */}
           <label>Preferred Date</label>
