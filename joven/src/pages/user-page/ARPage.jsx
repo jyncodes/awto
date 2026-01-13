@@ -3,7 +3,7 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 
 // AR Components
 import ARViewer from "../../components/user-components/ARViewer";
-import ARSmartViewer from "../../components/user-components/ARSmartViewer";
+import ARModelViewer from "../../components/user-components/ARModelViewer";
 
 // Navbar
 import Navbar from "../../components/Navbar";
@@ -57,11 +57,8 @@ const ARPage = () => {
       </div>
 
       {/* AR Viewer */}
-        {mode === "smart" ? (
-          <ARSmartViewer key="smart" src={modelUrl} />
-        ) : (
-          <ARViewer key="basic" src={modelUrl} />
-        )}
+      <ARModelViewer src={modelUrl} />
+
 
 
       {/* Exit AR Button */}
