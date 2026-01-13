@@ -35,6 +35,8 @@ const ARPage = () => {
     };
   }, []);
 
+  
+
   /* ❌ No model safety */
   if (!modelUrl) {
     return (
@@ -55,11 +57,12 @@ const ARPage = () => {
       </div>
 
       {/* AR Viewer */}
-      {mode === "smart" ? (
-        <ARSmartViewer src={modelUrl} />
-      ) : (
-        <ARViewer src={modelUrl} />
-      )}
+        {mode === "smart" ? (
+          <ARSmartViewer key="smart" src={modelUrl} />
+        ) : (
+          <ARViewer key="basic" src={modelUrl} />
+        )}
+
 
       {/* Exit AR Button */}
       <button className="ar-exit-btn" onClick={() => navigate(-1)}>
