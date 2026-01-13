@@ -7,6 +7,9 @@
   background: black;
   overflow: hidden;
   touch-action: none;
+
+    display: block;
+
 }
 
 /* Make navbar float over AR (no layout shift) */

@@ -1,4 +1,5 @@
 import "@google/model-viewer";
+import "../../styles/user-styles/ARCore.css";
 
 const ARCore = ({ src }) => {
   return (
@@ -6,34 +7,15 @@ const ARCore = ({ src }) => {
       src={src}
       ar
       ar-modes="scene-viewer webxr quick-look"
-      ar-scale="auto"
-      ar-placement="floor"
-      reveal="interaction"
       camera-controls
+      auto-rotate
+      exposure="1"
+      shadow-intensity="1"
       style={{
-        width: "100%",
+        width: "100vw",
         height: "100vh",
-        backgroundColor: "#000",
       }}
-    >
-      <button
-        slot="ar-button"
-        style={{
-          position: "absolute",
-          bottom: "20px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          padding: "12px 18px",
-          background: "#111",
-          color: "#fff",
-          borderRadius: "10px",
-          border: "1px solid #fff",
-          fontWeight: "600",
-        }}
-      >
-        📷 View in your space
-      </button>
-    </model-viewer>
+    />
   );
 };
 
