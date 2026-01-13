@@ -43,15 +43,15 @@
   width: fit-content;
   padding: 10px 20px;
   font-size: 15px;
-  color: #2ecc71;
+  color: #F4A300;
   background-color: #ffffff;
-  border: 2px solid #2ecc71;
+  border: 2px solid #F4A300;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
 
 .back-button:hover {
-  background-color: #2ecc71;
+  background-color: #F4A300;
   color: #fff;
 }
