@@ -339,132 +339,113 @@ const ViewProduct = () => {
               </div>
             )}
 
-            <span className="tag">NEW</span>
-            <h2>{passedBrand || product.brand}</h2>
-            <h1>{passedModel || product.model}</h1>
+        <span className="tag">NEW</span>
+        <h2 className="product-brand">{passedBrand || product.brand}</h2>
+        <h1 className="product-model">{passedModel || product.model}</h1>
 
-            <p className="price">
-              ₱{(selectedPrice ?? 0).toLocaleString()}
-              <span>
-                {productType === "products_mags" ? "/set" : "/piece"}
-              </span>
-            </p>
-            
+        {/* Total Price */}
+        <div className="total-price">
+          Total ({quantity} item{quantity > 1 ? "s" : ""}): ₱
+          {(selectedPrice * quantity).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </div>
 
-            {/* PRODUCT DESCRIPTION (DROPDOWN) */}
-            {product.description && (
-              <div className="description-wrapper">
-                <button
-                  className="description-toggle"
-                  onClick={() => setShowDescription((prev) => !prev)}
-                >
-                  Product Description
-                  <span className={`arrow ${showDescription ? "open" : ""}`}>
-                    ▼
-                  </span>
-                </button>
+        {/* SELECT SIZE (RIGHT AFTER TOTAL PRICE) */}
+        {formattedSizes.length > 0 && (
+          <select
+            value={selectedSize}
+            onChange={(e) => setSelectedSize(e.target.value)}
+          >
+            <option value="">Choose a size</option>
+            {formattedSizes.map((s, i) => (
+              <option key={i} value={s.size}>
+                {s.size}
+              </option>
+            ))}
+          </select>
+        )}
 
-                {showDescription && (
-                  <p className="product-description">
-                    {product.description}
-                  </p>
-                )}
-              </div>
-            )}
+        {/* Price per piece/set */}
+        <p className="price">
+          ₱{(selectedPrice ?? 0).toLocaleString()}
+          <span>{productType === "products_mags" ? "/set" : "/piece"}</span>
+        </p>
 
+        {/* Quantity */}
+        <div className="quantity-wrapper">
+          <div>
+            <label className="quantity-label">
+              {productType === "products_mags"
+                ? "Quantity (per set)"
+                : "Quantity (per piece)"}
+            </label>
 
-
-            {/* Quantity */}
-<div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
-  }}
->
-  <div>
-    <label style={{ display: "block", fontSize: 14 }}>
-      {productType === "products_mags"
-        ? "Quantity (per set)"
-        : "Quantity (per piece)"}
-    </label>
-
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <button onClick={decreaseQty} className="qty-btn">-</button>
-
-      <div style={{ minWidth: 36, textAlign: "center" }}>
-        {quantity}
-      </div>
-
-      <button onClick={increaseQty} className="qty-btn">+</button>
-    </div>
-
-    {typeof selectedStock === "number" && selectedStock > 0 && (
-      <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
-        Stock: {selectedStock}
-      </div>
-    )}
-
-  </div>
-</div>
-
-{/* Total Price */}
-<div style={{ margin: "12px 0", fontWeight: 700 }}>
-  Total ({quantity} item{quantity > 1 ? "s" : ""}): ₱
-  {(selectedPrice * quantity).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}
-</div>
-
-{stockError && (
-  <p style={{ color: "red", fontWeight: 600, marginTop: 8 }}>
-    {stockError}
-  </p>
-)}
-
-
-
-            {formattedSizes.length > 0 && (
-              <select
-                value={selectedSize}
-                onChange={(e) => setSelectedSize(e.target.value)}
-              >
-                <option value="">Choose a size</option>
-                {formattedSizes.map((s, i) => (
-                  <option key={i} value={s.size}>
-                    {s.size}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            <div className="button-row">
-              {hasGLB && (
-                <button className="ar-button" onClick={handleARClick}>
-                  Visualize it in your vehicle
-                </button>
-              )}
-
-            <button
-              className="reserve-button"
-              onClick={handleReserveClick}
-              disabled={selectedStock === 0}
-            >
-              Reserve Now
-            </button>
-
-              <button
-                className="icon-button"
-                onClick={handleAddToCart}
-                disabled={selectedStock === 0}
-                title={selectedStock === 0 ? "Out of stock" : "Add to cart"}
-              >
-                <FiShoppingCart size={24} />
+            <div className="quantity-controls">
+              <button onClick={decreaseQty} className="qty-btn">
+                -
               </button>
 
+              <div className="quantity-display">{quantity}</div>
+
+              <button onClick={increaseQty} className="qty-btn">
+                +
+              </button>
             </div>
+
+            {typeof selectedStock === "number" && selectedStock > 0 && (
+              <div className="stock-info">Stock: {selectedStock}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Stock error */}
+        {stockError && <p className="stock-error">{stockError}</p>}
+
+        {/* PRODUCT DESCRIPTION (DROPDOWN) BELOW STOCK ERROR */}
+        {product.description && (
+          <div className="description-wrapper">
+            <button
+              className="description-toggle"
+              onClick={() => setShowDescription((prev) => !prev)}
+            >
+              Product Description
+              <span className={`arrow ${showDescription ? "open" : ""}`}>▼</span>
+            </button>
+
+            {showDescription && (
+              <p className="product-description">{product.description}</p>
+            )}
+          </div>
+        )}
+
+        <div className="button-row">
+          {hasGLB && (
+            <button className="ar-button" onClick={handleARClick}>
+              Visualize it in your vehicle
+            </button>
+          )}
+
+          <button
+            className="reserve-button"
+            onClick={handleReserveClick}
+            disabled={selectedStock === 0}
+          >
+            Reserve Now
+          </button>
+
+          <button
+            className="icon-button"
+            onClick={handleAddToCart}
+            disabled={selectedStock === 0}
+            title={selectedStock === 0 ? "Out of stock" : "Add to cart"}
+          >
+            <FiShoppingCart size={24} />
+          </button>
+        </div>
+
+
           </div>
         </div>
       </div>
