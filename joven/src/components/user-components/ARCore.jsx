@@ -1,6 +1,6 @@
 import "@google/model-viewer";
 
-const ARModelViewer = ({ src }) => {
+const ARCore = ({ src }) => {
   return (
     <model-viewer
       src={src}

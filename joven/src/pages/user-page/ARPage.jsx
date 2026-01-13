@@ -3,7 +3,7 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 
 // AR Components
 import ARViewer from "../../components/user-components/ARViewer";
-import ARModelViewer from "../../components/user-components/ARModelViewer";
+import ARCore from "../../components/user-components/ARCore";
 
 // Navbar
 import Navbar from "../../components/Navbar";
@@ -57,7 +57,7 @@ const ARPage = () => {
       </div>
 
       {/* AR Viewer */}
-      <ARModelViewer src={modelUrl} />
+      <ARCore src={modelUrl} />
 
 
 
