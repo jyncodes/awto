@@ -61,6 +61,8 @@ const ARSmartViewer = ({ src }) => {
   const [noWheel, setNoWheel] = useState(false);
 
   const [isLocked, setIsLocked] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+
 
 
   // target positions for each model
@@ -71,6 +73,9 @@ const ARSmartViewer = ({ src }) => {
   const smoothLeft = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
   const smoothRight = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
   const smoothing = 0.18;
+
+  const deviceRotRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
+
 
   /* ---------------- CAMERA ---------------- */
   useEffect(() => {
@@ -110,6 +115,26 @@ const ARSmartViewer = ({ src }) => {
       tracks.forEach((t) => t.stop());
     };
   }, []);
+
+  
+    /* ---------------- REAL PHONE ROTATION ---------------- */
+
+    useEffect(() => {
+const handleOrientation = (e) => {
+    deviceRotRef.current = {
+      alpha: e.alpha || 0,
+      beta: e.beta || 0,
+      gamma: e.gamma || 0,
+    };
+
+    console.log("ORIENTATION:", deviceRotRef.current);
+  };
+
+  window.addEventListener("deviceorientation", handleOrientation);
+  return () => window.removeEventListener("deviceorientation", handleOrientation);
+}, []);
+
+
 
   /* ---------------- THREE INITIALIZE ---------------- */
   useEffect(() => {
@@ -318,48 +343,6 @@ const ARSmartViewer = ({ src }) => {
     }
   };
 
-const applyWheelMask = (video, masks) => {
-  const canvas = debugCanvasRef.current;
-
-  const ctx = canvas.getContext("2d");
-
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-
-  // 1️⃣ Draw camera frame
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  // remove original tire area, this is for replacement
-  
-  masks.forEach(mask => {
-    ctx.save();
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.beginPath();
-
-  mask.forEach(([x, y], i) => {
-      const px = (x / 640) * canvas.width;
-      const py = (y / 640) * canvas.height;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    });
-
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-
-    // 3️⃣ Draw rendered wheel INSIDE the tire
-    ctx.drawImage(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-  });
-};
-
-
 
 
   /* ---------------- MAIN LOOP ---------------- */
@@ -430,16 +413,20 @@ const applyWheelMask = (video, masks) => {
 const distanceFactor = clamp(300 / leftDiameter, 0.6, 3.0);
 const rightDistanceFactor = clamp(300 / rightDiameter, 0.6, 3.0);
 
+const tiltScale =
+  1 + clamp(deviceRotRef.current.beta / 20, -0.8, 1.2);
+
+
   targetLeft.current = {
     x: leftNdcX * 1.5,
     y: leftNdcY * 1.2,
    z: -2.5 + clamp((leftDiameter - 160) / 300, -0.6, 0.4),
 scale: clamp(
-  leftDiameter / 220 * distanceFactor,
-  0.08,
-  1.2
+  leftDiameter / 220 * distanceFactor * tiltScale,
+  0.05,
+  2.2
 ),
-rot: leftNdcX * Math.PI * 0.35,
+rot: deviceRotRef.current.gamma * (Math.PI / 180),
   };
 
   targetRight.current = {
@@ -452,7 +439,7 @@ scale: clamp(
   1.2
 ),
 
-rot: rightNdcX * Math.PI * 0.35,
+rot: deviceRotRef.current.gamma * (Math.PI / 180),
   };
 
   lastDetectionRef.current = Date.now();
@@ -603,7 +590,38 @@ rot: rightNdcX * Math.PI * 0.35,
   >
     ✔ Lock Wheels
   </button>
+  
 )}
+
+<button
+  style={{
+    position: "absolute",
+    top: 80,
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: 9999,
+    padding: "10px 14px",
+    background: "rgba(0,0,0,0.7)",
+    color: "white",
+    borderRadius: 8,
+    border: "1px solid rgba(255,255,255,0.4)",
+    fontWeight: 600,
+  }}
+  onClick={async () => {
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function"
+    ) {
+      const res = await DeviceOrientationEvent.requestPermission();
+      console.log("Motion permission:", res);
+    } else {
+      console.log("Motion permission not required");
+    }
+  }}
+>
+  Enable Motion
+</button>
+
 
 
 <video
