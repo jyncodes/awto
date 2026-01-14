@@ -8,10 +8,6 @@ export default defineConfig({
     host: true, // allow access from network (other devices)
     port: 5173,
     strictPort: false,
-    allowedHosts: [
-      'stauroscopically-nonenunciatory-remi.ngrok-free.dev', // 👈 your current ngrok URL
-      'superofficiously-untraditional-shan.ngrok-free.dev',  // (keep old one if still used)
-      'localhost',
-    ],
+allowedHosts: 'all',
   },
 });

@@ -42,6 +42,9 @@ const ARSmartViewer = ({ src }) => {
   const threeCanvasRef = useRef(null);
   const debugCanvasRef = useRef(null);
 
+  const wheelRenderTargetRef = useRef(null);
+  const wheelCanvasRef = useRef(null);
+
   const rendererRef = useRef(null);
   const cameraRef = useRef(null);
   const sceneRef = useRef(null);
@@ -70,7 +73,7 @@ const ARSmartViewer = ({ src }) => {
   // smoothing states
   const smoothLeft = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
   const smoothRight = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
-  const smoothing = 0.18;
+  const smoothing = 0.08;
 
   /* ---------------- CAMERA ---------------- */
   useEffect(() => {
@@ -126,6 +129,16 @@ const ARSmartViewer = ({ src }) => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     rendererRef.current = renderer;
 
+    // 🔹 Render target for wheel replacement
+    wheelRenderTargetRef.current = new THREE.WebGLRenderTarget(1024, 1024, {
+      format: THREE.RGBAFormat,
+      transparent: true,
+    });
+
+    // canvas to extract pixels from render target
+    wheelCanvasRef.current = document.createElement("canvas");
+    wheelCanvasRef.current.width = 1024;
+    wheelCanvasRef.current.height = 1024;
 
 
     const scene = new THREE.Scene();
@@ -162,14 +175,10 @@ const ARSmartViewer = ({ src }) => {
         const m = gltf.scene;
 
           m.traverse(child => {
-          if (child.isMesh && child.material) {
-            child.material.depthWrite = true;
-            child.material.depthTest = true;
-            child.material.metalness = 0.4;
-            child.material.roughness = 0.35;
-            child.material.envMapIntensity = 0.7;
-            child.material.needsUpdate = true;
-          }
+            if (child.isMesh) {
+              child.material.depthWrite = true;
+              child.material.depthTest = true;
+            }
           });
 
         try {
@@ -179,9 +188,11 @@ const ARSmartViewer = ({ src }) => {
           box.getSize(size);
           const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
-          const REAL_WHEEL_DIAMETER = 0.65; // meters (average tire)
-          let baseScale = REAL_WHEEL_DIAMETER / maxDim;
-
+          // ====== IMPORTANT FIX: normalize to realistic wheel diameter ======
+          // Choose a target diameter in scene units (approx wheel diameter)
+          const TARGET_DIAMETER = 0.8; // adjust if you want larger/smaller wheels
+          let baseScale = TARGET_DIAMETER / maxDim; // exact normalization
+          // keep baseScale in a safe range
           baseScale = clamp(baseScale, 0.01, 1.0);
           baseScaleRef.current = baseScale;
 
@@ -219,34 +230,11 @@ const ARSmartViewer = ({ src }) => {
         left.visible = false;
         right.visible = false;
 
-        scene.add(left);
-        scene.add(right);
-
         leftModelRef.current = left;
         rightModelRef.current = right;
 
-
-      // === SHADOWS ===
-      const makeShadow = () => {
-        const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(1.1, 64),
-          new THREE.MeshBasicMaterial({
-            color: 0x000000,
-            transparent: true,
-            opacity: 0.35,
-          })
-        );
-        shadow.rotation.x = -Math.PI / 2;
-        shadow.visible = false;
-        return shadow;
-      };
-
-      left.userData.shadow = makeShadow();
-      right.userData.shadow = makeShadow();
-
-      scene.add(left.userData.shadow);
-      scene.add(right.userData.shadow);
-
+        scene.add(left);
+        scene.add(right);
 
         setModelLoaded(true);
         console.log(
@@ -318,8 +306,9 @@ const ARSmartViewer = ({ src }) => {
     }
   };
 
-const applyWheelMask = (video, masks) => {
+const applyWheelMask = (video, masks, diameter) => {
   const canvas = debugCanvasRef.current;
+  if (!canvas || !video || !wheelCanvasRef.current) return;
 
   const ctx = canvas.getContext("2d");
 
@@ -349,13 +338,27 @@ const applyWheelMask = (video, masks) => {
     ctx.fill();
     ctx.restore();
 
-    // 3️⃣ Draw rendered wheel INSIDE the tire
-    ctx.drawImage(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
+const REFERENCE_DIAMETER = 220;
+const safeDiameter = diameter || REFERENCE_DIAMETER;
+
+const scale2D = clamp(
+  REFERENCE_DIAMETER / safeDiameter,
+  0.6,
+  1.4
+);
+
+
+const drawW = canvas.width * scale2D;
+const drawH = canvas.height * scale2D;
+
+ctx.drawImage(
+  wheelCanvasRef.current,
+  (canvas.width - drawW) / 2,
+  (canvas.height - drawH) / 2,
+  drawW,
+  drawH
+);
+
   });
 };
 
@@ -394,12 +397,7 @@ const applyWheelMask = (video, masks) => {
           const preds = rims;
 
 
-// TEMPORARILY DISABLED — causes invisible output
-// if (tires.length > 0) {
-//   applyWheelMask(video, tires.map(t => t.mask));
-// } else {
-//   applyWheelMask(video, []);
-// }
+
 
 
         // sort by area (largest first)
@@ -412,6 +410,7 @@ const applyWheelMask = (video, masks) => {
   const sorted = [...preds].sort(
     (a, b) => getMaskCenter(a.mask).x - getMaskCenter(b.mask).x
   );
+  
 
   const leftDet = sorted[0];
   const rightDet = sorted[1];
@@ -422,38 +421,50 @@ const applyWheelMask = (video, masks) => {
   const leftDiameter = getMaskDiameter(leftDet.mask);
   const rightDiameter = getMaskDiameter(rightDet.mask);
 
+  if (tires.length > 0) {
+  applyWheelMask(
+    video,
+    tires.map(t => t.mask),
+    leftDiameter
+  );
+} else {
+  applyWheelMask(video, [], leftDiameter);
+}
+
+
   const leftNdcX = (leftCenter.x / 640) * 2 - 1;
   const leftNdcY = -((leftCenter.y / 640) * 2 - 1);
   const rightNdcX = (rightCenter.x / 640) * 2 - 1;
   const rightNdcY = -((rightCenter.y / 640) * 2 - 1);
 
-const distanceFactor = clamp(300 / leftDiameter, 0.6, 3.0);
-const rightDistanceFactor = clamp(300 / rightDiameter, 0.6, 3.0);
+  // const distanceFactor = 1 / Math.sqrt(leftDiameter);
+  const rightDistanceFactor = 1 / Math.sqrt(rightDiameter);
 
-  targetLeft.current = {
-    x: leftNdcX * 1.5,
-    y: leftNdcY * 1.2,
-   z: -2.5 + clamp((leftDiameter - 160) / 300, -0.6, 0.4),
-scale: clamp(
-  leftDiameter / 220 * distanceFactor,
-  0.08,
-  1.2
-),
-rot: leftNdcX * Math.PI * 0.35,
-  };
+const REFERENCE_DIAMETER = 220;
+const zOffset = clamp(
+  -2.5 - (REFERENCE_DIAMETER - leftDiameter) * 0.05,
+  -8,
+  -1.5
+);
 
-  targetRight.current = {
-    x: rightNdcX * 1.5,
-    y: rightNdcY * 1.2,
-    z: -2.5,
-scale: clamp(
-  rightDiameter / 220 * rightDistanceFactor,
-  0.08,
-  1.2
-),
 
-rot: rightNdcX * Math.PI * 0.35,
-  };
+targetLeft.current = {
+  x: leftNdcX * 1.5,
+  y: leftNdcY * 1.2,
+  z: zOffset,
+  scale: 0.35,
+  rot: 0,
+};
+
+
+targetRight.current = {
+  x: rightNdcX * 1.5,
+  y: rightNdcY * 1.2,
+  z: zOffset,
+  scale: 0.35,
+  rot: 0,
+};
+
 
   lastDetectionRef.current = Date.now();
   setIsPlaced(true);
@@ -472,7 +483,7 @@ rot: rightNdcX * Math.PI * 0.35,
     y: ndcY * 1.2,
     z: -2.5,
     scale: clamp(diameter / 260, 0.05, 0.4),
-    rot: ndcX * Math.PI * 0.35,
+    rot: 0,
   };
 
   targetRight.current = { ...targetRight.current, scale: 0.001 };
@@ -511,22 +522,13 @@ rot: rightNdcX * Math.PI * 0.35,
         s.rot = lerp(s.rot, t.rot || 0, smoothing);
 
         // final applied scale = baseScale * relativeScale
-        const appliedLeftScale =
-          (baseScaleRef.current || 0.12) * clamp(s.scale, 0.01, 2.0);
+const appliedLeftScale = baseScaleRef.current * 0.35;
+
 
         leftModelRef.current.visible = isPlaced && appliedLeftScale > 0.001;
         leftModelRef.current.position.set(s.x, -s.y, s.z);
         leftModelRef.current.scale.setScalar(appliedLeftScale);
-        leftModelRef.current.rotation.set(0, s.rot, 0);
-
-        const shadow = leftModelRef.current.userData.shadow;
-        if (shadow) {
-          shadow.visible = leftModelRef.current.visible;
-          shadow.position.copy(leftModelRef.current.position);
-          shadow.position.z -= 0.05;
-          shadow.scale.setScalar(leftModelRef.current.scale.x * 1.15);
-        }
-
+        leftModelRef.current.rotation.set(0, 0, s.rot);
       }
 
       // RIGHT model smoothing & apply
@@ -539,33 +541,44 @@ rot: rightNdcX * Math.PI * 0.35,
         s2.scale = lerp(s2.scale, t2.scale, smoothing);
         s2.rot = lerp(s2.rot, t2.rot || 0, smoothing);
 
-        const appliedRightScale =
-          (baseScaleRef.current || 0.12) * clamp(s2.scale, 0.01, 2.0);
+        
+const appliedRightScale = baseScaleRef.current * 0.35;
+
 
         rightModelRef.current.visible = isPlaced && appliedRightScale > 0.001;
         rightModelRef.current.position.set(s2.x, -s2.y, s2.z);
         rightModelRef.current.scale.setScalar(appliedRightScale);
-        rightModelRef.current.rotation.set(0, s2.rot, 0);
-
-        const shadow = rightModelRef.current.userData.shadow;
-        if (shadow) {
-          shadow.visible = rightModelRef.current.visible;
-          shadow.position.copy(rightModelRef.current.position);
-          shadow.position.z -= 0.05;
-          shadow.scale.setScalar(rightModelRef.current.scale.x * 1.15);
-        }
-
+        rightModelRef.current.rotation.set(0, 0, s2.rot);
       }
 
       // render
-      // render to screen
       try {
         const renderer = rendererRef.current;
-        const scene = sceneRef.current;
-        const camera = cameraRef.current;
+
+        // 1️⃣ Render wheel to texture
+          renderer.setRenderTarget(wheelRenderTargetRef.current);
+          renderer.clear();
+          renderer.render(sceneRef.current, cameraRef.current);
+
+          // 2️⃣ Copy pixels
+          const pixels = new Uint8Array(1024 * 1024 * 4);
+          renderer.readRenderTargetPixels(
+            wheelRenderTargetRef.current,
+            0,
+            0,
+            1024,
+            1024,
+            pixels
+          );
+
+      const ctxWheel = wheelCanvasRef.current.getContext("2d");
+      const imageData = ctxWheel.createImageData(1024, 1024);
+      imageData.data.set(pixels);
+      ctxWheel.putImageData(imageData, 0, 0);
+
+      // 3️⃣ Reset back to screen
 
         renderer.setRenderTarget(null);
-        renderer.render(scene, camera); // ✅ THIS WAS MISSING
       } catch (err) {
         console.warn("[AR] render error:", err);
       }
@@ -606,20 +619,13 @@ rot: rightNdcX * Math.PI * 0.35,
 )}
 
 
-<video
-  ref={videoRef}
-  autoPlay
-  playsInline
-  muted
-  style={{
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    zIndex: 1
-  }}
-/>
-
+  <video
+    ref={videoRef}
+    autoPlay
+    playsInline
+    muted
+    style={{ display: "none" }} // 👈 hide it
+  />
 
       <canvas
         ref={debugCanvasRef}
@@ -634,13 +640,7 @@ rot: rightNdcX * Math.PI * 0.35,
 
     <canvas
       ref={threeCanvasRef}
-      style={{
-        position: "absolute",
-        width: "100%",
-        height: "100%",
-        zIndex: 2,
-        pointerEvents: "none"
-      }}
+      style={{ display: "block", opacity: 0.01 }}
     />
 
 

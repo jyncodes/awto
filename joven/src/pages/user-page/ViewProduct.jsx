@@ -26,7 +26,7 @@ const SUPABASE_IMAGE_URL =
 
 const ViewProduct = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
   const location = useLocation();
 
   const {
@@ -295,10 +295,17 @@ const ViewProduct = () => {
     });
   };
 
-  const handleARClick = () => {
-    if (!modelUrl) return alert("⚠ No 3D model found.");
-    navigate(`/ar/basic/${product.id}`, { state: { modelUrl } });
-  };
+const handleARClick = () => {
+  if (!modelUrl) return alert("⚠ No 3D model found.");
+
+  navigate(`/ar/basic/${product.id}`, {
+    state: {
+      modelUrl,
+      wheelDiameter: product.wheelDiameter || 17, // ✅ IMPORTANT
+    },
+  });
+};
+
 
   /* ================================
      EARLY RETURN

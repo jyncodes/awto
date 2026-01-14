@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
-// AR Components
-import ARViewer from "../../components/user-components/ARViewer";
-import ARSmartViewer from "../../components/user-components/ARSmartViewer";
+// ✅ AR Component
+import ARCore from "../../components/user-components/ARCore";
 
 // Navbar
 import Navbar from "../../components/Navbar";
@@ -12,15 +11,16 @@ import Navbar from "../../components/Navbar";
 import "../../styles/user-styles/ARPage.css";
 
 const ARPage = () => {
-  const { mode } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
   // modelUrl passed from ViewProduct.jsx
   const modelUrl = location.state?.modelUrl;
+  const wheelDiameter = location.state?.wheelDiameter;
 
-  // Show instructions initially
+
   const [showGuide, setShowGuide] = useState(true);
+
 
   /* 🔒 Disable scroll & gestures */
   useEffect(() => {
@@ -35,13 +35,14 @@ const ARPage = () => {
     };
   }, []);
 
-  
-
   /* ❌ No model safety */
   if (!modelUrl) {
     return (
-      <div className="ar-page ar-error">
-        <div className="ar-error-box">
+      <div
+        className="ar-page"
+        style={{ color: "white", display: "grid", placeItems: "center" }}
+      >
+        <div style={{ textAlign: "center" }}>
           <p>❌ No 3D model available for AR</p>
           <button onClick={() => navigate(-1)}>Go Back</button>
         </div>
@@ -56,12 +57,32 @@ const ARPage = () => {
         <Navbar />
       </div>
 
-      {/* AR Viewer */}
-        {mode === "smart" ? (
-          <ARSmartViewer key="smart" src={modelUrl} />
-        ) : (
-          <ARViewer key="basic" src={modelUrl} />
-        )}
+      {showGuide && (
+  <div className="ar-guide-overlay">
+    <div className="ar-guide-card">
+      <h3>How to place the object</h3>
+      <ul>
+        <li>Move your phone slowly</li>
+        <li>Point the camera at the ground</li>
+        <li>Tap “View in your space”</li>
+      </ul>
+      <button
+        className="ar-guide-btn"
+        onClick={() => setShowGuide(false)}
+      >
+        Got it
+      </button>
+    </div>
+  </div>
+)}
+
+
+      {/* ✅ ARCore Viewer */}
+    <ARCore
+      src={modelUrl}
+      wheelDiameter={wheelDiameter}
+      onStartAR={() => setShowGuide(false)}
+    />
 
 
       {/* Exit AR Button */}
@@ -70,33 +91,7 @@ const ARPage = () => {
       </button>
 
       {/* Mode Label */}
-      <div className="ar-mode-label">
-        {mode === "smart" ? "Smart AR (Beta)" : "AR Preview"}
-      </div>
-
-      {/* 📘 AR Instructions Overlay */}
-      {showGuide && (
-        <div className="ar-guide-overlay">
-          <div className="ar-guide-card">
-            <h3>How to use AR</h3>
-
-            <ul>
-              <li>📷 Point your camera at your vehicle</li>
-              <li>🎯 Keep it steady until the product appears</li>
-              <li>🤏 Pinch with two fingers to scale</li>
-              <li>🔄 Drag with one finger to rotate</li>
-              <li>📍 Move your phone to reposition</li>
-            </ul>
-
-            <button
-              className="ar-guide-btn"
-              onClick={() => setShowGuide(false)}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
+      <div className="ar-mode-label">AR Preview</div>
     </div>
   );
 };
