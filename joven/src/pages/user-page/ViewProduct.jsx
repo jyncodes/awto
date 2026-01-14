@@ -26,7 +26,7 @@ const SUPABASE_IMAGE_URL =
 
 const ViewProduct = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
   const location = useLocation();
 
   const {
@@ -301,11 +301,11 @@ const handleARClick = () => {
   navigate(`/ar/basic/${product.id}`, {
     state: {
       modelUrl,
-      modelRotation: product.modelRotation || "0deg 0deg 0deg",
-      modelScale: product.modelScale || "1 1 1",
+      wheelDiameter: product.wheelDiameter || 17, // ✅ IMPORTANT
     },
   });
 };
+
 
   /* ================================
      EARLY RETURN

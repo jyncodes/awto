@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 // ✅ AR Component
@@ -16,6 +16,11 @@ const ARPage = () => {
 
   // modelUrl passed from ViewProduct.jsx
   const modelUrl = location.state?.modelUrl;
+  const wheelDiameter = location.state?.wheelDiameter;
+
+
+  const [showGuide, setShowGuide] = useState(true);
+
 
   /* 🔒 Disable scroll & gestures */
   useEffect(() => {
@@ -52,8 +57,33 @@ const ARPage = () => {
         <Navbar />
       </div>
 
+      {showGuide && (
+  <div className="ar-guide-overlay">
+    <div className="ar-guide-card">
+      <h3>How to place the object</h3>
+      <ul>
+        <li>Move your phone slowly</li>
+        <li>Point the camera at the ground</li>
+        <li>Tap “View in your space”</li>
+      </ul>
+      <button
+        className="ar-guide-btn"
+        onClick={() => setShowGuide(false)}
+      >
+        Got it
+      </button>
+    </div>
+  </div>
+)}
+
+
       {/* ✅ ARCore Viewer */}
-      <ARCore src={modelUrl} />
+    <ARCore
+      src={modelUrl}
+      wheelDiameter={wheelDiameter}
+      onStartAR={() => setShowGuide(false)}
+    />
+
 
       {/* Exit AR Button */}
       <button className="ar-exit-btn" onClick={() => navigate(-1)}>
