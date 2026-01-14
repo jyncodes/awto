@@ -8,13 +8,9 @@ const ARCore = ({ src }) => {
       ar
       ar-modes="scene-viewer webxr quick-look"
       camera-controls
-      auto-rotate
       exposure="1"
       shadow-intensity="1"
-      style={{
-        width: "100vw",
-        height: "100vh",
-      }}
+      style={{ width: "100vw", height: "100vh" }}
     />
   );
 };
