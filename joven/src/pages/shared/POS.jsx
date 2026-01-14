@@ -61,6 +61,8 @@ const {
   reservationId
 } = location.state || {};
 
+
+const isCustomerLocked = fromReservation === true;
 const [customerName, setCustomerName] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
@@ -144,7 +146,14 @@ const resolvedName =
 
   name: resolvedName || "Unnamed Product",
 
-      price: Number(item.pricePerItem ?? item.price ?? 0),
+      price: Number(
+        item.price ??
+        item.pricePerItem ??
+        item.sellingPrice ??
+        item.unitPrice ??
+        0
+      ),
+
       qty: Number(item.quantity ?? item.qty ?? 1),
 
       // 🔖 TYPE
@@ -212,7 +221,13 @@ firestoreId: product.firestoreId,
 
       // ✅ REQUIRED BY POSCart
       name: `${product.brand} ${product.model}`,
-      price: Number(product.pricePerItem ?? 0),
+      price: Number(
+        product.price ??
+        product.pricePerItem ??
+        product.sellingPrice ??
+        0
+      ),
+
       qty: 1,
 
       // REQUIRED LOGIC
@@ -339,12 +354,6 @@ const change = paymentMode === "Cash"
   ? Math.max(Number(cashReceived || 0) - computedTotal, 0)
   : 0;
 
-  
-  const sanitizeForFirestore = (obj) => {
-  return JSON.parse(JSON.stringify(obj));
-};
-
-
 
   // ================== CHECKOUT ==================
 const handleCheckout = async () => {
@@ -396,7 +405,8 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
     paymentMode,
     paymentRef: paymentMode === "Cash" ? "" : paymentRef,
     cashReceived: paymentMode === "Cash" ? Number(cashReceived) : 0,
-    createdAt: Timestamp.now(),
+    createdAt: Timestamp.now(), 
+    completedAt: Timestamp.now(),
     createdByName: userData.name,
     createdByRole: userData.role,
     reservationApplied: reservationFeeApplied > 0,
@@ -404,9 +414,10 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
 
 await setDoc(
   doc(db, "sales", formattedSaleId),
-  sanitizeForFirestore(saleData),
+  saleData,
   { merge: false }
 );
+
 
 // ✅ IF SALE CAME FROM RESERVATION → MARK AS COMPLETED
 if (fromReservation && reservationId) {
@@ -553,34 +564,49 @@ if (fromReservation && reservationId) {
       )}
     </div>
 
-      <button
-        className="btn-small primary"
-        onClick={() => {
-          setModalMode("search");
-          setCustomerModalOpen(true);
-        }}
-      >
-        🔍
-      </button>
+<button
+  className="btn-small primary"
+  disabled={isCustomerLocked}
+  title={isCustomerLocked ? "Customer locked from reservation" : ""}
+  onClick={() => {
+    if (!isCustomerLocked) {
+      setModalMode("search");
+      setCustomerModalOpen(true);
+    }
+  }}
+    >
+      🔍
+    </button>
 
-      <button
-        className="btn-small success"
-        onClick={() => {
+    <button
+      className="btn-small success"
+      disabled={isCustomerLocked}
+      title={isCustomerLocked ? "Customer locked from reservation" : ""}
+      onClick={() => {
+        if (!isCustomerLocked) {
           setModalMode("add");
           setCustomerModalOpen(true);
-        }}
-      >
-        ➕
-      </button>
-    </div>
+        }
+      }}
+    >
+      ➕
+    </button>
 
-        {selectedCustomer && (
-      <div className="customer-details">
-        <p><strong>Customer ID:</strong> {selectedCustomer.customerCode}</p>
-        <p><strong>Name:</strong> {selectedCustomer.name}</p>
-        <p><strong>Plate Number:</strong> {selectedCustomer.lastPlateNumber || selectedCustomer.plateNo || "None"}</p>
-      </div>
-    )}
+    </div>
+{selectedCustomer && (
+  <div className="customer-details">
+    <p><strong>Customer ID:</strong> {selectedCustomer.customerCode}</p>
+    <p>
+      <strong>Name:</strong> {selectedCustomer.name}
+      {isCustomerLocked && <span style={{ color: "red", marginLeft: 6 }}>🔒</span>}
+    </p>
+    <p>
+      <strong>Plate Number:</strong> {selectedCustomer.lastPlateNumber || selectedCustomer.plateNo || "None"}
+      {isCustomerLocked && <span style={{ color: "red", marginLeft: 6 }}>🔒</span>}
+    </p>
+  </div>
+)}
+
   </div>
 
 
@@ -625,6 +651,20 @@ if (fromReservation && reservationId) {
               <p><strong>Receipt #:</strong> {lastReceipt?.salesId}</p>
               <p><strong>Customer:</strong> {lastReceipt?.customer.name}</p>
               <hr/> 
+              <p>
+                <strong>Date:</strong>{" "}
+                {lastReceipt?.createdAt?.toDate
+                  ? lastReceipt.createdAt.toDate().toLocaleString("en-PH", {
+                      timeZone: "Asia/Manila",
+                      year: "numeric",
+                      month: "short",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                  : ""}
+              </p>
 
         {lastReceipt?.items.map((i, idx) => (
           <div key={`${i.firestoreId || i.id}-${idx}`}>
@@ -712,6 +752,7 @@ if (fromReservation && reservationId) {
           setModalMode("search");
         }}
         onSelect={(cust) => {
+          if (isCustomerLocked) return;
           setSelectedCustomer(cust);
           setCustomerName(cust.name);
           setCustomerModalOpen(false);

@@ -71,8 +71,8 @@ const Sales = () => {
 
     if (searchDate !== "") {
       list = list.filter((sale) => {
-        if (!sale.createdAt?.toDate) return false;
-        const formatted = sale.createdAt.toDate().toISOString().split("T")[0];
+        if (!sale.completedAt?.toDate) return false;
+        const formatted = sale.completedAt.toDate().toISOString().split("T")[0];
         return formatted === searchDate;
       });
     }
@@ -150,9 +150,7 @@ const Sales = () => {
           style={{ maxWidth: "260px" }}
         />
       </div>
-
-
-
+      
       <div className="sales-table-container">
         <table className="sales-table">
           <thead>
@@ -179,7 +177,20 @@ const Sales = () => {
                     <td>{sale.salesId}</td>
                     <td>{customer.name || "Walk-in"}</td>
                     <td>{customer.plateNo || "—"}</td>
-                    <td>{sale.createdAt?.toDate ? sale.createdAt.toDate().toLocaleDateString() : "—"}</td>
+                    <td>
+                      {sale.completedAt?.toDate
+                        ? sale.completedAt.toDate().toLocaleString("en-PH", {
+                            timeZone: "Asia/Manila",
+                            year: "numeric",
+                            month: "short",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                            hour12: true,
+                          })
+                        : "—"}
+                    </td>
                     <td>₱{(sale.totalAmount || 0).toFixed(2)}</td>
                     <td style={{ textAlign: "center" }}>
                       <button className="view-receipt-btn" onClick={() => openReceipt(sale)}>

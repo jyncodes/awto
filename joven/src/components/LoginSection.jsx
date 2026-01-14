@@ -144,8 +144,8 @@ const LoginSection = ({ onClose, origin }) => {
             </button>
 
             {/* Login Button */}
-            <button type="submit" className="explore-button mt-5" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
+            <button type="submit" className="explore-button mt-5">
+              Login
             </button>
           </form>
 
