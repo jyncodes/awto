@@ -12,18 +12,21 @@ const ARCore = ({ src }) => {
 
   return (
     <div style={{ width: "100%", height: "100vh", position: "relative" }}>
-      <model-viewer
+        <model-viewer
         ref={viewerRef}
         src={src}
         ar
-        ar-modes="scene-viewer webxr quick-look"
+            ar-modes="webxr"
         camera-controls
-        style={{
-          width: "100%",
-          height: "100%",
-          backgroundColor: "#000",
+        orientation="0deg 0deg 90deg"
+        ar-placement="floor"
+        style={{    
+            width: "100%",
+            height: "100%",
+            backgroundColor: "#000",
         }}
-      />
+        />
+
 
       {/* ✅ CUSTOM AR BUTTON */}
       <button
