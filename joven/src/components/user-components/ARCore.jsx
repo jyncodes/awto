@@ -4,12 +4,12 @@ import "../../styles/user-styles/ARCore.css";
 // ARCore component
 // Receives `src` = URL of the .glb 3D model
 // `wheelDiameter` = real-world wheel size (inches)
-const ARCore = ({ src, wheelDiameter = 17, onStartAR }) => {
+const ARCore = ({ src, wheelDiameter = 17 }) => {
 
-  // Convert wheel diameter (inches → meters)
+  // Convert wheel diameter from inches to meters
   const diameterInMeters = wheelDiameter * 0.0254;
 
-  // Assume model was authored at ~1 meter diameter
+  // Assume GLB model was authored at ~1 meter diameter
   const BASE_MODEL_DIAMETER = 1;
 
   // Compute uniform scale
@@ -21,7 +21,6 @@ const ARCore = ({ src, wheelDiameter = 17, onStartAR }) => {
       src={src}
       ar
       ar-modes="scene-viewer webxr quick-look"
-      ar-placement="floor"
       scale={scaleString}
       disable-zoom
       disable-pan
@@ -33,9 +32,9 @@ const ARCore = ({ src, wheelDiameter = 17, onStartAR }) => {
         height: "100vh",
       }}
     >
+      {/* Google Scene Viewer AR button */}
       <button
         slot="ar-button"
-        onClick={onStartAR}
         style={{
           position: "absolute",
           bottom: "90px",
