@@ -78,7 +78,7 @@ const ARPage = () => {
             <h3>How to use AR</h3>
 
             <ul>
-              <li>📷 Point your camera at your vehicle</li>
+              <li>📷 Move your phone slightly to initialize AR</li>
               <li>🎯 Keep it steady until the product appears</li>
               <li>🤏 Pinch with two fingers to scale</li>
               <li>🔄 Drag with one finger to rotate</li>
