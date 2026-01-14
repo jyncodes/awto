@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 
-// ✅ AR Component (SMART)
+// AR Components
+import ARViewer from "../../components/user-components/ARViewer";
 import ARSmartViewer from "../../components/user-components/ARSmartViewer";
 
 // Navbar
@@ -18,16 +19,15 @@ const ARPage = () => {
   // modelUrl passed from ViewProduct.jsx
   const modelUrl = location.state?.modelUrl;
 
-  // Show instructions initially
-  const [showGuide, setShowGuide] = useState(true);
-
   /* 🔒 Disable scroll & gestures */
   useEffect(() => {
     document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
     document.documentElement.style.overflow = "hidden";
 
     return () => {
       document.body.style.overflow = "";
+      document.body.style.touchAction = "";
       document.documentElement.style.overflow = "";
     };
   }, []);
@@ -35,8 +35,8 @@ const ARPage = () => {
   /* ❌ No model safety */
   if (!modelUrl) {
     return (
-      <div className="ar-page ar-error">
-        <div className="ar-error-box">
+      <div className="ar-page" style={{ color: "white", display: "grid", placeItems: "center" }}>
+        <div style={{ textAlign: "center" }}>
           <p>❌ No 3D model available for AR</p>
           <button onClick={() => navigate(-1)}>Go Back</button>
         </div>
@@ -51,8 +51,12 @@ const ARPage = () => {
         <Navbar />
       </div>
 
-      {/* ✅ SMART AR VIEWER */}
-      <ARSmartViewer src={modelUrl} />
+      {/* AR Viewer */}
+      {mode === "smart" ? (
+        <ARSmartViewer src={modelUrl} />
+      ) : (
+        <ARViewer src={modelUrl} />
+      )}
 
       {/* Exit AR Button */}
       <button className="ar-exit-btn" onClick={() => navigate(-1)}>
@@ -63,29 +67,6 @@ const ARPage = () => {
       <div className="ar-mode-label">
         {mode === "smart" ? "Smart AR (Beta)" : "AR Preview"}
       </div>
-
-      {/* 📘 AR Instructions Overlay */}
-      {showGuide && (
-        <div className="ar-guide-overlay">
-          <div className="ar-guide-card">
-            <h3>How to use AR</h3>
-
-            <ul>
-              <li>📷 Point your camera at your vehicle</li>
-              <li>🎯 Keep it steady until the product appears</li>
-              <li>✔ Lock wheels once aligned</li>
-              <li>📱 Enable motion for tilt tracking</li>
-            </ul>
-
-            <button
-              className="ar-guide-btn"
-              onClick={() => setShowGuide(false)}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

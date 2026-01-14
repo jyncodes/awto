@@ -42,6 +42,9 @@ const ARSmartViewer = ({ src }) => {
   const threeCanvasRef = useRef(null);
   const debugCanvasRef = useRef(null);
 
+  const wheelRenderTargetRef = useRef(null);
+  const wheelCanvasRef = useRef(null);
+
   const rendererRef = useRef(null);
   const cameraRef = useRef(null);
   const sceneRef = useRef(null);
@@ -49,9 +52,6 @@ const ARSmartViewer = ({ src }) => {
   const leftModelRef = useRef(null);
   const rightModelRef = useRef(null);
   const baseScaleRef = useRef(1); // store computed base scale
-
-  const detectedRef = useRef(false);
-
 
   const rafRef = useRef(null);
   const lastSentRef = useRef(0);
@@ -71,9 +71,8 @@ const ARSmartViewer = ({ src }) => {
   const targetRight = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
 
   // smoothing states
-const smoothLeft = useRef({ x: 0, y: 0, z: -2.2, scale: 1, rot: 0 });
-const smoothRight = useRef({ x: 0, y: 0, z: -2.2, scale: 1, rot: 0 });
-
+  const smoothLeft = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
+  const smoothRight = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
   const smoothing = 0.18;
 
   /* ---------------- CAMERA ---------------- */
@@ -130,6 +129,16 @@ const smoothRight = useRef({ x: 0, y: 0, z: -2.2, scale: 1, rot: 0 });
     renderer.setSize(window.innerWidth, window.innerHeight);
     rendererRef.current = renderer;
 
+    // 🔹 Render target for wheel replacement
+    wheelRenderTargetRef.current = new THREE.WebGLRenderTarget(1024, 1024, {
+      format: THREE.RGBAFormat,
+      transparent: true,
+    });
+
+    // canvas to extract pixels from render target
+    wheelCanvasRef.current = document.createElement("canvas");
+    wheelCanvasRef.current.width = 1024;
+    wheelCanvasRef.current.height = 1024;
 
 
     const scene = new THREE.Scene();
@@ -166,14 +175,10 @@ const smoothRight = useRef({ x: 0, y: 0, z: -2.2, scale: 1, rot: 0 });
         const m = gltf.scene;
 
           m.traverse(child => {
-          if (child.isMesh && child.material) {
-            child.material.depthWrite = true;
-            child.material.depthTest = true;
-            child.material.metalness = 0.4;
-            child.material.roughness = 0.35;
-            child.material.envMapIntensity = 0.7;
-            child.material.needsUpdate = true;
-          }
+            if (child.isMesh) {
+              child.material.depthWrite = true;
+              child.material.depthTest = true;
+            }
           });
 
         try {
@@ -225,34 +230,11 @@ const smoothRight = useRef({ x: 0, y: 0, z: -2.2, scale: 1, rot: 0 });
         left.visible = false;
         right.visible = false;
 
-        scene.add(left);
-        scene.add(right);
-
         leftModelRef.current = left;
         rightModelRef.current = right;
 
-
-      // === SHADOWS ===
-      const makeShadow = () => {
-        const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(1.1, 64),
-          new THREE.MeshBasicMaterial({
-            color: 0x000000,
-            transparent: true,
-            opacity: 0.35,
-          })
-        );
-        shadow.rotation.x = -Math.PI / 2;
-        shadow.visible = false;
-        return shadow;
-      };
-
-      left.userData.shadow = makeShadow();
-      right.userData.shadow = makeShadow();
-
-      scene.add(left.userData.shadow);
-      scene.add(right.userData.shadow);
-
+        scene.add(left);
+        scene.add(right);
 
         setModelLoaded(true);
         console.log(
@@ -326,6 +308,7 @@ const smoothRight = useRef({ x: 0, y: 0, z: -2.2, scale: 1, rot: 0 });
 
 const applyWheelMask = (video, masks) => {
   const canvas = debugCanvasRef.current;
+  if (!canvas || !video || !wheelCanvasRef.current) return;
 
   const ctx = canvas.getContext("2d");
 
@@ -357,6 +340,7 @@ const applyWheelMask = (video, masks) => {
 
     // 3️⃣ Draw rendered wheel INSIDE the tire
     ctx.drawImage(
+      wheelCanvasRef.current,
       0,
       0,
       canvas.width,
@@ -400,12 +384,12 @@ const applyWheelMask = (video, masks) => {
           const preds = rims;
 
 
-// TEMPORARILY DISABLED — causes invisible output
-// if (tires.length > 0) {
-//   applyWheelMask(video, tires.map(t => t.mask));
-// } else {
-//   applyWheelMask(video, []);
-// }
+          if (tires.length > 0) {
+            applyWheelMask(video, tires.map(t => t.mask));
+          } else {
+            applyWheelMask(video, []);
+          }
+
 
 
         // sort by area (largest first)
@@ -461,8 +445,7 @@ const applyWheelMask = (video, masks) => {
   };
 
   lastDetectionRef.current = Date.now();
-detectedRef.current = true;
-setIsPlaced(true); // UI only
+  setIsPlaced(true);
   setNoWheel(false);
 
         } else if (preds.length === 1 && !isLocked) {
@@ -488,14 +471,11 @@ setIsPlaced(true); // UI only
   setNoWheel(false);
 } else if (!isLocked) {
   if (Date.now() - lastDetectionRef.current > 3000) {
-    detectedRef.current = false;
     setIsPlaced(false);
     setNoWheel(true);
 
     if (leftModelRef.current) leftModelRef.current.visible = false;
     if (rightModelRef.current) rightModelRef.current.visible = false;
-
-    
   }
   
   console.log("Predictions:", json?.predictions?.length);
@@ -520,24 +500,13 @@ setIsPlaced(true); // UI only
         s.rot = lerp(s.rot, t.rot || 0, smoothing);
 
         // final applied scale = baseScale * relativeScale
-const appliedLeftScale =
-  Math.max(0.03, (baseScaleRef.current || 0.12) * s.scale);
+        const appliedLeftScale =
+          (baseScaleRef.current || 0.12) * clamp(s.scale, 0.01, 2.0);
 
-
-leftModelRef.current.visible =
-  detectedRef.current && appliedLeftScale > 0.0001;
+        leftModelRef.current.visible = isPlaced && appliedLeftScale > 0.001;
         leftModelRef.current.position.set(s.x, -s.y, s.z);
         leftModelRef.current.scale.setScalar(appliedLeftScale);
         leftModelRef.current.rotation.set(0, 0, s.rot);
-
-        const shadow = leftModelRef.current.userData.shadow;
-        if (shadow) {
-          shadow.visible = leftModelRef.current.visible;
-          shadow.position.copy(leftModelRef.current.position);
-          shadow.position.z -= 0.05;
-          shadow.scale.setScalar(leftModelRef.current.scale.x * 1.15);
-        }
-
       }
 
       // RIGHT model smoothing & apply
@@ -550,36 +519,43 @@ leftModelRef.current.visible =
         s2.scale = lerp(s2.scale, t2.scale, smoothing);
         s2.rot = lerp(s2.rot, t2.rot || 0, smoothing);
 
-const appliedRightScale =
-  Math.max(0.03, (baseScaleRef.current || 0.12) * s2.scale);
+        const appliedRightScale =
+          (baseScaleRef.current || 0.12) * clamp(s2.scale, 0.01, 2.0);
 
-
-
-rightModelRef.current.visible =
-  detectedRef.current && appliedRightScale > 0.0001;
+        rightModelRef.current.visible = isPlaced && appliedRightScale > 0.001;
         rightModelRef.current.position.set(s2.x, -s2.y, s2.z);
         rightModelRef.current.scale.setScalar(appliedRightScale);
         rightModelRef.current.rotation.set(0, 0, s2.rot);
-
-        const shadow = rightModelRef.current.userData.shadow;
-        if (shadow) {
-          shadow.visible = rightModelRef.current.visible;
-          shadow.position.copy(rightModelRef.current.position);
-          shadow.position.z -= 0.05;
-          shadow.scale.setScalar(rightModelRef.current.scale.x * 1.15);
-        }
-
       }
 
       // render
-      // render to screen
       try {
         const renderer = rendererRef.current;
-        const scene = sceneRef.current;
-        const camera = cameraRef.current;
+
+        // 1️⃣ Render wheel to texture
+          renderer.setRenderTarget(wheelRenderTargetRef.current);
+          renderer.clear();
+          renderer.render(sceneRef.current, cameraRef.current);
+
+          // 2️⃣ Copy pixels
+          const pixels = new Uint8Array(1024 * 1024 * 4);
+          renderer.readRenderTargetPixels(
+            wheelRenderTargetRef.current,
+            0,
+            0,
+            1024,
+            1024,
+            pixels
+          );
+
+      const ctxWheel = wheelCanvasRef.current.getContext("2d");
+      const imageData = ctxWheel.createImageData(1024, 1024);
+      imageData.data.set(pixels);
+      ctxWheel.putImageData(imageData, 0, 0);
+
+      // 3️⃣ Reset back to screen
 
         renderer.setRenderTarget(null);
-        renderer.render(scene, camera); // ✅ THIS WAS MISSING
       } catch (err) {
         console.warn("[AR] render error:", err);
       }
@@ -620,20 +596,13 @@ rightModelRef.current.visible =
 )}
 
 
-<video
-  ref={videoRef}
-  autoPlay
-  playsInline
-  muted
-  style={{
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    zIndex: 1
-  }}
-/>
-
+  <video
+    ref={videoRef}
+    autoPlay
+    playsInline
+    muted
+    style={{ display: "none" }} // 👈 hide it
+  />
 
       <canvas
         ref={debugCanvasRef}
@@ -648,13 +617,7 @@ rightModelRef.current.visible =
 
     <canvas
       ref={threeCanvasRef}
-      style={{
-        position: "absolute",
-        width: "100%",
-        height: "100%",
-        zIndex: 2,
-        pointerEvents: "none"
-      }}
+      style={{ display: "block", opacity: 0.01 }}
     />
 
 
@@ -691,7 +654,7 @@ const msgStyle = {
 
 const msgBottom = {
   position: "absolute",
-  bottom: 15, 
+  bottom: 15,
   width: "100%",
   textAlign: "center",
   color: "white",
