@@ -37,8 +37,8 @@ const ARCore = ({ src, wheelDiameter = 17 }) => {
       interaction-prompt="none"
 
       exposure="1"
-      shadow-intensity="1"
-      shadow-softness="1"
+        shadow-intensity="0"   
+  shadow-softness="0"  
       style={{
         width: "100vw",
         height: "100vh",
