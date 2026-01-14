@@ -5,9 +5,7 @@ const ARCore = ({ src }) => {
   const viewerRef = useRef(null);
 
   const startAR = () => {
-    if (viewerRef.current) {
-      viewerRef.current.activateAR();
-    }
+    viewerRef.current?.activateAR();
   };
 
   return (
@@ -17,7 +15,10 @@ const ARCore = ({ src }) => {
         src={src}
         ar
         ar-modes="scene-viewer webxr quick-look"
+        ar-placement="fixed"
         camera-controls
+        disable-pan
+        scale="0.65 0.65 0.65"
         style={{
           width: "100%",
           height: "100%",
@@ -25,7 +26,6 @@ const ARCore = ({ src }) => {
         }}
       />
 
-      {/* ✅ CUSTOM AR BUTTON */}
       <button
         onClick={startAR}
         style={{
