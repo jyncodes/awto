@@ -295,10 +295,17 @@ const ViewProduct = () => {
     });
   };
 
-  const handleARClick = () => {
-    if (!modelUrl) return alert("⚠ No 3D model found.");
-    navigate(`/ar/basic/${product.id}`, { state: { modelUrl } });
-  };
+const handleARClick = () => {
+  if (!modelUrl) return alert("⚠ No 3D model found.");
+
+  navigate(`/ar/basic/${product.id}`, {
+    state: {
+      modelUrl,
+      modelRotation: product.modelRotation || "0deg 0deg 0deg",
+      modelScale: product.modelScale || "1 1 1",
+    },
+  });
+};
 
   /* ================================
      EARLY RETURN

@@ -18,9 +18,13 @@ const ARPage = () => {
 
   // modelUrl passed from ViewProduct.jsx
   const modelUrl = location.state?.modelUrl;
+  const modelRotation = location.state?.modelRotation;
+const modelScale = location.state?.modelScale;
 
   // Show instructions initially
   const [showGuide, setShowGuide] = useState(true);
+
+  
 
   /* 🔒 Disable scroll & gestures */
   useEffect(() => {
@@ -57,7 +61,11 @@ const ARPage = () => {
       </div>
 
       {/* AR Viewer */}
-      <ARCore src={modelUrl} />
+      <ARCore
+        src={modelUrl}
+        rotation={modelRotation}
+        scale={modelScale}
+      />
 
 
 
