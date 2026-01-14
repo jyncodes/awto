@@ -176,21 +176,29 @@ const Sales = () => {
                   <tr key={sale.id}>
                     <td>{sale.salesId}</td>
                     <td>{customer.name || "Walk-in"}</td>
-                    <td>{customer.plateNo || "—"}</td>
                     <td>
-                      {sale.completedAt?.toDate
-                        ? sale.completedAt.toDate().toLocaleString("en-PH", {
-                            timeZone: "Asia/Manila",
-                            year: "numeric",
-                            month: "short",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit",
-                            hour12: true,
-                          })
-                        : "—"}
-                    </td>
+                    {customer.plateNo ||
+                    customer.lastPlateNumber ||
+                    customer.vehiclePlate ||
+                    "—"}
+                  </td>
+
+                  <td>
+                    {(sale.completedAt || sale.createdAt)?.toDate
+                      ? (sale.completedAt || sale.createdAt).toDate().toLocaleString("en-PH", {
+                          timeZone: "Asia/Manila",
+                          year: "numeric",
+                          month: "short",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                          hour12: true,
+                        })
+                      : "—"}
+                  </td>
+
+
                     <td>₱{(sale.totalAmount || 0).toFixed(2)}</td>
                     <td style={{ textAlign: "center" }}>
                       <button className="view-receipt-btn" onClick={() => openReceipt(sale)}>
@@ -289,7 +297,13 @@ const Sales = () => {
               <h3>Joven Tire Enterprise</h3>
               <p><strong>Receipt #:</strong> {activeReceipt.salesId}</p>
               <p><strong>Customer:</strong> {activeReceipt.customer?.name || "Walk-in"}</p>
-              <p><strong>Plate:</strong> {activeReceipt.customer?.plateNo || "—"}</p>
+              <p>
+              <strong>Plate:</strong>{" "}
+              {activeReceipt.customer?.plateNo ||
+              activeReceipt.customer?.lastPlateNumber ||
+              "—"}
+            </p>
+
               <hr />
 
               {activeReceipt.items?.map((i, idx) => (

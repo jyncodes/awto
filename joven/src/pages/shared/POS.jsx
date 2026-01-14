@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { db, auth } from "../../firebase";
 import { getDocs } from "firebase/firestore";
 
+
 import {
   collection,
   onSnapshot,
@@ -29,6 +30,26 @@ import CustomerModal from "../../components/shared-components/CustomerModal";
 
 const VAT_RATE = 0.12;
 const RESERVATION_FEE = 500;
+
+// 🔒 FIRESTORE SAFE SANITIZER (REQUIRED)
+const sanitizeForFirestore = (obj) => {
+  // ✅ DO NOT TOUCH Firestore Timestamp
+  if (obj instanceof Timestamp) return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirestore);
+  }
+
+  if (obj !== null && typeof obj === "object") {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, sanitizeForFirestore(v)])
+    );
+  }
+
+  return obj;
+};
 
 export default function POS() {
   const navigate = useNavigate();
@@ -70,6 +91,29 @@ const [customerName, setCustomerName] = useState("");
   
 
   const reservationFeeApplied = fromReservation ? RESERVATION_FEE : 0;
+
+  const renderDate = (ts) => {
+  if (!ts) return "";
+  if (typeof ts.toDate === "function") {
+    return ts.toDate().toLocaleString("en-PH", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+
+  // fallback if plain object (seconds)
+  if (ts.seconds) {
+    return new Date(ts.seconds * 1000).toLocaleString("en-PH");
+  }
+
+  return "";
+};
+
 
   // ================== GET USER ROLE ==================
   useEffect(() => {
@@ -168,7 +212,11 @@ const resolvedName =
           : "tires",
 
       // ⚠️ TEMP SAFE STOCK
-      stock: item.type === "product" ? Number(item.quantity ?? 1) : undefined,
+      stock:
+  item.type === "product"
+    ? Number(item.stock ?? item.quantity ?? 0)
+    : 0,
+
 
       // OPTIONAL
       brand: item.brand,
@@ -391,10 +439,26 @@ const formattedSaleId = `SA-${String(nextSaleNumber).padStart(5, "0")}`;
 
 await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
 
+const safeCustomer = selectedCustomer
+  ? {
+      customerCode: selectedCustomer.customerCode || "",
+      name: selectedCustomer.name || customerName,
+      lastPlateNumber:
+        selectedCustomer.lastPlateNumber ||
+        selectedCustomer.plateNo ||
+        "",
+      contact: selectedCustomer.contact || "",
+      uid: selectedCustomer.uid || "",
+    }
+  : {
+      name: customerName,
+      type: "Walk-in",
+    };
+
 
   const saleData = {
     salesId: formattedSaleId,
-    customer: selectedCustomer || { name: customerName, type: "Walk-in" },
+    customer: safeCustomer,
     items: cart,
     subtotal: baseSubtotal,
     vat: baseVAT,
@@ -407,16 +471,22 @@ await setDoc(counterRef, { lastId: nextSaleNumber }, { merge: true });
     cashReceived: paymentMode === "Cash" ? Number(cashReceived) : 0,
     createdAt: Timestamp.now(), 
     completedAt: Timestamp.now(),
-    createdByName: userData.name,
-    createdByRole: userData.role,
+    createdByName: userData?.name || "System",
+  createdByRole: userData?.role || "Staff",
+
     reservationApplied: reservationFeeApplied > 0,
   };
 
+const safeSaleData = sanitizeForFirestore(saleData);
+
+console.log("🔥 FINAL SALE DATA (sanitized):", safeSaleData);
+
 await setDoc(
   doc(db, "sales", formattedSaleId),
-  saleData,
+  safeSaleData,
   { merge: false }
 );
+
 
 
 // ✅ IF SALE CAME FROM RESERVATION → MARK AS COMPLETED
@@ -430,14 +500,21 @@ if (fromReservation && reservationId) {
 
 
     // update product stocks
-    for (const item of cart.filter((i) => i.type === "product")) {
-      await updateDoc(
-        doc(db, item.category === "mags" ? "products_mags" : "products_tires", item.firestoreId),
-        { stock: item.stock - item.qty }
-      );
-    }
+for (const item of cart.filter((i) => i.type === "product")) {
+  const newStock = Math.max(Number(item.stock || 0) - Number(item.qty || 0), 0);
 
-    setLastReceipt({ id: formattedSaleId, ...saleData });
+  await updateDoc(
+    doc(
+      db,
+      item.category === "mags" ? "products_mags" : "products_tires",
+      item.firestoreId
+    ),
+    { stock: newStock }
+  );
+}
+
+
+    setLastReceipt({ id: formattedSaleId, ...safeSaleData });
     setReceiptOpen(true);
 
     // RESET UI
@@ -456,12 +533,9 @@ if (fromReservation && reservationId) {
 };
 
   // ================== PRINT ==================
-  const handlePrint = () => {
-    const win = window.open("", "", "width=600,height=700");
-    win.document.write(receiptRef.current.innerHTML);
-    win.document.close();
-    win.print();
-  };
+const handlePrint = () => {
+  window.print();
+};
 
         // ================== COMPUTE RECEIPT VALUES ==================
     const receiptSubtotal = Number(lastReceipt?.subtotal || 0);
@@ -652,18 +726,7 @@ if (fromReservation && reservationId) {
               <p><strong>Customer:</strong> {lastReceipt?.customer.name}</p>
               <hr/> 
               <p>
-                <strong>Date:</strong>{" "}
-                {lastReceipt?.createdAt?.toDate
-                  ? lastReceipt.createdAt.toDate().toLocaleString("en-PH", {
-                      timeZone: "Asia/Manila",
-                      year: "numeric",
-                      month: "short",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })
-                  : ""}
+                <p><strong>Date:</strong> {renderDate(lastReceipt?.createdAt)}</p>
               </p>
 
         {lastReceipt?.items.map((i, idx) => (

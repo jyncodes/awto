@@ -172,7 +172,13 @@ const handleAddCustomer = async () => {
                   <button
                     key={cust.firestoreId}
                     className="customer-option"
-                    onClick={() => onSelect(cust)}
+                    onClick={() =>
+                      onSelect({
+                        ...cust,
+                        lastPlateNumber: cust.lastPlateNumber || cust.plateNo || "",
+                      })
+                    }
+
                   >
                     <strong>{cust.customerCode} — {cust.name}</strong>
                     <br />
