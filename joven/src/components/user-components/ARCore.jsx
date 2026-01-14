@@ -1,8 +1,7 @@
 import "@google/model-viewer";
 import { useRef } from "react";
 
-const ARCore = ({ src, rotation = "0deg 0deg 0deg",
-  scale = "1 1 1", }) => {
+const ARCore = ({ src }) => {
   const viewerRef = useRef(null);
 
   const startAR = () => {
@@ -19,9 +18,6 @@ const ARCore = ({ src, rotation = "0deg 0deg 0deg",
         ar
         ar-modes="scene-viewer webxr quick-look"
         camera-controls
-          orientation={rotation}
-            scale={scale}
-
         style={{
           width: "100%",
           height: "100%",

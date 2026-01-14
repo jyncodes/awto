@@ -18,13 +18,9 @@ const ARPage = () => {
 
   // modelUrl passed from ViewProduct.jsx
   const modelUrl = location.state?.modelUrl;
-  const modelRotation = location.state?.modelRotation;
-const modelScale = location.state?.modelScale;
 
   // Show instructions initially
   const [showGuide, setShowGuide] = useState(true);
-
-  
 
   /* 🔒 Disable scroll & gestures */
   useEffect(() => {
@@ -61,12 +57,7 @@ const modelScale = location.state?.modelScale;
       </div>
 
       {/* AR Viewer */}
-      <ARCore
-        src={modelUrl}
-        rotation={modelRotation}
-        scale={modelScale}
-      />
-
+        <ARCore src={modelUrl} />
 
 
       {/* Exit AR Button */}
@@ -86,7 +77,7 @@ const modelScale = location.state?.modelScale;
             <h3>How to use AR</h3>
 
             <ul>
-              <li>📷 Move your phone slightly to initialize AR</li>
+              <li>📷 Point your camera at your vehicle</li>
               <li>🎯 Keep it steady until the product appears</li>
               <li>🤏 Pinch with two fingers to scale</li>
               <li>🔄 Drag with one finger to rotate</li>
