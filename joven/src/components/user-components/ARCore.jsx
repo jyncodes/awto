@@ -21,9 +21,21 @@ const ARCore = ({ src, wheelDiameter = 17 }) => {
       src={src}
       ar
       ar-modes="scene-viewer webxr quick-look"
+
       scale={scaleString}
+
+      rotation="0 0 0"
+      orientation="upright"
+
+      ar-scale="fixed"
+      ar-placement="floor"
+
+      auto-rotate={false}
       disable-zoom
       disable-pan
+      disable-tap
+      interaction-prompt="none"
+
       exposure="1"
       shadow-intensity="1"
       shadow-softness="1"
