@@ -25,8 +25,8 @@ const ARCore = ({ src, wheelDiameter = 17 }) => {
       disable-zoom
       disable-pan
       exposure="1"
-        shadow-intensity="0"   
-  shadow-softness="0"  
+      shadow-intensity="1"
+      shadow-softness="1"
       style={{
         width: "100vw",
         height: "100vh",
