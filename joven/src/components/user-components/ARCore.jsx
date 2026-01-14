@@ -19,7 +19,9 @@ const ARCore = ({ src }) => {
             ar-modes="webxr"
         camera-controls
         orientation="0deg 0deg 90deg"
-        ar-placement="floor"
+        interaction-prompt="none"
+        disable-pan={false}
+        disable-zoom={false}
         style={{    
             width: "100%",
             height: "100%",
