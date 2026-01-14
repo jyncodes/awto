@@ -1,9 +1,8 @@
 import React, { useEffect } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
-// AR Components
-import ARViewer from "../../components/user-components/ARViewer";
-import ARSmartViewer from "../../components/user-components/ARSmartViewer";
+// ✅ AR Component
+import ARCore from "../../components/user-components/ARCore";
 
 // Navbar
 import Navbar from "../../components/Navbar";
@@ -12,7 +11,6 @@ import Navbar from "../../components/Navbar";
 import "../../styles/user-styles/ARPage.css";
 
 const ARPage = () => {
-  const { mode } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -35,7 +33,10 @@ const ARPage = () => {
   /* ❌ No model safety */
   if (!modelUrl) {
     return (
-      <div className="ar-page" style={{ color: "white", display: "grid", placeItems: "center" }}>
+      <div
+        className="ar-page"
+        style={{ color: "white", display: "grid", placeItems: "center" }}
+      >
         <div style={{ textAlign: "center" }}>
           <p>❌ No 3D model available for AR</p>
           <button onClick={() => navigate(-1)}>Go Back</button>
@@ -51,12 +52,8 @@ const ARPage = () => {
         <Navbar />
       </div>
 
-      {/* AR Viewer */}
-      {mode === "smart" ? (
-        <ARSmartViewer src={modelUrl} />
-      ) : (
-        <ARViewer src={modelUrl} />
-      )}
+      {/* ✅ ARCore Viewer */}
+      <ARCore src={modelUrl} />
 
       {/* Exit AR Button */}
       <button className="ar-exit-btn" onClick={() => navigate(-1)}>
@@ -64,9 +61,7 @@ const ARPage = () => {
       </button>
 
       {/* Mode Label */}
-      <div className="ar-mode-label">
-        {mode === "smart" ? "Smart AR (Beta)" : "AR Preview"}
-      </div>
+      <div className="ar-mode-label">AR Preview</div>
     </div>
   );
 };
