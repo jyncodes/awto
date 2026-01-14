@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 
-// AR Components
-import ARViewer from "../../components/user-components/ARViewer";
-import ARCore from "../../components/user-components/ARCore";
+// ✅ AR Component (SMART)
+import ARSmartViewer from "../../components/user-components/ARSmartViewer";
 
 // Navbar
 import Navbar from "../../components/Navbar";
@@ -33,8 +32,6 @@ const ARPage = () => {
     };
   }, []);
 
-  
-
   /* ❌ No model safety */
   if (!modelUrl) {
     return (
@@ -54,9 +51,8 @@ const ARPage = () => {
         <Navbar />
       </div>
 
-      {/* AR Viewer */}
-        <ARCore src={modelUrl} />
-
+      {/* ✅ SMART AR VIEWER */}
+      <ARSmartViewer src={modelUrl} />
 
       {/* Exit AR Button */}
       <button className="ar-exit-btn" onClick={() => navigate(-1)}>
@@ -77,9 +73,8 @@ const ARPage = () => {
             <ul>
               <li>📷 Point your camera at your vehicle</li>
               <li>🎯 Keep it steady until the product appears</li>
-              <li>🤏 Pinch with two fingers to scale</li>
-              <li>🔄 Drag with one finger to rotate</li>
-              <li>📍 Move your phone to reposition</li>
+              <li>✔ Lock wheels once aligned</li>
+              <li>📱 Enable motion for tilt tracking</li>
             </ul>
 
             <button
