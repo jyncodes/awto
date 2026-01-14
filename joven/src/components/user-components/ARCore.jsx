@@ -21,7 +21,6 @@ const ARCore = ({ src, wheelDiameter = 17 }) => {
       src={src}
       ar
       ar-modes="scene-viewer webxr quick-look"
-      ar-placement="floor"
       scale={scaleString}
       disable-zoom
       disable-pan
