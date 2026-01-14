@@ -73,7 +73,7 @@ const ARSmartViewer = ({ src }) => {
   // smoothing states
   const smoothLeft = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
   const smoothRight = useRef({ x: 0, y: 0, z: -2.2, scale: 0.12, rot: 0 });
-  const smoothing = 0.18;
+  const smoothing = 0.08;
 
   /* ---------------- CAMERA ---------------- */
   useEffect(() => {
@@ -402,6 +402,7 @@ const applyWheelMask = (video, masks) => {
   const sorted = [...preds].sort(
     (a, b) => getMaskCenter(a.mask).x - getMaskCenter(b.mask).x
   );
+  
 
   const leftDet = sorted[0];
   const rightDet = sorted[1];
@@ -417,32 +418,35 @@ const applyWheelMask = (video, masks) => {
   const rightNdcX = (rightCenter.x / 640) * 2 - 1;
   const rightNdcY = -((rightCenter.y / 640) * 2 - 1);
 
-  const distanceFactor = 1 / Math.sqrt(leftDiameter);
+  // const distanceFactor = 1 / Math.sqrt(leftDiameter);
   const rightDistanceFactor = 1 / Math.sqrt(rightDiameter);
+
+  const REFERENCE_DIAMETER = 220;
+
 
   targetLeft.current = {
     x: leftNdcX * 1.5,
     y: leftNdcY * 1.2,
     z: -2.5,
-    scale: clamp(
-      (leftDiameter * distanceFactor) / 180,
-      0.08,
-      0.6
-    ),
-    rot: 0,
-  };
-
-  targetRight.current = {
-    x: rightNdcX * 1.5,
-    y: rightNdcY * 1.2,
-    z: -2.5,
-    scale: clamp(
-    (rightDiameter * rightDistanceFactor) / 180,
-    0.08,
+ scale: clamp(
+    REFERENCE_DIAMETER / leftDiameter,
+    0.15,
     0.6
   ),
-    rot: 0,
-  };
+  rot: 0,
+};
+
+targetRight.current = {
+  x: rightNdcX * 1.5,
+  y: rightNdcY * 1.2,
+  z: -2.5,
+  scale: clamp(
+    REFERENCE_DIAMETER / rightDiameter,
+    0.15,
+    0.6
+  ),
+  rot: 0,
+};
 
   lastDetectionRef.current = Date.now();
   setIsPlaced(true);
@@ -501,7 +505,7 @@ const applyWheelMask = (video, masks) => {
 
         // final applied scale = baseScale * relativeScale
         const appliedLeftScale =
-          (baseScaleRef.current || 0.12) * clamp(s.scale, 0.01, 2.0);
+(baseScaleRef.current || 0.12) * clamp(s.scale * 1.8, 0.01, 3.0);
 
         leftModelRef.current.visible = isPlaced && appliedLeftScale > 0.001;
         leftModelRef.current.position.set(s.x, -s.y, s.z);
@@ -520,7 +524,7 @@ const applyWheelMask = (video, masks) => {
         s2.rot = lerp(s2.rot, t2.rot || 0, smoothing);
 
         const appliedRightScale =
-          (baseScaleRef.current || 0.12) * clamp(s2.scale, 0.01, 2.0);
+(baseScaleRef.current || 0.12) * clamp(s2.scale * 1.8, 0.01, 3.0);
 
         rightModelRef.current.visible = isPlaced && appliedRightScale > 0.001;
         rightModelRef.current.position.set(s2.x, -s2.y, s2.z);
