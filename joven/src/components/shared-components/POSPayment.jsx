@@ -24,6 +24,24 @@ export default function POSPayment({
   isProcessing
 }) {
 
+  // 🔒 Removes ALL undefined values recursively (Firestore-safe)
+const sanitizeForFirestore = (obj) => {
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirestore);
+  }
+
+  if (obj !== null && typeof obj === "object") {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, sanitizeForFirestore(v)])
+    );
+  }
+
+  return obj;
+};
+
+
   const change = paymentMode === "Cash"
     ? Math.max(Number(cashReceived || 0) - total, 0)
     : 0;

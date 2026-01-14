@@ -172,13 +172,18 @@ const goToPOS = (res) => {
       state: {
         fromReservation: true,
         reservationId: res.id,
-        customer: {
-          name: cust.name || res.userName,
-          phone: cust.contact || "",
-          email: cust.email || res.userEmail,
-          plateNo: res.plateNumber,
-          uid: res.userId,
-        },
+      customer: {
+        customerCode: cust.customerCode || "",
+        name: cust.name || res.userName,
+        contact: cust.contact || "",
+        email: cust.email || res.userEmail,
+        lastPlateNumber:
+          cust.lastPlateNumber ||
+          cust.plateNo ||
+          res.plateNumber ||
+          "",
+        uid: res.userId,
+      },
 
         // ✅ RAW DATA ONLY — NO MAPPING
         reservedItems,
@@ -279,7 +284,10 @@ const goToPOS = (res) => {
             <h2>Reservation Details</h2>
             <p><strong>ID:</strong> {viewModal.id}</p>
             <p><strong>Customer:</strong> {customers[viewModal.userId]?.name}</p>
-            <p><strong>Plate:</strong> {viewModal.plateNumber}</p>
+            <p>
+              <strong>Plate:</strong>{" "}
+              {activeReceipt.customer?.lastPlateNumber || "—"}
+            </p>
             <p><strong>Status:</strong> {normalizeStatus(viewModal.status)}</p>
             <p>
               <strong>Date:</strong>{" "}
