@@ -306,7 +306,7 @@ const ARSmartViewer = ({ src }) => {
     }
   };
 
-const applyWheelMask = (video, masks) => {
+const applyWheelMask = (video, masks, diameter) => {
   const canvas = debugCanvasRef.current;
   if (!canvas || !video || !wheelCanvasRef.current) return;
 
@@ -338,14 +338,27 @@ const applyWheelMask = (video, masks) => {
     ctx.fill();
     ctx.restore();
 
-    // 3️⃣ Draw rendered wheel INSIDE the tire
-    ctx.drawImage(
-      wheelCanvasRef.current,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
+const REFERENCE_DIAMETER = 220;
+const safeDiameter = diameter || REFERENCE_DIAMETER;
+
+const scale2D = clamp(
+  REFERENCE_DIAMETER / safeDiameter,
+  0.6,
+  1.4
+);
+
+
+const drawW = canvas.width * scale2D;
+const drawH = canvas.height * scale2D;
+
+ctx.drawImage(
+  wheelCanvasRef.current,
+  (canvas.width - drawW) / 2,
+  (canvas.height - drawH) / 2,
+  drawW,
+  drawH
+);
+
   });
 };
 
@@ -384,11 +397,6 @@ const applyWheelMask = (video, masks) => {
           const preds = rims;
 
 
-          if (tires.length > 0) {
-            applyWheelMask(video, tires.map(t => t.mask));
-          } else {
-            applyWheelMask(video, []);
-          }
 
 
 
@@ -413,6 +421,17 @@ const applyWheelMask = (video, masks) => {
   const leftDiameter = getMaskDiameter(leftDet.mask);
   const rightDiameter = getMaskDiameter(rightDet.mask);
 
+  if (tires.length > 0) {
+  applyWheelMask(
+    video,
+    tires.map(t => t.mask),
+    leftDiameter
+  );
+} else {
+  applyWheelMask(video, [], leftDiameter);
+}
+
+
   const leftNdcX = (leftCenter.x / 640) * 2 - 1;
   const leftNdcY = -((leftCenter.y / 640) * 2 - 1);
   const rightNdcX = (rightCenter.x / 640) * 2 - 1;
@@ -421,32 +440,31 @@ const applyWheelMask = (video, masks) => {
   // const distanceFactor = 1 / Math.sqrt(leftDiameter);
   const rightDistanceFactor = 1 / Math.sqrt(rightDiameter);
 
-  const REFERENCE_DIAMETER = 220;
+const REFERENCE_DIAMETER = 220;
+const zOffset = clamp(
+  -2.5 - (REFERENCE_DIAMETER - leftDiameter) * 0.05,
+  -8,
+  -1.5
+);
 
 
-  targetLeft.current = {
-    x: leftNdcX * 1.5,
-    y: leftNdcY * 1.2,
-    z: -2.5,
- scale: clamp(
-    REFERENCE_DIAMETER / leftDiameter,
-    0.15,
-    0.6
-  ),
+targetLeft.current = {
+  x: leftNdcX * 1.5,
+  y: leftNdcY * 1.2,
+  z: zOffset,
+  scale: 0.35,
   rot: 0,
 };
+
 
 targetRight.current = {
   x: rightNdcX * 1.5,
   y: rightNdcY * 1.2,
-  z: -2.5,
-  scale: clamp(
-    REFERENCE_DIAMETER / rightDiameter,
-    0.15,
-    0.6
-  ),
+  z: zOffset,
+  scale: 0.35,
   rot: 0,
 };
+
 
   lastDetectionRef.current = Date.now();
   setIsPlaced(true);
@@ -504,8 +522,8 @@ targetRight.current = {
         s.rot = lerp(s.rot, t.rot || 0, smoothing);
 
         // final applied scale = baseScale * relativeScale
-        const appliedLeftScale =
-(baseScaleRef.current || 0.12) * clamp(s.scale * 1.8, 0.01, 3.0);
+const appliedLeftScale = baseScaleRef.current * 0.35;
+
 
         leftModelRef.current.visible = isPlaced && appliedLeftScale > 0.001;
         leftModelRef.current.position.set(s.x, -s.y, s.z);
@@ -523,8 +541,9 @@ targetRight.current = {
         s2.scale = lerp(s2.scale, t2.scale, smoothing);
         s2.rot = lerp(s2.rot, t2.rot || 0, smoothing);
 
-        const appliedRightScale =
-(baseScaleRef.current || 0.12) * clamp(s2.scale * 1.8, 0.01, 3.0);
+        
+const appliedRightScale = baseScaleRef.current * 0.35;
+
 
         rightModelRef.current.visible = isPlaced && appliedRightScale > 0.001;
         rightModelRef.current.position.set(s2.x, -s2.y, s2.z);
