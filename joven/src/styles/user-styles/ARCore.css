@@ -16,7 +16,6 @@ model-viewer {
 
   z-index: 1;
 
-  touch-action: none;
 }
 
 /* Prevent body scroll bleed */
