@@ -57,7 +57,12 @@
   background-color: #fff;
   cursor: pointer;
   transition: all 0.2s ease;
+
+  width: 220px;        /* ✅ FIX */
+  max-width: 100%;
+  flex: 0 0 auto;      /* ✅ IMPORTANT */
 }
+
 
 .inventory-controls .sort-select:hover {
   border-color: #007bff;

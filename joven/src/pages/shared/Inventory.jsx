@@ -75,6 +75,17 @@ const Inventory = ({ role }) => {
     setProducts([...tires, ...mags]);
   }, [tires, mags]);
 
+    const getSearchableSize = (p) => {
+    if (!p) return "";
+    if (p.category === "tires") {
+      return `${p.tireWidth || ""}/${p.aspectRatio || ""}R${p.rimDiameter || ""}`;
+    }
+    if (p.category === "mags") {
+      return `${p.wheelDiameter || ""}x${p.wheelWidth || ""} • ${p.boltPattern || ""}`;
+    }
+    return "";
+  };
+
   const getStockValue = (stock) => {
   const val = Number(stock);
 
