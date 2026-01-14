@@ -179,9 +179,11 @@ const ARSmartViewer = ({ src }) => {
           box.getSize(size);
           const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
-          const REAL_WHEEL_DIAMETER = 0.65; // meters (average tire)
-          let baseScale = REAL_WHEEL_DIAMETER / maxDim;
-
+          // ====== IMPORTANT FIX: normalize to realistic wheel diameter ======
+          // Choose a target diameter in scene units (approx wheel diameter)
+          const TARGET_DIAMETER = 0.8; // adjust if you want larger/smaller wheels
+          let baseScale = TARGET_DIAMETER / maxDim; // exact normalization
+          // keep baseScale in a safe range
           baseScale = clamp(baseScale, 0.01, 1.0);
           baseScaleRef.current = baseScale;
 
@@ -427,32 +429,31 @@ const applyWheelMask = (video, masks) => {
   const rightNdcX = (rightCenter.x / 640) * 2 - 1;
   const rightNdcY = -((rightCenter.y / 640) * 2 - 1);
 
-const distanceFactor = clamp(300 / leftDiameter, 0.6, 3.0);
-const rightDistanceFactor = clamp(300 / rightDiameter, 0.6, 3.0);
+  const distanceFactor = 1 / Math.sqrt(leftDiameter);
+  const rightDistanceFactor = 1 / Math.sqrt(rightDiameter);
 
   targetLeft.current = {
     x: leftNdcX * 1.5,
     y: leftNdcY * 1.2,
-   z: -2.5 + clamp((leftDiameter - 160) / 300, -0.6, 0.4),
-scale: clamp(
-  leftDiameter / 220 * distanceFactor,
-  0.08,
-  1.2
-),
-rot: leftNdcX * Math.PI * 0.35,
+    z: -2.5,
+    scale: clamp(
+      (leftDiameter * distanceFactor) / 180,
+      0.08,
+      0.6
+    ),
+    rot: 0,
   };
 
   targetRight.current = {
     x: rightNdcX * 1.5,
     y: rightNdcY * 1.2,
     z: -2.5,
-scale: clamp(
-  rightDiameter / 220 * rightDistanceFactor,
-  0.08,
-  1.2
-),
-
-rot: rightNdcX * Math.PI * 0.35,
+    scale: clamp(
+    (rightDiameter * rightDistanceFactor) / 180,
+    0.08,
+    0.6
+  ),
+    rot: 0,
   };
 
   lastDetectionRef.current = Date.now();
@@ -472,7 +473,7 @@ rot: rightNdcX * Math.PI * 0.35,
     y: ndcY * 1.2,
     z: -2.5,
     scale: clamp(diameter / 260, 0.05, 0.4),
-    rot: ndcX * Math.PI * 0.35,
+    rot: 0,
   };
 
   targetRight.current = { ...targetRight.current, scale: 0.001 };
@@ -517,7 +518,7 @@ rot: rightNdcX * Math.PI * 0.35,
         leftModelRef.current.visible = isPlaced && appliedLeftScale > 0.001;
         leftModelRef.current.position.set(s.x, -s.y, s.z);
         leftModelRef.current.scale.setScalar(appliedLeftScale);
-        leftModelRef.current.rotation.set(0, s.rot, 0);
+        leftModelRef.current.rotation.set(0, 0, s.rot);
 
         const shadow = leftModelRef.current.userData.shadow;
         if (shadow) {
@@ -545,7 +546,7 @@ rot: rightNdcX * Math.PI * 0.35,
         rightModelRef.current.visible = isPlaced && appliedRightScale > 0.001;
         rightModelRef.current.position.set(s2.x, -s2.y, s2.z);
         rightModelRef.current.scale.setScalar(appliedRightScale);
-        rightModelRef.current.rotation.set(0, s2.rot, 0);
+        rightModelRef.current.rotation.set(0, 0, s2.rot);
 
         const shadow = rightModelRef.current.userData.shadow;
         if (shadow) {
