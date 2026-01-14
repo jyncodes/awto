@@ -75,8 +75,19 @@ const Inventory = ({ role }) => {
     setProducts([...tires, ...mags]);
   }, [tires, mags]);
 
-  // ------------------------ FIXED STATUS LOGIC ------------------------  
-  const getStockValue = (stock) => Number(stock) || 0; // <-- updated
+  const getStockValue = (stock) => {
+  const val = Number(stock);
+
+  // kung NaN, Infinity, undefined, null → gawin 0
+  if (!Number.isFinite(val)) return 0;
+
+  // bawal negative stock
+  if (val < 0) return 0;
+
+  // whole number lang
+  return Math.floor(val);
+};
+
 
   const getStatus = (stock) => {
     const val = getStockValue(stock); // <-- updated
@@ -148,7 +159,8 @@ const Inventory = ({ role }) => {
   };
 
   const handleRestockInput = (e, id, mode) => {
-    const qty = Number(e.target.value || 0);
+  const qty = Math.max(0, Math.floor(Number(e.target.value || 0)));
+
 
     if (mode === "bulk") {
       setBulkRestockList((prev) => prev.map((item) => (item.firestoreId === id ? { ...item, qty } : item)));
@@ -162,7 +174,7 @@ const Inventory = ({ role }) => {
       if (item.qty > 0) {
         const col = item.category === "tires" ? "products_tires" : "products_mags";
         await updateDoc(doc(db, col, item.firestoreId), {
-          stock: getStockValue(item.stock) + item.qty, // <-- updated
+          stock: Math.max(0, getStockValue(item.stock) + item.qty),
           updatedAt: serverTimestamp(),
         });
       }
@@ -176,7 +188,7 @@ const Inventory = ({ role }) => {
       if (item.qty > 0) {
         const col = item.category === "tires" ? "products_tires" : "products_mags";
         await updateDoc(doc(db, col, item.firestoreId), {
-          stock: getStockValue(item.stock) + item.qty, // <-- updated
+          stock: Math.max(0, getStockValue(item.stock) + item.qty),
           updatedAt: serverTimestamp(),
         });
       }
