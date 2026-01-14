@@ -16,12 +16,11 @@ const ARCore = ({ src }) => {
         ref={viewerRef}
         src={src}
         ar
-            ar-modes="webxr"
+        ar-scale
+        ar-modes="webxr"
         camera-controls
-        orientation="0deg 0deg 90deg"
+        orientation="-90deg 0deg 0deg"
         interaction-prompt="none"
-        disable-pan={false}
-        disable-zoom={false}
         style={{    
             width: "100%",
             height: "100%",
