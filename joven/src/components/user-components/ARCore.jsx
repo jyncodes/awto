@@ -11,35 +11,49 @@ const ARCore = ({ src }) => {
   };
 
   return (
-    <div style={{ width: "100%", height: "100vh", position: "relative" }}>
-    <model-viewer
-    src={src}
-    ar
-    ar-modes="scene-viewer webxr quick-look"
-    camera-controls
-    style={{ width: "100vw", height: "100vh" }}
-    />
+    <div style={{ position: "fixed", inset: 0 }}>
+      
+      {/* AR Layer (NO POINTER EVENTS) */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none" }}>
+        <model-viewer
+          ref={viewerRef}
+          src={src}
+          ar
+          ar-modes="scene-viewer webxr quick-look"
+          camera-controls
+          style={{ width: "100vw", height: "100vh" }}
+        />
+      </div>
 
-      <button
-        onClick={startAR}
+      {/* UI Layer (POINTER EVENTS ENABLED) */}
+      <div
         style={{
-          position: "absolute",
-          bottom: 90,
-          left: "50%",
-          transform: "translateX(-50%)",
+          position: "fixed",
+          inset: 0,
+          pointerEvents: "auto",
           zIndex: 9999,
-          padding: "14px 20px",
-          borderRadius: 12,
-          border: "none",
-          background: "#22c55e",
-          color: "#000",
-          fontWeight: 700,
-          fontSize: 16,
-          cursor: "pointer",
         }}
       >
-        📷 View in your space
-      </button>
+        <button
+          onClick={startAR}
+          style={{
+            position: "absolute",
+            bottom: 90,
+            left: "50%",
+            transform: "translateX(-50%)",
+            padding: "14px 20px",
+            borderRadius: 12,
+            border: "none",
+            background: "#22c55e",
+            color: "#000",
+            fontWeight: 700,
+            fontSize: 16,
+            cursor: "pointer",
+          }}
+        >
+          📷 View in your space
+        </button>
+      </div>
     </div>
   );
 };
