@@ -243,7 +243,7 @@ const totalPrice =
               <h4>Pay with PayPal / Card</h4>
 
               <form
-                action={`https://www.paypal.com/ncp/payment/RBE5XPZVG4RRC?return=https://awto.vercel.app/payment-success&cancel_return=https://awto.vercel.app/payment-failed&custom=${tempLockId}`}
+                action={`https://www.paypal.com/ncp/payment/697LZTXD8AL9Q?return=https://awto.vercel.app/payment-success&cancel_return=https://awto.vercel.app/payment-failed&custom=${tempLockId}`}
                 method="post"
                 target="_blank"
                 onSubmit={handlePayClick}
