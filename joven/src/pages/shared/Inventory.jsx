@@ -10,6 +10,8 @@ import {
 } from "firebase/firestore";
 import "../../styles/shared/Inventory.css";
 import Restock from "../../components/admin-components/Restock";
+import Pagination from "./Pagination";
+
 
 const Inventory = ({ role }) => {
   const [tires, setTires] = useState([]);
@@ -311,64 +313,13 @@ const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
         </table>
       </div>
 
-      {totalPages > 1 && (
-  <div
-    style={{
-      marginTop: "20px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      width: "100%",
-    }}
-  >
-
-    {/* LEFT SIDE — Showing text */}
-    <span style={{ fontSize: "14px" }}>
-      Showing {startIndex} to {endIndex} of {filteredProducts.length} results
-    </span>
-
-    {/* RIGHT SIDE — PAGE BUTTONS */}
-    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-
-      {/* PREVIOUS */}
-      <button
-        disabled={page === 1}
-        className="cancel-btn"
-        onClick={() => setPage(page - 1)}
-      >
-        Previous
-      </button>
-
-      {/* PAGE NUMBERS */}
-      {[...Array(totalPages)].map((_, i) => (
-        <button
-          key={i}
-          onClick={() => setPage(i + 1)}
-          className="btn-page"
-          style={{
-            padding: "5px 10px",
-            borderRadius: "6px",
-            background: page === i + 1 ? "#333" : "#fff",
-            color: page === i + 1 ? "#fff" : "#333",
-            border: "1px solid #ccc",
-            cursor: "pointer",
-          }}
-        >
-          {i + 1}
-        </button>
-      ))}
-
-      {/* NEXT */}
-      <button
-        disabled={page === totalPages}
-        className="submit-btn"
-        onClick={() => setPage(page + 1)}
-      >
-        Next
-      </button>
-    </div>
-  </div>
-)}
+      <Pagination
+  totalItems={filteredProducts.length}
+  itemsPerPage={ITEMS_PER_PAGE}
+  currentPage={page}
+  onPageChange={setPage}
+/>
+      
 
 
 
