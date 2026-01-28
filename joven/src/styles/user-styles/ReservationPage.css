@@ -27,7 +27,31 @@
   font-size: 1.8rem;
   font-weight: 800;
   color: #111827;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
+}
+
+/* =========================
+   STATUS FILTER
+========================= */
+.status-filter {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+}
+
+.status-filter select {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #d1d5db;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.status-filter select:focus {
+  outline: none;
+  border-color: #f39c12;
 }
 
 /* =========================
@@ -140,19 +164,72 @@
   gap: 8px;
 }
 
-.price-summary p {
+/* =========================
+   STATUS FILTER (COMPACT)
+========================= */
+.reservation-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;   /* 🔥 space before table */
+}
+
+.reservation-filter label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.reservation-filter select {
+  width: auto;
+  min-width: 160px;      /* slightly shorter */
+  padding: 7px 10px;     /* more compact */
+  border-radius: 10px;
+  border: 1.5px solid #d1d5db;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.reservation-filter select:focus {
+  outline: none;
+  border-color: #f39c12;
+}
+
+.pagination-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 14px;
 }
 
-.price-summary ul {
-  padding-left: 18px;
-  margin: 6px 0;
+.pagination-buttons button {
+  margin: 0 2px;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  border-radius: 4px;
 }
 
-.price-summary li {
-  font-size: 0.9rem;
+.pagination-buttons button.active-page {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
 }
+
+.pagination-buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 
 /* =========================
    ACTION BUTTONS
@@ -160,39 +237,23 @@
 .back-btn {
   background: #151515;
   color: #ffffff;
-
   border: none;
   border-radius: 16px;
   padding: 14px;
-
   font-size: 0.95rem;
   font-weight: 700;
-
   cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.back-btn:hover {
-  opacity: 0.85;
 }
 
 .submit-btn {
   background: #f39c12;
   color: #1a1a1a;
-
   border: none;
   border-radius: 16px;
   padding: 15px;
-
   font-size: 1rem;
   font-weight: 800;
-
   cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.submit-btn:hover {
-  transform: translateY(-2px);
 }
 
 .submit-btn:disabled {
@@ -201,14 +262,7 @@
 }
 
 /* =========================
-   BUTTON LAYOUT
-========================= */
-.back-btn + .submit-btn {
-  margin-top: 12px;
-}
-
-/* =========================
-   TABLET
+   RESPONSIVE
 ========================= */
 @media (max-width: 900px) {
   .vehicle-row {
@@ -216,9 +270,6 @@
   }
 }
 
-/* =========================
-   MOBILE
-========================= */
 @media (max-width: 600px) {
   .reservation-page {
     padding: 100px 14px 40px;
