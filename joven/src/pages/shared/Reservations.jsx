@@ -19,11 +19,14 @@ const Reservations = ({ role }) => {
 
   const [reservations, setReservations] = useState([]);
   const [customers, setCustomers] = useState({});
-  const [activeTab, setActiveTab] = useState("Upcoming");
+  const [activeTab, setActiveTab] = useState("Scheduled");
   const [viewModal, setViewModal] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(8); // Number of rows per page
+
 
   const [receiptOpen, setReceiptOpen] = useState(false);
-const [activeReceipt, setActiveReceipt] = useState(null);
+  const [activeReceipt, setActiveReceipt] = useState(null);
 
 
   /* ===============================
@@ -84,25 +87,44 @@ const [activeReceipt, setActiveReceipt] = useState(null);
   /* ===============================
      TAB FILTERING (CORRECT LOGIC)
   =============================== */
-  const filtered = reservations.filter((r) => {
-    const date = toDate(r.preferredDate);
-    const status = normalizeStatus(r.status);
+const filtered = reservations.filter((r) => {
+  const date = toDate(r.preferredDate);
+  const status = normalizeStatus(r.status);
 
-    if (activeTab === "Upcoming")
-      return status === "Approved" && date > todayStart;
+  
 
-    if (activeTab === "Today")
-      return status === "Approved" && date.getTime() === todayStart.getTime();
+  if (activeTab === "Scheduled")
+    return status === "Approved" && date > todayStart;
 
-    if (activeTab === "In-Service") return status === "In-Service";
+  if (activeTab === "Today’s Appointments")
+    return status === "Approved" && date.getTime() === todayStart.getTime();
 
-    if (activeTab === "Completed") return status === "Completed";
+  if (activeTab === "In Progress") return status === "In-Service";
 
-    if (activeTab === "No-Show")
-      return status !== "Completed" && date < todayStart;
+  if (activeTab === "Completed Services") return status === "Completed";
 
-    return false;
-  });
+  if (activeTab === "Missed Appointments")
+    return status !== "Completed" && date < todayStart;
+
+  return true;
+});
+
+// Reset pagination when tab or filtered data changes
+useEffect(() => {
+  setCurrentPage(1);
+}, [activeTab, filtered.length]);
+
+
+// =======================
+// Pagination Logic
+// =======================
+const indexOfLastItem = currentPage * itemsPerPage;
+const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+const currentItems = filtered.slice(indexOfFirstItem, indexOfLastItem);
+const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+
+
 
   /* ===============================
      ACTIONS
@@ -201,19 +223,20 @@ const goToPOS = (res) => {
       <div className="reservations-container">
         <h1>📅 Reservations</h1>
 
-        <div className="reservation-tabs">
-          {["Upcoming", "Today", "In-Service", "Completed", "No-Show"].map(
-            (t) => (
-              <button
-                key={t}
-                className={activeTab === t ? "tab-btn active" : "tab-btn"}
-                onClick={() => setActiveTab(t)}
-              >
-                {t}
-              </button>
-            )
-          )}
+        <div className="reservation-filter">
+          <label>Status:</label>
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+          >
+            <option value="Scheduled">Scheduled</option>
+            <option value="Today’s Appointments">Today’s Appointments</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed Services">Completed Services</option>
+            <option value="Missed Appointments">Missed Appointments</option>
+          </select>
         </div>
+
 
         <table className="reservation-table">
           <thead>
@@ -226,9 +249,11 @@ const goToPOS = (res) => {
             </tr>
           </thead>
 
+          
+
           <tbody>
-            {filtered.length ? (
-              filtered.map((r) => (
+            {currentItems.length ? (
+              currentItems.map((r) => (
                 <tr key={r.id}>
                   <td>{r.id}</td>
                   <td>{customers[r.userId]?.name || "—"}</td>
@@ -236,18 +261,18 @@ const goToPOS = (res) => {
                   <td>{toDate(r.preferredDate).toLocaleDateString()}</td>
 
                   <td className="actions">
-                <button
-                  className="view-btn"
-                  onClick={() =>
-                    normalizeStatus(r.status) === "Completed"
-                      ? openCompletedReceipt(r)
-                      : setViewModal(r)
-                  }
-                >
-                  👁 View
-                </button>
+                    <button
+                      className="view-btn"
+                      onClick={() =>
+                        normalizeStatus(r.status) === "Completed"
+                          ? openCompletedReceipt(r)
+                          : setViewModal(r)
+                      }
+                    >
+                      👁 View
+                    </button>
 
-                    {activeTab === "Today" && (
+                    {activeTab === "Today’s Appointments" && (
                       <button
                         className="proceed-btn"
                         onClick={() => proceedToService(r)}
@@ -256,11 +281,8 @@ const goToPOS = (res) => {
                       </button>
                     )}
 
-                    {activeTab === "In-Service" && (
-                      <button
-                        className="pay-btn"
-                        onClick={() => goToPOS(r)}
-                      >
+                    {activeTab === "In Progress" && (
+                      <button className="pay-btn" onClick={() => goToPOS(r)}>
                         💳 Pay
                       </button>
                     )}
@@ -275,8 +297,46 @@ const goToPOS = (res) => {
               </tr>
             )}
           </tbody>
+
         </table>
       </div>
+
+      <div className="pagination-wrapper">
+        <p className="pagination-info">
+          Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filtered.length)} of {filtered.length} results
+        </p>
+
+        <div className="pagination-buttons">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+
+          {[...Array(totalPages)].map((_, index) => {
+            const page = index + 1;
+            return (
+              <button
+                key={page}
+                className={page === currentPage ? "active-page" : ""}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+
 
       {viewModal && (
         <div className="reservation-modal">
@@ -288,7 +348,7 @@ const goToPOS = (res) => {
               <strong>Plate:</strong>{" "}
               {activeReceipt.customer?.lastPlateNumber || "—"}
             </p>
-            <p><strong>Status:</strong> {normalizeStatus(viewModal.status)}</p>
+            <p><strong>Status:</strong> {activeTab}</p>
             <p>
               <strong>Date:</strong>{" "}
               {toDate(viewModal.preferredDate).toLocaleString()}
