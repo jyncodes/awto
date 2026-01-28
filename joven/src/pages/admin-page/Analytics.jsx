@@ -31,15 +31,23 @@ const Analytics = () => {
   const navigate = useNavigate();
 
   /* ================= STATE ================= */
+
   const [salesData, setSalesData] = useState([]);
+
   const [chartData, setChartData] = useState([]);
-  const [todaySales, setTodaySales] = useState(0);
-  const [weeklySales, setWeeklySales] = useState(0);
+
+const [dailySales, setDailySales] = useState(0);
+const [weeklySales, setWeeklySales] = useState(0);
+const [monthlySales, setMonthlySales] = useState(0);
+const [yearlySales, setYearlySales] = useState(0);
+
+const [selectedRange, setSelectedRange] = useState("daily");
+
+
 
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [reservations, setReservations] = useState([]);
 
-  const [selectedChart, setSelectedChart] = useState("all");
   const [selectedReservation, setSelectedReservation] = useState(null);
 
   const [selectedDate, setSelectedDate] = useState(null);
@@ -59,48 +67,111 @@ const Analytics = () => {
       })
     : [];
 
+  const filteredChartData = (() => {
+  const grouped = {};
+  const now = new Date();
+
+  chartData.forEach((item) => {
+    const d = new Date(item.date);
+let key;
+
+    if (selectedRange === "daily") {
+      // last 7 days
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(now.getDate() - 6);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      if (d < sevenDaysAgo) return;
+key = d.toISOString().split("T")[0];
+    }
+
+    if (selectedRange === "weekly") {
+      // group by week
+const weekStart = new Date(d);
+weekStart.setDate(d.getDate() - d.getDay());
+key = weekStart.toISOString().split("T")[0];
+    }
+
+    if (selectedRange === "monthly") {
+key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+    }
+
+    if (selectedRange === "yearly") {
+key = d.getFullYear().toString();
+    }
+
+    grouped[key] = (grouped[key] || 0) + item.total;
+  });
+
+return Object.entries(grouped)
+  .map(([date, total]) => ({ date, total }))
+  .sort((a, b) => new Date(a.date) - new Date(b.date));
+})();
+
+
   /* ================= FIRESTORE LISTENERS ================= */
   useEffect(() => {
     // ---------- SALES ----------
-    const qSales = query(collection(db, "sales"), orderBy("createdAt", "desc"));
+const qSales = collection(db, "sales");
+
+
+
     const unsubSales = onSnapshot(qSales, (snapshot) => {
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       setSalesData(data);
 
       const grouped = {};
       data.forEach((s) => {
-        if (!s.createdAt?.seconds) return;
-        const date = new Date(s.createdAt.seconds * 1000).toLocaleDateString();
-        grouped[date] = (grouped[date] || 0) + (s.totalAmount || 0);
+const d = (s.completedAt || s.createdAt)?.seconds
+  ? new Date((s.completedAt || s.createdAt).seconds * 1000)
+  : null;
+
+if (!d) return;
+
+const date = d.toLocaleDateString();
+grouped[date] = (grouped[date] || 0) + (s.totalAmount || 0);
+
       });
 
       setChartData(
         Object.entries(grouped).map(([date, total]) => ({ date, total }))
       );
 
-      const now = new Date();
-      const today = now.toDateString();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
+const now = new Date();
 
-      let todayTotal = 0;
-      let weekTotal = 0;
+const todayStr = now.toDateString();
 
-      data.forEach((sale) => {
-        const total = sale.totalAmount || 0;
-        const d = sale.createdAt?.seconds
-          ? new Date(sale.createdAt.seconds * 1000)
-          : null;
-        if (!d) return;
+const startOfWeek = new Date(now);
+startOfWeek.setDate(now.getDate() - now.getDay());
+startOfWeek.setHours(0, 0, 0, 0);
 
-        if (d.toDateString() === today) todayTotal += total;
-        if (d >= startOfWeek) weekTotal += total;
-      });
+const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-      setTodaySales(todayTotal);
-      setWeeklySales(weekTotal);
-    });
+let dailyTotal = 0;
+let weeklyTotal = 0;
+let monthlyTotal = 0;
+let yearlyTotal = 0;
+
+data.forEach((sale) => {
+  const total = sale.totalAmount || 0;
+const d = (sale.completedAt || sale.createdAt)?.seconds
+  ? new Date((sale.completedAt || sale.createdAt).seconds * 1000)
+  : null;
+
+
+  if (!d) return;
+
+  if (d.toDateString() === todayStr) dailyTotal += total;
+  if (d >= startOfWeek) weeklyTotal += total;
+  if (d >= startOfMonth) monthlyTotal += total;
+  if (d >= startOfYear) yearlyTotal += total;
+});
+
+setDailySales(dailyTotal);
+setWeeklySales(weeklyTotal);
+setMonthlySales(monthlyTotal);
+setYearlySales(yearlyTotal);
+    }); 
 
     // ---------- CLOSED DATES ----------
     const unsubClosed = onSnapshot(collection(db, "closed_dates"), (snapshot) => {
@@ -295,23 +366,56 @@ const Analytics = () => {
       </div>
 
       {/* ================= SALES ================= */}
-      <div className="summary-cards">
-        <div className="summary-card blue">
-          <h3>Today’s Sales</h3>
-          <p>{formatCurrency(todaySales)}</p>
-        </div>
-        <div className="summary-card green">
-          <h3>This Week’s Sales</h3>
-          <p>{formatCurrency(weeklySales)}</p>
-        </div>
-      </div>
+<div className="summary-cards">
+<div
+  className={`summary-card blue ${selectedRange === "daily" ? "active" : ""}`}
+  onClick={() => setSelectedRange("daily")}
+>
+  <h3>Daily Sales</h3>
+  <p>{formatCurrency(dailySales)}</p>
+</div>
+
+<div
+  className={`summary-card green ${selectedRange === "weekly" ? "active" : ""}`}
+  onClick={() => setSelectedRange("weekly")}
+>
+  <h3>Weekly Sales</h3>
+  <p>{formatCurrency(weeklySales)}</p>
+</div>
+
+<div
+  className={`summary-card orange ${selectedRange === "monthly" ? "active" : ""}`}
+  onClick={() => setSelectedRange("monthly")}
+>
+  <h3>Monthly Sales</h3>
+  <p>{formatCurrency(monthlySales)}</p>
+</div>
+
+<div
+  className={`summary-card purple ${selectedRange === "yearly" ? "active" : ""}`}
+  onClick={() => setSelectedRange("yearly")}
+>
+  <h3>Yearly Sales</h3>
+  <p>{formatCurrency(yearlySales)}</p>
+</div>
+
+</div>
+
 
       <div className="chart-card">
         <h2>📊 Sales Trend</h2>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData}>
+        <LineChart data={filteredChartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
+<XAxis
+  dataKey="date"
+  tickFormatter={(v) => {
+    if (selectedRange === "monthly") return new Date(v + "-01").toLocaleString("default", { month: "short", year: "numeric" });
+    if (selectedRange === "yearly") return v;
+    return new Date(v).toLocaleDateString();
+  }}
+/>
+
             <YAxis />
             <Tooltip />
             <Legend />
