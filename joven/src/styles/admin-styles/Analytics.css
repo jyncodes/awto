@@ -60,11 +60,17 @@
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
   text-align: center;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer; /* ✅ clickable */
 }
 
 .summary-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.summary-card.active {
+  outline: 3px solid #0f172a;
+  background-color: #f1f5f9;
 }
 
 .summary-card h3 {
@@ -82,8 +88,17 @@
 .summary-card.blue {
   border-top: 4px solid #2563eb;
 }
+
 .summary-card.green {
   border-top: 4px solid #10b981;
+}
+
+.summary-card.orange {
+  border-top: 4px solid #f59e0b;
+}
+
+.summary-card.purple {
+  border-top: 4px solid #8b5cf6;
 }
 
 /* ===== TABLES ===== */

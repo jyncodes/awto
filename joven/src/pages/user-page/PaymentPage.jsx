@@ -247,6 +247,7 @@ const totalPrice =
                 method="post"
                 target="_blank"
                 onSubmit={handlePayClick}
+                
                 style={{
                   display: "inline-grid",
                   justifyItems: "center",
