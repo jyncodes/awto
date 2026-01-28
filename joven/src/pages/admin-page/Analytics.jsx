@@ -407,15 +407,7 @@ setYearlySales(yearlyTotal);
         <ResponsiveContainer width="100%" height={300}>
         <LineChart data={filteredChartData}>
             <CartesianGrid strokeDasharray="3 3" />
-<XAxis
-  dataKey="date"
-  tickFormatter={(v) => {
-    if (selectedRange === "monthly") return new Date(v + "-01").toLocaleString("default", { month: "short", year: "numeric" });
-    if (selectedRange === "yearly") return v;
-    return new Date(v).toLocaleDateString();
-  }}
-/>
-
+            <XAxis dataKey="date" />
             <YAxis />
             <Tooltip />
             <Legend />

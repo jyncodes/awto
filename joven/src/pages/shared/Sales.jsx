@@ -132,12 +132,21 @@ const Sales = () => {
 
   return (
     <div className="sales-page-container">
-      <div className="sales-header">
-        <h1>Sales Records</h1>
-        <button className="add-sale-btn" onClick={goToPOS}>
-          <FaPlus className="btn-icon" /> Add Sale
-        </button>
-      </div>
+<div className="sales-header">
+  <h1>Sales Records</h1>
+
+  <div className="sales-header-actions">
+    <button className="add-sale-btn" onClick={goToPOS}>
+      <FaPlus className="btn-icon" /> Add Sale
+    </button>
+
+    <button className="add-sale-btn print-btn" onClick={() => window.print()}>
+      Print
+    </button>
+  </div>
+</div>
+
+
 
       {/* SEARCH FILTERS */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
