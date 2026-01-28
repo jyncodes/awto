@@ -725,6 +725,12 @@ const handlePrint = () => {
               <p><strong>Receipt #:</strong> {lastReceipt?.salesId}</p>
               <p><strong>Customer:</strong> {lastReceipt?.customer.name}</p>
               <hr/> 
+              <p><strong>Plate:</strong>{" "}
+                {lastReceipt?.customer?.lastPlateNumber ||
+                lastReceipt?.customer?.plateNo ||
+                "—"}
+</p>
+
               <p>
                 <p><strong>Date:</strong> {renderDate(lastReceipt?.createdAt)}</p>
               </p>

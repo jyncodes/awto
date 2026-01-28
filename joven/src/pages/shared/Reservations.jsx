@@ -9,8 +9,11 @@ import {
   getDocs,
   query,
   where,
-} from "firebase/firestore";
+} from "firebase/firestore";  
+
 import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
+
 import "../../styles/shared/Reservations.css";
 
 const Reservations = ({ role }) => {
@@ -301,6 +304,36 @@ const goToPOS = (res) => {
         </table>
       </div>
 
+{viewModal &&
+  createPortal(
+    <div className="modal-overlay" onClick={() => setViewModal(null)}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <h2>Reservation Details</h2>
+        <p><strong>Reservation ID:</strong> {viewModal.id}</p>
+        <p><strong>Customer Name:</strong> {viewModal.userName}</p>
+        <p><strong>Email:</strong> {viewModal.userEmail}</p>
+        <p><strong>Plate Number:</strong> {viewModal.plateNumber}</p>
+        <p><strong>Vehicle:</strong> {viewModal.vehicleBrand} {viewModal.vehicleModel} ({viewModal.vehicleYear})</p>
+        <p><strong>Product:</strong> {viewModal.productName}</p>
+        <p><strong>Quantity:</strong> {viewModal.quantity}</p>
+        <p><strong>Total Price:</strong> ₱{viewModal.totalPrice}</p>
+        <p><strong>Payment Method:</strong> {viewModal.paymentMethod}</p>
+        <p><strong>Transaction ID:</strong> {viewModal.transactionId}</p>
+        <p><strong>Status:</strong> {viewModal.status}</p>
+        <p><strong>Preferred Date:</strong> {toDate(viewModal.preferredDate).toLocaleString()}</p>
+
+        {viewModal.note && (
+          <p><strong>Note:</strong> {viewModal.note}</p>
+        )}
+
+        <button onClick={() => setViewModal(null)}>Close</button>
+      </div>
+    </div>,
+    document.getElementById("modal-root")
+  )
+}
+
+
       <div className="pagination-wrapper">
         <p className="pagination-info">
           Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filtered.length)} of {filtered.length} results
@@ -338,26 +371,7 @@ const goToPOS = (res) => {
 
 
 
-      {viewModal && (
-        <div className="reservation-modal">
-          <div className="modal-content">
-            <h2>Reservation Details</h2>
-            <p><strong>ID:</strong> {viewModal.id}</p>
-            <p><strong>Customer:</strong> {customers[viewModal.userId]?.name}</p>
-            <p>
-              <strong>Plate:</strong>{" "}
-              {activeReceipt.customer?.lastPlateNumber || "—"}
-            </p>
-            <p><strong>Status:</strong> {activeTab}</p>
-            <p>
-              <strong>Date:</strong>{" "}
-              {toDate(viewModal.preferredDate).toLocaleString()}
-            </p>
 
-            <button onClick={() => setViewModal(null)}>Close</button>
-          </div>
-        </div>
-      )}
 
       {receiptOpen && activeReceipt && (() => {
   let productTotal = 0;

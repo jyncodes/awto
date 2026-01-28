@@ -301,12 +301,20 @@ const Sales = () => {
         const pwdDiscountCalc = isPwd ? serviceBase * 0.20 : 0;
 
         return (
-          <div className="pos-receipt-modal">
+          <div className="pos-receipt-overlay">
             <div ref={receiptRef} className="pos-receipt-box">
               <h3>Joven Tire Enterprise</h3>
               <p><strong>Receipt #:</strong> {activeReceipt.salesId}</p>
               <p><strong>Customer:</strong> {activeReceipt.customer?.name || "Walk-in"}</p>
               <p>
+                <p><strong>Date:</strong>{" "}
+              {(activeReceipt.completedAt || activeReceipt.createdAt)?.toDate
+                ? (activeReceipt.completedAt || activeReceipt.createdAt)
+                    .toDate()
+                    .toLocaleString("en-PH", { timeZone: "Asia/Manila" })
+                : "—"}
+            </p>
+
               <strong>Plate:</strong>{" "}
               {activeReceipt.customer?.plateNo ||
               activeReceipt.customer?.lastPlateNumber ||

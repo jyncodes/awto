@@ -7,7 +7,12 @@
   color: #2c3e50;
   background-color: #ffffff;
   overflow-x: hidden;
+
+  /* ✅ ADD THESE */
+  position: relative;
+  z-index: 10;
 }
+
 
 /* ================= HEADER ================= */
 .sales-header {
@@ -73,6 +78,18 @@
   border-bottom: 1px solid #e2e8f0;
   white-space: nowrap;
 }
+
+.sales-table-container {
+  position: relative;
+  z-index: 11;
+}
+
+.view-receipt-btn {
+  position: relative;
+  z-index: 12;
+  pointer-events: auto;
+}
+
 
 /* ================= ACTION BUTTONS ================= */
 .view-receipt-btn {

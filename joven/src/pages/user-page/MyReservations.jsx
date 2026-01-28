@@ -64,10 +64,6 @@ const MyReservations = () => {
         >
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
-          <option value="upcoming">Upcoming Date</option>
-          <option value="status">Status (A→Z)</option>
-          <option value="price-high">Price: High → Low</option>
-          <option value="price-low">Price: Low → High</option>
         </select>
       </div>
 
@@ -76,25 +72,21 @@ const MyReservations = () => {
       ) : (
         <div className="orders-list">
           {[...reservations]
-            .sort((a, b) => {
-              if (sortOption === "newest")
-                return (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0);
-              if (sortOption === "oldest")
-                return (a.createdAt?.toDate?.() || 0) - (b.createdAt?.toDate?.() || 0);
-              if (sortOption === "upcoming")
-                return (a.preferredDate?.toDate?.() || 0) - (b.preferredDate?.toDate?.() || 0);
-              if (sortOption === "status")
-                return a.status.localeCompare(b.status);
-              if (sortOption === "price-high")
-                return b.totalPrice - a.totalPrice;
-              if (sortOption === "price-low")
-                return a.totalPrice - b.totalPrice;
-              return 0;
+          .sort((a, b) => {
+            const createdA = a.createdAt?.toDate?.() || new Date(0);
+            const createdB = b.createdAt?.toDate?.() || new Date(0);
+
+            if (sortOption === "newest") return createdB - createdA;
+            if (sortOption === "oldest") return createdA - createdB;
+
+            return 0;
+
             })
             .map((res) => (
               <div key={res.id} className="order-card">
                 <p><strong>Reservation ID:</strong> {res.id}</p>
                 <p><strong>Customer:</strong> {res.userName}</p>
+                <p><strong>Date Created:</strong> {formatTimestamp(res.createdAt)}</p>
                 <p><strong>Date Scheduled:</strong> {formatTimestamp(res.preferredDate)}</p>
 
                 <p>
@@ -153,14 +145,26 @@ const MyReservations = () => {
               <h4>Customer Info</h4>
               <p><strong>Name:</strong> {selectedReservation.userName}</p>
               <p><strong>Email:</strong> {selectedReservation.userEmail}</p>
+              <p><strong>Plate Number:</strong> {selectedReservation.plateNumber}</p>
             </div>
 
-            <div className="receipt-section">
-              <h4>Reservation Details</h4>
-              <p><strong>ID:</strong> {selectedReservation.id}</p>
-              <p><strong>Date:</strong> {formatTimestamp(selectedReservation.preferredDate)}</p>
-              <p><strong>Status:</strong> {selectedReservation.status}</p>
-            </div>
+          <div className="receipt-section">
+            <h4>Reservation Details</h4>
+            <p><strong>ID:</strong> {selectedReservation.id}</p>
+            <p><strong>Status:</strong> {selectedReservation.status}</p>
+            <p><strong>Date Created:</strong> {formatTimestamp(selectedReservation.createdAt)}</p>
+            <p><strong>Date Scheduled:</strong> {formatTimestamp(selectedReservation.preferredDate)}</p>
+            <p><strong>Completed At:</strong> {formatTimestamp(selectedReservation.completedAt)}</p>
+            <p><strong>Payment Method:</strong> {selectedReservation.paymentMethod}</p>
+            <p><strong>Transaction ID:</strong> {selectedReservation.transactionId}</p>
+            <p><strong>Product:</strong> {selectedReservation.productName}</p>
+            <p><strong>Quantity:</strong> {selectedReservation.quantity}</p>
+            <p><strong>Price Each:</strong> ₱{selectedReservation.price?.toLocaleString()}</p>
+            <p><strong>Downpayment:</strong> ₱{selectedReservation.downpayment?.toLocaleString()}</p>
+            <p><strong>Total:</strong> ₱{selectedReservation.totalPrice?.toLocaleString()}</p>
+            <p><strong>Note:</strong> {selectedReservation.note}</p>
+          </div>
+
 
             <div className="modal-buttons">
               <button className="close-modal" onClick={() => setShowModal(false)}>

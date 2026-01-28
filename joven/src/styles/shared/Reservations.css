@@ -1,15 +1,4 @@
 /* ===============================
-   GLOBAL FIX (IMPORTANT)
-   Kills stacking context bugs
-=============================== */
-.reservations-container,
-.reservations-container * {
-  transform: none !important;
-  filter: none !important;
-  perspective: none !important;
-}
-
-/* ===============================
    CONTAINER
 =============================== */
 .reservations-container {
@@ -19,7 +8,6 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   font-family: "Poppins", sans-serif;
   position: relative;
-  overflow: visible; /* IMPORTANT */
 }
 
 /* ===============================
@@ -67,7 +55,6 @@
   font-size: 0.95rem;
   background-color: #fafafa;
   border-radius: 8px;
-  overflow: visible; /* IMPORTANT */
 }
 
 .reservation-table th {
@@ -135,49 +122,27 @@
 }
 
 /* ===============================
-   MODAL OVERLAY — FORCE VIEWPORT
+   MODAL OVERLAY (MATCHES CUSTOMERS)
 =============================== */
-.reservation-modal {
-  position: fixed !important;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-
-  background-color: rgba(0,0,0,0.45);
-
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
   display: flex;
   justify-content: center;
   align-items: center;
-
-  z-index: 2147483647; /* MAX SAFE Z-INDEX */
-  isolation: isolate; /* BREAKS STACKING CONTEXT */
+  z-index: 99999;
 }
 
 /* ===============================
    MODAL CONTENT
 =============================== */
 .modal-content {
-  background: #ffffff;
-  padding: 1.8rem;
+  background: white;
+  padding: 1.5rem;
   border-radius: 12px;
-  width: 90%;
   max-width: 450px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-
-  position: relative;
-  animation: modalFade 0.2s ease-out;
-}
-
-@keyframes modalFade {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  width: 90%;
 }
 
 .modal-content h2 {
