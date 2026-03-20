@@ -1,3 +1,4 @@
+// src/components/user-components/Testimonials.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import {
@@ -5,26 +6,39 @@ import {
   query,
   where,
   orderBy,
-  getDocs,
+  onSnapshot,
 } from "firebase/firestore";
 import "../../styles/user-styles/Testimonials.css";
 
 const Testimonials = () => {
   const [testimonials, setTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadTestimonials = async () => {
-      const q = query(
-        collection(db, "testimonials"),
-        where("approved", "==", true),
-        orderBy("createdAt", "desc")
-      );
+    const q = query(
+      collection(db, "testimonials"),
+      where("approved", "==", true),
+      where("isSpam", "==", false),
+      orderBy("createdAt", "desc")
+    );
 
-      const snap = await getDocs(q);
-      setTestimonials(snap.docs.map((d) => d.data()));
-    };
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setTestimonials(list);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error loading testimonials:", error);
+        setLoading(false);
+      }
+    );
 
-    loadTestimonials();
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -36,18 +50,32 @@ const Testimonials = () => {
         </p>
       </div>
 
-      <div className="testimonials-grid">
-        {testimonials.map((t, i) => (
-          <div key={i} className="testimonial-card">
-            <p className="testimonial-message">“{t.message}”</p>
+      {loading ? (
+        <div className="testimonials-loading">Loading testimonials...</div>
+      ) : testimonials.length === 0 ? (
+        <div className="testimonials-empty">
+          No testimonials available yet.
+        </div>
+      ) : (
+        <div className="testimonials-grid">
+          {testimonials.map((t) => (
+            <div key={t.id} className="testimonial-card">
+              <p className="testimonial-message">
+                “{t.message || "No feedback provided."}”
+              </p>
 
-            <div className="testimonial-footer">
-              <span className="testimonial-name">{t.userName}</span>
-              <span className="testimonial-vehicle">{t.vehicle}</span>
+              <div className="testimonial-footer">
+                <span className="testimonial-name">
+                  {t.userName || "Customer"}
+                </span>
+                <span className="testimonial-vehicle">
+                  {t.vehicle || "Vehicle Owner"}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 };
