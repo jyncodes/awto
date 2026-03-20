@@ -350,53 +350,65 @@ const computeTotals = () => {
   let productTotal = 0;
   let serviceTotal = 0;
 
-  // Separate product vs service totals
-cart.forEach(item => {
-  const price = Number(item.price || 0);
-  const qty = Number(item.qty || 0);
+  cart.forEach(item => {
+    const price = Number(item.price || 0);
+    const qty = Number(item.qty || 0);
 
-  if (item.type === "service") {
-    serviceTotal += price * qty;
-  } else {
-    productTotal += price * qty;
-  }
-});
+    if (item.type === "service") {
+      serviceTotal += price * qty;
+    } else {
+      productTotal += price * qty;
+    }
+  });
 
-
-  // VAT calculations
-  const productVat = productTotal - (productTotal / 1.12);
-  const serviceVat = serviceTotal - (serviceTotal / 1.12);
+  // VAT extraction (VAT-inclusive)
+  const productVat = productTotal - productTotal / 1.12;
+  const serviceVat = serviceTotal - serviceTotal / 1.12;
 
   let serviceBase = serviceTotal;
   let pwdDiscount = 0;
 
-  // If PWD/Senior — VAT is removed and 20% applies ONLY to services
   if (customerType === "PWD" || customerType === "Senior") {
-    serviceBase = serviceTotal / 1.12; // Remove VAT from service
-    pwdDiscount = serviceBase * 0.20; // 20% discount only for service
+    serviceBase = serviceTotal / 1.12;      // remove VAT
+    pwdDiscount = serviceBase * 0.20;       // 20% discount
   }
 
   const discountedServiceTotal = serviceBase - pwdDiscount;
 
-  // Final total calculation
   let computedTotal = productTotal + discountedServiceTotal;
 
-  // Negotiated discount still applies last
-  if (isNegotiated && negotiatedDiscount > 0) {
-    computedTotal -= negotiatedDiscount;
-    if (computedTotal < 0) computedTotal = 0;
+  if (fromReservation) {
+    computedTotal -= RESERVATION_FEE;
   }
 
+  if (isNegotiated && negotiatedDiscount > 0) {
+    computedTotal -= negotiatedDiscount;
+  }
+
+  if (computedTotal < 0) computedTotal = 0;
+
   return {
-    baseSubtotal: productTotal + serviceTotal,
-    baseVAT: productVat + (customerType === "Regular" ? serviceVat : 0),
-    computedTotal,
-    pwdDiscount
+    productTotal,
+    serviceTotal,
+    productVat,
+    serviceVat,
+    pwdDiscount,
+    grossTotal: productTotal + serviceTotal,
+    computedTotal
   };
 };
 
 
-const { baseSubtotal, baseVAT, computedTotal, pwdDiscount } = computeTotals();
+
+const {
+  productTotal,
+  serviceTotal,
+  productVat,
+  serviceVat,
+  pwdDiscount,
+  grossTotal,
+  computedTotal
+} = computeTotals();
 
 const change = paymentMode === "Cash" 
   ? Math.max(Number(cashReceived || 0) - computedTotal, 0)
@@ -456,26 +468,36 @@ const safeCustomer = selectedCustomer
     };
 
 
-  const saleData = {
-    salesId: formattedSaleId,
-    customer: safeCustomer,
-    items: cart,
-    subtotal: baseSubtotal,
-    vat: baseVAT,
-    pwdDiscount, 
-    totalAmount: computedTotal,
-    customerType,
-    negotiatedDiscount,
-    paymentMode,
-    paymentRef: paymentMode === "Cash" ? "" : paymentRef,
-    cashReceived: paymentMode === "Cash" ? Number(cashReceived) : 0,
-    createdAt: Timestamp.now(), 
-    completedAt: Timestamp.now(),
-    createdByName: userData?.name || "System",
+const saleData = {
+  salesId: formattedSaleId,
+  customer: safeCustomer,
+  items: cart,
+
+  productTotal,
+  serviceTotal,
+  productVat,
+  serviceVat,
+
+  grossAmount: grossTotal,
+  pwdDiscount,
+  negotiatedDiscount,
+  reservationFee: reservationFeeApplied,
+
+  totalAmount: computedTotal,
+  customerType,
+
+  paymentMode,
+  paymentRef: paymentMode === "Cash" ? "" : paymentRef,
+  cashReceived: paymentMode === "Cash" ? Number(cashReceived) : 0,
+
+  createdAt: Timestamp.now(),
+  completedAt: Timestamp.now(),
+  createdByName: userData?.name || "System",
   createdByRole: userData?.role || "Staff",
 
-    reservationApplied: reservationFeeApplied > 0,
-  };
+  reservationApplied: reservationFeeApplied > 0,
+};
+
 
 const safeSaleData = sanitizeForFirestore(saleData);
 
@@ -537,18 +559,6 @@ const handlePrint = () => {
   window.print();
 };
 
-        // ================== COMPUTE RECEIPT VALUES ==================
-    const receiptSubtotal = Number(lastReceipt?.subtotal || 0);
-    const receiptVAT = Number(lastReceipt?.vat || 0);
-    const receiptPWD = Number(lastReceipt?.pwdDiscount || 0);
-    const receiptNegotiated = Number(lastReceipt?.negotiatedDiscount || 0);
-    const receiptTotal = Number(lastReceipt?.totalAmount || 0);
-    const receiptCash = Number(lastReceipt?.cashReceived || 0);
-
-    const receiptBasePrice = receiptSubtotal / 1.12; // Actual price without VAT
-    const receiptVatAmount = receiptSubtotal - receiptBasePrice; // VAT included in subtotal
-    const isPwdOrSenior =
-      lastReceipt?.customerType === "PWD" || lastReceipt?.customerType === "Senior";
 
   // ================== ⛔ FIXED — CONDITIONAL RETURN MOVED HERE ==================
   if (!role)
@@ -695,27 +705,35 @@ const handlePrint = () => {
       </div>
     </div>
  
-      <POSPayment
-        cart={cart}
-        subtotal={baseSubtotal}
-        vat={baseVAT}
-        total={computedTotal}
-        pwdDiscount={pwdDiscount}
-        paymentMode={paymentMode}
-        setPaymentMode={setPaymentMode}
-        customerType={customerType}
-        setCustomerType={setCustomerType}
-        isNegotiated={isNegotiated}
-        setIsNegotiated={setIsNegotiated}
-        negotiatedDiscount={negotiatedDiscount}
-        setNegotiatedDiscount={setNegotiatedDiscount}
-        cashReceived={cashReceived}
-        setCashReceived={setCashReceived}
-        paymentRef={paymentRef}
-        setPaymentRef={setPaymentRef}
-        handleCheckout={handleCheckout}
-        isProcessing={isProcessing}
-      />
+<POSPayment
+  cart={cart}
+  productTotal={productTotal}
+  serviceTotal={serviceTotal}
+  productVat={productVat}
+  serviceVat={serviceVat}
+  total={computedTotal}
+  pwdDiscount={pwdDiscount}
+  reservationFee={reservationFeeApplied}
+
+  paymentMode={paymentMode}
+  setPaymentMode={setPaymentMode}
+  customerType={customerType}
+  setCustomerType={setCustomerType}
+
+  isNegotiated={isNegotiated}
+  setIsNegotiated={setIsNegotiated}
+  negotiatedDiscount={negotiatedDiscount}
+  setNegotiatedDiscount={setNegotiatedDiscount}
+
+  cashReceived={cashReceived}
+  setCashReceived={setCashReceived}
+  paymentRef={paymentRef}
+  setPaymentRef={setPaymentRef}
+
+  handleCheckout={handleCheckout}
+  isProcessing={isProcessing}
+/>
+
       </div>
 
         {receiptOpen && (
@@ -731,9 +749,8 @@ const handlePrint = () => {
                 "—"}
 </p>
 
-              <p>
-                <p><strong>Date:</strong> {renderDate(lastReceipt?.createdAt)}</p>
-              </p>
+<p><strong>Date:</strong> {renderDate(lastReceipt?.createdAt)}</p>
+
 
         {lastReceipt?.items.map((i, idx) => (
           <div key={`${i.firestoreId || i.id}-${idx}`}>
@@ -744,63 +761,43 @@ const handlePrint = () => {
 
               <hr />
               
-              {/* -------- VAT + Discount Breakdown -------- */}
-        {(() => {
-          let productTotal = 0;
-          let serviceTotal = 0;
+<p><strong>Products Total (VAT-Inclusive):</strong> ₱{lastReceipt.productTotal.toFixed(2)}</p>
+<p><strong>Services Total (VAT-Inclusive):</strong> ₱{lastReceipt.serviceTotal.toFixed(2)}</p>
 
-          // separate product vs services
-          lastReceipt?.items?.forEach(item => {
-            if (item.type === "service") {
-              serviceTotal += item.price * item.qty;
-            } else {
-              productTotal += item.price * item.qty;
-            }
-          });
+<p>VAT (Products): ₱{lastReceipt.productVat.toFixed(2)}</p>
+<p>VAT (Services): ₱{lastReceipt.serviceVat.toFixed(2)}</p>
 
-          const productVat = productTotal - (productTotal / 1.12);
-          const serviceVat = serviceTotal - (serviceTotal / 1.12);
+{(lastReceipt.customerType === "PWD" || lastReceipt.customerType === "Senior") && (
+  <>
+    <p>Less VAT Removed (Service Only): -₱{lastReceipt.serviceVat.toFixed(2)}</p>
+    <p>PWD/Senior Discount (20% Service): -₱{lastReceipt.pwdDiscount.toFixed(2)}</p>
+  </>
+)}
 
-          const isPwdOrSenior = lastReceipt?.customerType === "PWD" || lastReceipt?.customerType === "Senior";
+{lastReceipt.negotiatedDiscount > 0 && (
+  <p>Negotiated Discount: -₱{lastReceipt.negotiatedDiscount.toFixed(2)}</p>
+)}
 
-          const removedVat = isPwdOrSenior ? serviceVat : 0;
-          const serviceBase = isPwdOrSenior ? serviceTotal / 1.12 : serviceTotal;
-          const pwdDiscountCalc = isPwdOrSenior ? serviceBase * 0.20 : 0;
+{lastReceipt.reservationFee > 0 && (
+  <p>Reservation Downpayment: -₱{lastReceipt.reservationFee.toFixed(2)}</p>
+)}
 
-          return (
-            <>
-              <p><strong>Products Total:</strong> ₱{productTotal.toFixed(2)}</p>
-              <p><strong>Services Total:</strong> ₱{serviceTotal.toFixed(2)}</p>
-
-              <p>VAT (Products): ₱{productVat.toFixed(2)}</p>
-              <p>VAT (Services): ₱{serviceVat.toFixed(2)}</p>
-
-              {isPwdOrSenior && (
-                <>
-                  <p>Less VAT Removed (Service Only): -₱{removedVat.toFixed(2)}</p>
-                  <p>PWD/Senior Discount (20% on service): -₱{pwdDiscountCalc.toFixed(2)}</p>
-                </>
-              )}
-
-              {lastReceipt?.negotiatedDiscount > 0 && (
-                <p>Negotiated Discount: -₱{lastReceipt.negotiatedDiscount.toFixed(2)}</p>
-              )}
-            </>
-          );
-        })()}
-
-              <h3>Total: ₱{lastReceipt?.totalAmount?.toFixed(2)}</h3>
+<h3>Total Amount Due: ₱{lastReceipt.totalAmount.toFixed(2)}</h3>
 
 
-            <p>Paid via: {lastReceipt?.paymentMode}</p>
 
-            {lastReceipt?.paymentMode !== "Cash" && (
-            <p>Reference No: {lastReceipt?.paymentRef || "N/A"}</p>
-          )}
+{lastReceipt?.paymentMode === "Cash" && (
+  <>
+    <p>Cash Received: ₱{lastReceipt.cashReceived.toFixed(2)}</p>
+    <p>
+      Change: ₱{Math.max(
+        lastReceipt.cashReceived - lastReceipt.totalAmount,
+        0
+      ).toFixed(2)}
+    </p>
+  </>
+)}
 
-            {lastReceipt?.paymentMode === "Cash" && (
-              <p>Change: ₱{Math.max((lastReceipt?.cashReceived || 0) - lastReceipt?.totalAmount, 0).toFixed(2)}</p>
-            )}
 
             <div className="pos-receipt-actions no-print">
               <button className="btn-submit" onClick={handlePrint}>Print</button>
