@@ -67,25 +67,6 @@ const UserProfile = () => {
       <div className="user-profile-page">
         <main className="profile-content">
 
-          {/* OPTIONAL TAB BUTTONS (if you already have UI for this elsewhere, you can remove) */}
-          {/* 
-          <div className="profile-top-tabs">
-            <button
-              className={activeTab === "myaccount" ? "active" : ""}
-              onClick={() => handleTabSwitch("myaccount")}
-            >
-              My Account
-            </button>
-            <button
-              className={activeTab === "reservations" ? "active" : ""}
-              onClick={() => handleTabSwitch("reservations")}
-            >
-              My Reservations
-            </button>
-            <button onClick={handleLogout}>Logout</button>
-          </div>
-          */}
-
           {/* 🔥 RENDER SEPARATED COMPONENTS */}
           {activeTab === "myaccount" && <MyAccount />}
           {activeTab === "reservations" && <MyReservations />}

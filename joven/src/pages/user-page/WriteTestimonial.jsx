@@ -20,6 +20,13 @@ const WriteTestimonial = () => {
   const [reservation, setReservation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const goToReservations = () => {
+    navigate({
+      pathname: "/profile",
+      search: "?tab=reservations",
+    });
+  };
+
   useEffect(() => {
     const loadReservation = async () => {
       try {
@@ -29,7 +36,7 @@ const WriteTestimonial = () => {
         }
 
         if (!state?.reservationId) {
-          navigate("/user-profile?tab=reservations");
+          goToReservations();
           return;
         }
 
@@ -38,7 +45,7 @@ const WriteTestimonial = () => {
 
         if (!reservationSnap.exists()) {
           alert("Reservation not found.");
-          navigate("/user-profile?tab=reservations");
+          goToReservations();
           return;
         }
 
@@ -49,13 +56,13 @@ const WriteTestimonial = () => {
           reservationData.status !== "Completed"
         ) {
           alert("Unauthorized or invalid reservation.");
-          navigate("/user-profile?tab=reservations");
+          goToReservations();
           return;
         }
 
         if (reservationData.hasTestimonial) {
           alert("You already submitted a testimonial for this reservation.");
-          navigate("/user-profile?tab=reservations");
+          goToReservations();
           return;
         }
 
@@ -66,7 +73,7 @@ const WriteTestimonial = () => {
       } catch (error) {
         console.error("Error loading reservation:", error);
         alert("Failed to load reservation.");
-        navigate("/user-profile?tab=reservations");
+        goToReservations();
       } finally {
         setLoading(false);
       }
@@ -93,11 +100,13 @@ const WriteTestimonial = () => {
         reservationId: reservation.id,
         userId: auth.currentUser.uid,
         userName:
-          reservation.userName ||
           auth.currentUser.displayName ||
+          reservation.userName ||
           auth.currentUser.email ||
           "Customer",
-        vehicle: reservation.vehicle || "Customer Vehicle",
+        vehicle:
+          `${reservation.vehicleBrand || ""} ${reservation.vehicleModel || ""} ${reservation.vehicleYear || ""}`.trim() ||
+          "Customer Vehicle",
         message: message.trim(),
         approved: false,
         createdAt: serverTimestamp(),
@@ -110,7 +119,7 @@ const WriteTestimonial = () => {
       });
 
       alert("Thank you for your feedback!");
-      navigate("/user-profile?tab=reservations");
+      goToReservations();
     } catch (error) {
       console.error("Error submitting testimonial:", error);
       alert("Failed to submit testimonial. Please try again.");

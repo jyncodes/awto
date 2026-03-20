@@ -52,10 +52,46 @@ h2 {
 }
 
 /* ===========================
-   RECEIPT BUTTON
+   ACTION BUTTONS
 =========================== */
+.testimonial-button,
+.feedback-button,
 .receipt-button {
-  margin-top: auto;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+/* Leave Testimonial */
+.testimonial-button {
+  border: 1px solid #f39c12;
+  background: transparent;
+  color: #f39c12;
+}
+
+.testimonial-button:hover {
+  background: #f39c12;
+  color: #fff;
+}
+
+/* View Feedback */
+.feedback-button {
+  border: 1px solid #3498db;
+  background: transparent;
+  color: #3498db;
+}
+
+.feedback-button:hover {
+  background: #3498db;
+  color: #fff;
+}
+
+/* View Receipt */
+.receipt-button {
+  margin-top: 8px;
 }
 
 /* =================================================
@@ -68,7 +104,7 @@ h2 {
   z-index: 9999;
 
   display: flex;
-  justify-content: flex-end; /* RIGHT SIDE PANEL */
+  justify-content: flex-end;
 }
 
 /* =================================================
@@ -98,7 +134,7 @@ h2 {
 }
 
 /* ===========================
-   RECEIPT SECTIONS
+   RECEIPT / FEEDBACK SECTIONS
 =========================== */
 .receipt-section {
   display: flex;
@@ -116,6 +152,21 @@ h2 {
   font-size: 0.95rem;
   line-height: 1.5;
   word-break: break-word;
+}
+
+/* ===========================
+   READ ONLY FEEDBACK FIELD
+=========================== */
+.feedback-textarea {
+  width: 100%;
+  min-height: 140px;
+  resize: none;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  outline: none;
+  box-sizing: border-box;
 }
 
 /* ===========================
@@ -143,19 +194,4 @@ h2 {
     width: 100%;
     padding: 22px 18px;
   }
-}
-.testimonial-button {
-  margin-top: 8px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #f39c12;
-  background: transparent;
-  color: #f39c12;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.testimonial-button:hover {
-  background: #f39c12;
-  color: #fff;
 }
