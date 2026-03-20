@@ -7,10 +7,11 @@ import {
   query,
   where,
   getDocs,
+  doc,
+  getDoc,
 } from "firebase/firestore";
 
 import "../../styles/user-styles/MyReservations.css";
-
 
 const formatTimestamp = (ts) => {
   if (!ts?.toDate) return "N/A";
@@ -21,14 +22,30 @@ const formatTimestamp = (ts) => {
   });
 };
 
+const formatDateTime = (ts) => {
+  if (!ts?.toDate) return "N/A";
+  return ts.toDate().toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
 const MyReservations = () => {
   const [reservations, setReservations] = useState([]);
   const [sortOption, setSortOption] = useState("newest");
-  const [showModal, setShowModal] = useState(false);
+
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
+
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  /* ---------------- FETCH RESERVATIONS ---------------- */
   useEffect(() => {
     const fetchReservations = async () => {
       const user = auth.currentUser;
@@ -51,6 +68,33 @@ const MyReservations = () => {
     fetchReservations();
   }, []);
 
+  const handleViewFeedback = async (reservation) => {
+    try {
+      setFeedbackLoading(true);
+      setSelectedReservation(reservation);
+      setSelectedFeedback(null);
+      setShowFeedbackModal(true);
+
+      const testimonialRef = doc(db, "testimonials", reservation.id);
+      const testimonialSnap = await getDoc(testimonialRef);
+
+      if (!testimonialSnap.exists()) {
+        setSelectedFeedback(null);
+        return;
+      }
+
+      setSelectedFeedback({
+        id: testimonialSnap.id,
+        ...testimonialSnap.data(),
+      });
+    } catch (error) {
+      console.error("Error loading feedback:", error);
+      setSelectedFeedback(null);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
   return (
     <>
       <h2>My Reservations</h2>
@@ -72,15 +116,14 @@ const MyReservations = () => {
       ) : (
         <div className="orders-list">
           {[...reservations]
-          .sort((a, b) => {
-            const createdA = a.createdAt?.toDate?.() || new Date(0);
-            const createdB = b.createdAt?.toDate?.() || new Date(0);
+            .sort((a, b) => {
+              const createdA = a.createdAt?.toDate?.() || new Date(0);
+              const createdB = b.createdAt?.toDate?.() || new Date(0);
 
-            if (sortOption === "newest") return createdB - createdA;
-            if (sortOption === "oldest") return createdA - createdB;
+              if (sortOption === "newest") return createdB - createdA;
+              if (sortOption === "oldest") return createdA - createdB;
 
-            return 0;
-
+              return 0;
             })
             .map((res) => (
               <div key={res.id} className="order-card">
@@ -96,12 +139,14 @@ const MyReservations = () => {
                   </span>
                 </p>
 
-                <p><strong>Total:</strong> ₱{
-                  (res.type === "service"
-                    ? res.totalServicePrice
-                    : res.totalPrice
-                  )?.toLocaleString()
-                }</p>
+                <p>
+                  <strong>Total:</strong> ₱
+                  {(
+                    res.type === "service"
+                      ? res.totalServicePrice
+                      : res.totalPrice
+                  )?.toLocaleString()}
+                </p>
 
                 {res.status === "Completed" && !res.hasTestimonial && (
                   <button
@@ -116,11 +161,20 @@ const MyReservations = () => {
                   </button>
                 )}
 
+                {res.hasTestimonial && (
+                  <button
+                    className="feedback-button"
+                    onClick={() => handleViewFeedback(res)}
+                  >
+                    View Feedback
+                  </button>
+                )}
+
                 <button
                   className="receipt-button"
                   onClick={() => {
                     setSelectedReservation(res);
-                    setShowModal(true);
+                    setShowReceiptModal(true);
                   }}
                 >
                   View Receipt
@@ -130,10 +184,77 @@ const MyReservations = () => {
         </div>
       )}
 
-      {showModal && selectedReservation && (
+      {showFeedbackModal && selectedReservation && (
         <div
           className="reservation-modal-overlay"
-          onClick={() => setShowModal(false)}
+          onClick={() => {
+            setShowFeedbackModal(false);
+            setSelectedFeedback(null);
+          }}
+        >
+          <div
+            className="reservation-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="modal-title">Submitted Feedback</h3>
+
+            {feedbackLoading ? (
+              <p>Loading feedback...</p>
+            ) : selectedFeedback ? (
+              <>
+                <div className="receipt-section">
+                  <h4>Feedback Details</h4>
+                  <p><strong>Reservation ID:</strong> {selectedReservation.id}</p>
+                  <p><strong>Name:</strong> {selectedFeedback.userName || "N/A"}</p>
+                  <p><strong>Vehicle:</strong> {selectedFeedback.vehicle || "N/A"}</p>
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    {selectedFeedback.approved ? "Approved" : "Pending Approval"}
+                  </p>
+                  <p>
+                    <strong>Submitted At:</strong>{" "}
+                    {formatDateTime(selectedFeedback.createdAt)}
+                  </p>
+                </div>
+
+                <div className="receipt-section">
+                  <h4>Message</h4>
+                  <textarea
+                    value={selectedFeedback.message || ""}
+                    readOnly
+                    rows="6"
+                    style={{
+                      width: "100%",
+                      resize: "none",
+                      padding: "10px",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </div>
+              </>
+            ) : (
+              <p>No feedback found for this reservation.</p>
+            )}
+
+            <div className="modal-buttons">
+              <button
+                className="close-modal"
+                onClick={() => {
+                  setShowFeedbackModal(false);
+                  setSelectedFeedback(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReceiptModal && selectedReservation && (
+        <div
+          className="reservation-modal-overlay"
+          onClick={() => setShowReceiptModal(false)}
         >
           <div
             className="reservation-modal"
@@ -148,26 +269,25 @@ const MyReservations = () => {
               <p><strong>Plate Number:</strong> {selectedReservation.plateNumber}</p>
             </div>
 
-          <div className="receipt-section">
-            <h4>Reservation Details</h4>
-            <p><strong>ID:</strong> {selectedReservation.id}</p>
-            <p><strong>Status:</strong> {selectedReservation.status}</p>
-            <p><strong>Date Created:</strong> {formatTimestamp(selectedReservation.createdAt)}</p>
-            <p><strong>Date Scheduled:</strong> {formatTimestamp(selectedReservation.preferredDate)}</p>
-            <p><strong>Completed At:</strong> {formatTimestamp(selectedReservation.completedAt)}</p>
-            <p><strong>Payment Method:</strong> {selectedReservation.paymentMethod}</p>
-            <p><strong>Transaction ID:</strong> {selectedReservation.transactionId}</p>
-            <p><strong>Product:</strong> {selectedReservation.productName}</p>
-            <p><strong>Quantity:</strong> {selectedReservation.quantity}</p>
-            <p><strong>Price Each:</strong> ₱{selectedReservation.price?.toLocaleString()}</p>
-            <p><strong>Downpayment:</strong> ₱{selectedReservation.downpayment?.toLocaleString()}</p>
-            <p><strong>Total:</strong> ₱{selectedReservation.totalPrice?.toLocaleString()}</p>
-            <p><strong>Note:</strong> {selectedReservation.note}</p>
-          </div>
-
+            <div className="receipt-section">
+              <h4>Reservation Details</h4>
+              <p><strong>ID:</strong> {selectedReservation.id}</p>
+              <p><strong>Status:</strong> {selectedReservation.status}</p>
+              <p><strong>Date Created:</strong> {formatTimestamp(selectedReservation.createdAt)}</p>
+              <p><strong>Date Scheduled:</strong> {formatTimestamp(selectedReservation.preferredDate)}</p>
+              <p><strong>Completed At:</strong> {formatTimestamp(selectedReservation.completedAt)}</p>
+              <p><strong>Payment Method:</strong> {selectedReservation.paymentMethod}</p>
+              <p><strong>Transaction ID:</strong> {selectedReservation.transactionId}</p>
+              <p><strong>Product:</strong> {selectedReservation.productName}</p>
+              <p><strong>Quantity:</strong> {selectedReservation.quantity}</p>
+              <p><strong>Price Each:</strong> ₱{selectedReservation.price?.toLocaleString()}</p>
+              <p><strong>Downpayment:</strong> ₱{selectedReservation.downpayment?.toLocaleString()}</p>
+              <p><strong>Total:</strong> ₱{selectedReservation.totalPrice?.toLocaleString()}</p>
+              <p><strong>Note:</strong> {selectedReservation.note}</p>
+            </div>
 
             <div className="modal-buttons">
-              <button className="close-modal" onClick={() => setShowModal(false)}>
+              <button className="close-modal" onClick={() => setShowReceiptModal(false)}>
                 Close
               </button>
             </div>
