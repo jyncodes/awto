@@ -4,10 +4,9 @@ import { auth, db } from "../../firebase";
 import {
   doc,
   getDoc,
-  addDoc,
+  setDoc,
   updateDoc,
   serverTimestamp,
-  collection, // ✅ REQUIRED
 } from "firebase/firestore";
 
 import "../../styles/user-styles/WriteTestimonial.css";
@@ -21,9 +20,6 @@ const WriteTestimonial = () => {
   const [reservation, setReservation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  /* =========================
-     LOAD & VALIDATE RESERVATION
-  ========================= */
   useEffect(() => {
     const loadReservation = async () => {
       try {
@@ -37,63 +33,86 @@ const WriteTestimonial = () => {
           return;
         }
 
-        const ref = doc(db, "reservations", state.reservationId);
-        const snap = await getDoc(ref);
+        const reservationRef = doc(db, "reservations", state.reservationId);
+        const reservationSnap = await getDoc(reservationRef);
 
-        if (
-          !snap.exists() ||
-          snap.data().userId !== auth.currentUser.uid ||
-          snap.data().status !== "Completed"
-        ) {
-          alert("Unauthorized or invalid reservation");
+        if (!reservationSnap.exists()) {
+          alert("Reservation not found.");
           navigate("/user-profile?tab=reservations");
           return;
         }
 
-        setReservation({ id: snap.id, ...snap.data() });
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        alert("Failed to load reservation");
+        const reservationData = reservationSnap.data();
+
+        if (
+          reservationData.userId !== auth.currentUser.uid ||
+          reservationData.status !== "Completed"
+        ) {
+          alert("Unauthorized or invalid reservation.");
+          navigate("/user-profile?tab=reservations");
+          return;
+        }
+
+        if (reservationData.hasTestimonial) {
+          alert("You already submitted a testimonial for this reservation.");
+          navigate("/user-profile?tab=reservations");
+          return;
+        }
+
+        setReservation({
+          id: reservationSnap.id,
+          ...reservationData,
+        });
+      } catch (error) {
+        console.error("Error loading reservation:", error);
+        alert("Failed to load reservation.");
         navigate("/user-profile?tab=reservations");
+      } finally {
+        setLoading(false);
       }
     };
 
     loadReservation();
   }, [state, navigate]);
 
-  /* =========================
-     SUBMIT TESTIMONIAL
-  ========================= */
   const submitTestimonial = async () => {
     if (!message.trim()) {
       alert("Please write your testimonial.");
       return;
     }
 
-    if (!reservation) return;
+    if (!reservation || !auth.currentUser) return;
 
     setSubmitting(true);
 
     try {
-      await addDoc(collection(db, "testimonials"), {
+      const testimonialRef = doc(db, "testimonials", reservation.id);
+
+      await setDoc(testimonialRef, {
+        testimonialId: reservation.id,
         reservationId: reservation.id,
         userId: auth.currentUser.uid,
-        userName: reservation.userName,
+        userName:
+          reservation.userName ||
+          auth.currentUser.displayName ||
+          auth.currentUser.email ||
+          "Customer",
         vehicle: reservation.vehicle || "Customer Vehicle",
         message: message.trim(),
+        approved: false,
         createdAt: serverTimestamp(),
-        approved: true, // ✅ AUTO APPROVE
+        updatedAt: serverTimestamp(),
       });
 
       await updateDoc(doc(db, "reservations", reservation.id), {
         hasTestimonial: true,
+        updatedAt: serverTimestamp(),
       });
 
       alert("Thank you for your feedback!");
-      navigate("/");
-    } catch (err) {
-      console.error(err);
+      navigate("/user-profile?tab=reservations");
+    } catch (error) {
+      console.error("Error submitting testimonial:", error);
       alert("Failed to submit testimonial. Please try again.");
     } finally {
       setSubmitting(false);
@@ -116,7 +135,10 @@ const WriteTestimonial = () => {
         disabled={submitting}
       />
 
-      <button onClick={submitTestimonial} disabled={submitting}>
+      <button
+        onClick={submitTestimonial}
+        disabled={submitting || !message.trim()}
+      >
         {submitting ? "Submitting..." : "Submit"}
       </button>
     </div>
