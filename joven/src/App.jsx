@@ -17,6 +17,7 @@ import ServicesPage from "./pages/user-page/ServicesPage";
 import Terms from "./pages/user-page/Terms";
 
 // Admin Pages
+// Admin Pages
 import AdminDashboard from './pages/admin-page/AdminDashboard';
 import AdminSales from './pages/admin-page/AdminSales';
 import AdminInventory from './pages/admin-page/AdminInventory';
@@ -26,6 +27,8 @@ import AdminCustomers from './pages/admin-page/Customers';
 import AdminSettings from './pages/admin-page/Settings';
 import Analytics from './pages/admin-page/Analytics';
 import AdminSuppliers from './pages/admin-page/Supplier';
+import TestimonialPage from './pages/admin-page/TestimonialPage';
+
 
 // POS PAGE (SHARED)
 import POS from "./pages/shared/POS";
@@ -252,8 +255,8 @@ export default function App() {
           <Route path="suppliers" element={<AdminSuppliers />} />
           <Route path="reservations" element={<AdminReservations />} />
           <Route path="customers" element={<AdminCustomers />} />
+          <Route path="testimonials" element={<TestimonialPage />} />
           <Route path="settings" element={<AdminSettings />} />
-
         </Route>
 
         {/* ================= POS ROUTES ================= */}

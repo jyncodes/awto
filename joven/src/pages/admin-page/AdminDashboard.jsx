@@ -25,6 +25,10 @@ const AdminDashboard = () => {
     { path: 'products', label: 'Products' },
     { path: 'customers', label: 'Customers' },
     { path: 'reservations', label: 'Reservations' },
+
+    // ✅ ADDED ONLY (NEW TAB)
+    { path: 'testimonials', label: 'Testimonials' },
+
     { path: 'settings', label: 'Settings' },
   ];
 
